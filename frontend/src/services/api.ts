@@ -211,6 +211,15 @@ class ApiService {
     return response.data;
   }
 
+  async createChallenge(challengeData: {
+    title: string;
+    description: string;
+    points: number;
+  }) {
+    const response = await this.axiosInstance.post('/admin/create-challenge', challengeData);
+    return response.data;
+  }
+
   // Seed
   async seedData() {
     const response = await this.axiosInstance.post('/seed');

@@ -45,7 +45,14 @@ interface Video {
   is_daily: boolean;
 }
 
-type TabType = 'stats' | 'users' | 'events' | 'videos' | 'notifications';
+interface Challenge {
+  id: string;
+  title: string;
+  description: string;
+  points: number;
+}
+
+type TabType = 'stats' | 'users' | 'events' | 'videos' | 'challenges' | 'notifications';
 
 export default function AdminPanel() {
   const insets = useSafeAreaInsets();
@@ -61,13 +68,16 @@ export default function AdminPanel() {
   const [users, setUsers] = useState<User[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [videos, setVideos] = useState<Video[]>([]);
+  const [challenges, setChallenges] = useState<Challenge[]>([]);
   
   // Modals
   const [showEventModal, setShowEventModal] = useState(false);
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [showRoleModal, setShowRoleModal] = useState(false);
+  const [showChallengeModal, setShowChallengeModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   
   // Form states
   const [eventForm, setEventForm] = useState({
@@ -93,6 +103,12 @@ export default function AdminPanel() {
     body: '',
   });
 
+  const [challengeForm, setChallengeForm] = useState({
+    title: '',
+    description: '',
+    points: '',
+  });
+
   // Check admin access - only redirect after auth is loaded
   useEffect(() => {
     if (!authLoading && (!user || user.role !== 'admin')) {
@@ -108,16 +124,18 @@ export default function AdminPanel() {
     
     setIsLoading(true);
     try {
-      const [statsData, usersData, eventsData, videosData] = await Promise.all([
+      const [statsData, usersData, eventsData, videosData, challengesData] = await Promise.all([
         api.getAdminStats(),
         api.getAllUsers(),
         api.getEvents(),
         api.getVideos(),
+        api.getChallenges(),
       ]);
       setStats(statsData);
       setUsers(usersData);
       setEvents(eventsData);
       setVideos(videosData);
+      setChallenges(challengesData);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -275,11 +293,72 @@ export default function AdminPanel() {
     });
   };
 
+  const handleCreateChallenge = async () => {
+    if (!challengeForm.title || !challengeForm.description) {
+      showAlert('Hata', 'Lütfen gerekli alanları doldurun');
+      return;
+    }
+    
+    try {
+      await api.createChallenge({
+        title: challengeForm.title,
+        description: challengeForm.description,
+        points: parseInt(challengeForm.points) || 10,
+      });
+      showAlert('Başarılı', 'Challenge oluşturuldu');
+      setShowChallengeModal(false);
+      setChallengeForm({ title: '', description: '', points: '' });
+      fetchData();
+    } catch (error: any) {
+      showAlert('Hata', error.response?.data?.detail || 'Challenge oluşturulamadı');
+    }
+  };
+
+  const handleEditEvent = (event: Event) => {
+    setEditingEvent(event);
+    setEventForm({
+      title: event.title,
+      description: '',
+      city: event.city,
+      location: '',
+      date: event.date.split('T')[0],
+      capacity: event.capacity.toString(),
+      price: event.price.toString(),
+      image_url: '',
+    });
+    setShowEventModal(true);
+  };
+
+  const handleUpdateEvent = async () => {
+    if (!editingEvent) return;
+    
+    try {
+      await api.updateEvent(editingEvent.id, {
+        title: eventForm.title,
+        description: eventForm.description || eventForm.title,
+        city: eventForm.city,
+        location: eventForm.location || eventForm.city,
+        date: new Date(eventForm.date).toISOString(),
+        capacity: parseInt(eventForm.capacity) || 100,
+        price: parseFloat(eventForm.price) || 0,
+        image_url: eventForm.image_url || undefined,
+      });
+      showAlert('Başarılı', 'Etkinlik güncellendi');
+      setShowEventModal(false);
+      setEditingEvent(null);
+      setEventForm({ title: '', description: '', city: 'Istanbul', location: '', date: '', capacity: '', price: '', image_url: '' });
+      fetchData();
+    } catch (error: any) {
+      showAlert('Hata', error.response?.data?.detail || 'Etkinlik güncellenemedi');
+    }
+  };
+
   const tabs: { id: TabType; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
     { id: 'stats', label: 'İstatistikler', icon: 'stats-chart' },
     { id: 'users', label: 'Kullanıcılar', icon: 'people' },
     { id: 'events', label: 'Etkinlikler', icon: 'calendar' },
     { id: 'videos', label: 'Videolar', icon: 'videocam' },
+    { id: 'challenges', label: 'Challenges', icon: 'flash' },
     { id: 'notifications', label: 'Bildirimler', icon: 'notifications' },
   ];
 
@@ -355,7 +434,11 @@ export default function AdminPanel() {
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Etkinlikler ({events.length})</Text>
-        <TouchableOpacity style={styles.addBtn} onPress={() => setShowEventModal(true)}>
+        <TouchableOpacity style={styles.addBtn} onPress={() => {
+          setEditingEvent(null);
+          setEventForm({ title: '', description: '', city: 'Istanbul', location: '', date: '', capacity: '', price: '', image_url: '' });
+          setShowEventModal(true);
+        }}>
           <Ionicons name="add" size={24} color="#fff" />
         </TouchableOpacity>
       </View>
@@ -366,9 +449,14 @@ export default function AdminPanel() {
             <Text style={styles.listItemSubtitle}>{event.city} • ₺{event.price}</Text>
             <Text style={styles.listItemMeta}>{event.tickets_sold}/{event.capacity} bilet satıldı</Text>
           </View>
-          <TouchableOpacity style={styles.actionBtn} onPress={() => handleDeleteEvent(event.id)}>
-            <Ionicons name="trash" size={20} color="#f44336" />
-          </TouchableOpacity>
+          <View style={styles.listItemActions}>
+            <TouchableOpacity style={styles.actionBtn} onPress={() => handleEditEvent(event)}>
+              <Ionicons name="pencil" size={20} color="#2196F3" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.actionBtn} onPress={() => handleDeleteEvent(event.id)}>
+              <Ionicons name="trash" size={20} color="#f44336" />
+            </TouchableOpacity>
+          </View>
         </View>
       ))}
     </View>
@@ -402,6 +490,28 @@ export default function AdminPanel() {
           <TouchableOpacity style={styles.actionBtn} onPress={() => handleDeleteVideo(video.id)}>
             <Ionicons name="trash" size={20} color="#f44336" />
           </TouchableOpacity>
+        </View>
+      ))}
+    </View>
+  );
+
+  const renderChallenges = () => (
+    <View style={styles.section}>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Challenges ({challenges.length})</Text>
+        <TouchableOpacity style={styles.addBtn} onPress={() => setShowChallengeModal(true)}>
+          <Ionicons name="add" size={24} color="#fff" />
+        </TouchableOpacity>
+      </View>
+      {challenges.map((challenge) => (
+        <View key={challenge.id} style={styles.listItem}>
+          <View style={styles.listItemInfo}>
+            <Text style={styles.listItemTitle}>{challenge.title}</Text>
+            <Text style={styles.listItemSubtitle}>{challenge.description}</Text>
+            <View style={styles.pointsBadge}>
+              <Text style={styles.pointsText}>+{challenge.points} puan</Text>
+            </View>
+          </View>
         </View>
       ))}
     </View>
@@ -489,6 +599,7 @@ export default function AdminPanel() {
             {activeTab === 'users' && renderUsers()}
             {activeTab === 'events' && renderEvents()}
             {activeTab === 'videos' && renderVideos()}
+            {activeTab === 'challenges' && renderChallenges()}
             {activeTab === 'notifications' && renderNotifications()}
           </>
         )}
@@ -499,7 +610,7 @@ export default function AdminPanel() {
       <Modal visible={showEventModal} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Yeni Etkinlik</Text>
+            <Text style={styles.modalTitle}>{editingEvent ? 'Etkinlik Düzenle' : 'Yeni Etkinlik'}</Text>
             <ScrollView style={styles.modalScroll}>
               <TextInput
                 style={styles.input}
@@ -562,11 +673,14 @@ export default function AdminPanel() {
               />
             </ScrollView>
             <View style={styles.modalButtons}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowEventModal(false)}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => {
+                setShowEventModal(false);
+                setEditingEvent(null);
+              }}>
                 <Text style={styles.cancelBtnText}>İptal</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.saveBtn} onPress={handleCreateEvent}>
-                <Text style={styles.saveBtnText}>Oluştur</Text>
+              <TouchableOpacity style={styles.saveBtn} onPress={editingEvent ? handleUpdateEvent : handleCreateEvent}>
+                <Text style={styles.saveBtnText}>{editingEvent ? 'Güncelle' : 'Oluştur'}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -680,6 +794,47 @@ export default function AdminPanel() {
             <TouchableOpacity style={styles.cancelBtnFull} onPress={() => setShowRoleModal(false)}>
               <Text style={styles.cancelBtnText}>İptal</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Challenge Modal */}
+      <Modal visible={showChallengeModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Yeni Challenge</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Challenge Başlığı"
+              placeholderTextColor="#666"
+              value={challengeForm.title}
+              onChangeText={(t) => setChallengeForm({ ...challengeForm, title: t })}
+            />
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              placeholder="Açıklama"
+              placeholderTextColor="#666"
+              value={challengeForm.description}
+              onChangeText={(t) => setChallengeForm({ ...challengeForm, description: t })}
+              multiline
+              numberOfLines={3}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Puan"
+              placeholderTextColor="#666"
+              value={challengeForm.points}
+              onChangeText={(t) => setChallengeForm({ ...challengeForm, points: t })}
+              keyboardType="numeric"
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowChallengeModal(false)}>
+                <Text style={styles.cancelBtnText}>İptal</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.saveBtn} onPress={handleCreateChallenge}>
+                <Text style={styles.saveBtnText}>Oluştur</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -843,6 +998,19 @@ const styles = StyleSheet.create({
   },
   roleText: {
     color: '#4CAF50',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  pointsBadge: {
+    backgroundColor: 'rgba(255,193,7,0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    marginTop: 4,
+  },
+  pointsText: {
+    color: '#FFC107',
     fontSize: 11,
     fontWeight: '600',
   },
