@@ -278,6 +278,11 @@ class ApiService {
     firebase_storage_bucket?: string;
     firebase_messaging_sender_id?: string;
     firebase_app_id?: string;
+    firebase_server_key?: string;
+    firebase_service_account_json?: string;
+    sendgrid_api_key?: string;
+    sendgrid_from_email?: string;
+    sendgrid_from_name?: string;
     postgres_host?: string;
     postgres_port?: string;
     postgres_db?: string;

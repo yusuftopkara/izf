@@ -68,6 +68,14 @@ interface SettingsData {
     storage_bucket: string;
     messaging_sender_id: string;
     app_id: string;
+    server_key: string;
+    service_account_json: string;
+  };
+  sendgrid: {
+    api_key: string;
+    from_email: string;
+    from_name: string;
+    is_active: boolean;
   };
   postgres: {
     host: string;
@@ -754,6 +762,11 @@ export default function AdminPanel() {
     firebase_storage_bucket: '',
     firebase_messaging_sender_id: '',
     firebase_app_id: '',
+    firebase_server_key: '',
+    firebase_service_account_json: '',
+    sendgrid_api_key: '',
+    sendgrid_from_email: '',
+    sendgrid_from_name: 'IZF Zumba',
     postgres_host: '',
     postgres_port: '5432',
     postgres_db: '',
@@ -774,6 +787,11 @@ export default function AdminPanel() {
         firebase_storage_bucket: settings.firebase?.storage_bucket || '',
         firebase_messaging_sender_id: settings.firebase?.messaging_sender_id || '',
         firebase_app_id: settings.firebase?.app_id || '',
+        firebase_server_key: settings.firebase?.server_key || '',
+        firebase_service_account_json: settings.firebase?.service_account_json || '',
+        sendgrid_api_key: settings.sendgrid?.api_key || '',
+        sendgrid_from_email: settings.sendgrid?.from_email || '',
+        sendgrid_from_name: settings.sendgrid?.from_name || 'IZF Zumba',
         postgres_host: settings.postgres?.host || '',
         postgres_port: settings.postgres?.port || '5432',
         postgres_db: settings.postgres?.database || '',
@@ -892,6 +910,64 @@ export default function AdminPanel() {
           placeholderTextColor="#666"
           value={settingsForm.firebase_app_id}
           onChangeText={(t) => setSettingsForm({...settingsForm, firebase_app_id: t})}
+        />
+        <Text style={styles.settingsSubLabel}>Push Notification için:</Text>
+        <TextInput
+          style={styles.settingsInput}
+          placeholder="Server Key (FCM)"
+          placeholderTextColor="#666"
+          value={settingsForm.firebase_server_key}
+          onChangeText={(t) => setSettingsForm({...settingsForm, firebase_server_key: t})}
+          secureTextEntry
+        />
+        <TextInput
+          style={[styles.settingsInput, {height: 100, textAlignVertical: 'top'}]}
+          placeholder="Service Account JSON (tüm JSON içeriğini yapıştırın)"
+          placeholderTextColor="#666"
+          value={settingsForm.firebase_service_account_json}
+          onChangeText={(t) => setSettingsForm({...settingsForm, firebase_service_account_json: t})}
+          multiline
+          numberOfLines={4}
+        />
+      </View>
+
+      {/* SendGrid Settings */}
+      <View style={styles.settingsCard}>
+        <View style={styles.settingsCardHeader}>
+          <Ionicons name="mail" size={24} color="#1A82E2" />
+          <Text style={styles.settingsCardTitle}>SendGrid E-posta</Text>
+          {settings?.sendgrid?.is_active ? (
+            <View style={styles.statusBadgeActive}>
+              <Text style={styles.statusText}>Aktif</Text>
+            </View>
+          ) : (
+            <View style={styles.statusBadgeInactive}>
+              <Text style={styles.statusText}>Yapılandırılmadı</Text>
+            </View>
+          )}
+        </View>
+        <TextInput
+          style={styles.settingsInput}
+          placeholder="SendGrid API Key"
+          placeholderTextColor="#666"
+          value={settingsForm.sendgrid_api_key}
+          onChangeText={(t) => setSettingsForm({...settingsForm, sendgrid_api_key: t})}
+          secureTextEntry
+        />
+        <TextInput
+          style={styles.settingsInput}
+          placeholder="Gönderen E-posta Adresi"
+          placeholderTextColor="#666"
+          value={settingsForm.sendgrid_from_email}
+          onChangeText={(t) => setSettingsForm({...settingsForm, sendgrid_from_email: t})}
+          keyboardType="email-address"
+        />
+        <TextInput
+          style={styles.settingsInput}
+          placeholder="Gönderen Adı (örn: IZF Zumba)"
+          placeholderTextColor="#666"
+          value={settingsForm.sendgrid_from_name}
+          onChangeText={(t) => setSettingsForm({...settingsForm, sendgrid_from_name: t})}
         />
       </View>
 
@@ -1670,6 +1746,13 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
+  },
+  settingsSubLabel: {
+    color: '#FF6B6B',
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 8,
+    marginBottom: 8,
   },
   saveSettingsBtn: {
     borderRadius: 12,
