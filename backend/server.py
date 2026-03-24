@@ -755,6 +755,60 @@ async def send_notification(notification: NotificationCreate, user: dict = Depen
     await db.notifications.insert_one(notif)
     return {"success": True, "notification_id": notif_id}
 
+class AdvancedNotificationRequest(BaseModel):
+    title: str
+    body: str
+    type: str  # 'push', 'email', 'both'
+    user_id: Optional[str] = None
+
+@api_router.post("/admin/notifications/advanced")
+async def send_advanced_notification(notification: AdvancedNotificationRequest, user: dict = Depends(require_admin)):
+    """Send notification with type selection (push, email, or both)"""
+    notif_id = str(uuid.uuid4())
+    
+    # Get target users
+    if notification.user_id:
+        target_users = [await db.users.find_one({"id": notification.user_id})]
+    else:
+        target_users = await db.users.find().to_list(1000)
+    
+    target_users = [u for u in target_users if u]  # Filter None
+    
+    results = {
+        "push_sent": 0,
+        "email_sent": 0,
+        "total_targets": len(target_users)
+    }
+    
+    # Store notification
+    notif = {
+        "id": notif_id,
+        "title": notification.title,
+        "body": notification.body,
+        "type": notification.type,
+        "user_id": notification.user_id,
+        "read_by": [],
+        "created_at": datetime.utcnow()
+    }
+    await db.notifications.insert_one(notif)
+    
+    # MOCK: In production, integrate with Firebase/SendGrid
+    if notification.type in ['push', 'both']:
+        # TODO: Send push via Firebase Cloud Messaging
+        results["push_sent"] = len(target_users)
+        results["push_status"] = "mocked - Firebase integration required"
+    
+    if notification.type in ['email', 'both']:
+        # TODO: Send email via SendGrid/SES
+        results["email_sent"] = len(target_users)
+        results["email_status"] = "mocked - Email integration required"
+    
+    return {
+        "success": True, 
+        "notification_id": notif_id,
+        "results": results
+    }
+
 @api_router.post("/admin/create-challenge", response_model=ChallengeResponse)
 async def create_challenge(challenge_data: ChallengeCreate, user: dict = Depends(require_admin)):
     challenge_id = str(uuid.uuid4())

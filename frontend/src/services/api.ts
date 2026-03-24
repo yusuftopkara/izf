@@ -147,6 +147,16 @@ class ApiService {
     return response.data;
   }
 
+  async sendNotificationAdvanced(data: {
+    title: string;
+    body: string;
+    type: 'push' | 'email' | 'both';
+    user_id?: string;
+  }) {
+    const response = await this.axiosInstance.post('/admin/notifications/advanced', data);
+    return response.data;
+  }
+
   async getAllUsers() {
     const response = await this.axiosInstance.get('/admin/users');
     return response.data;

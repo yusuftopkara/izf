@@ -128,6 +128,9 @@ export default function AdminPanel() {
   const [notificationForm, setNotificationForm] = useState({
     title: '',
     body: '',
+    type: 'push' as 'push' | 'email' | 'both',
+    targetAll: true,
+    targetUserId: '',
   });
 
   const [challengeForm, setChallengeForm] = useState({
@@ -291,12 +294,24 @@ export default function AdminPanel() {
       showAlert('Hata', 'Lütfen başlık ve içerik girin');
       return;
     }
+
+    if (!notificationForm.targetAll && !notificationForm.targetUserId) {
+      showAlert('Hata', 'Lütfen bir kullanıcı seçin');
+      return;
+    }
     
     try {
-      await api.sendNotification(notificationForm.title, notificationForm.body);
-      showAlert('Başarılı', 'Bildirim gönderildi');
-      setShowNotificationModal(false);
-      setNotificationForm({ title: '', body: '' });
+      await api.sendNotificationAdvanced({
+        title: notificationForm.title,
+        body: notificationForm.body,
+        type: notificationForm.type,
+        user_id: notificationForm.targetAll ? undefined : notificationForm.targetUserId,
+      });
+      
+      const typeText = notificationForm.type === 'email' ? 'E-posta' : 
+                       notificationForm.type === 'both' ? 'Push + E-posta' : 'Push bildirim';
+      showAlert('Başarılı', `${typeText} gönderildi`);
+      setNotificationForm({ title: '', body: '', type: 'push', targetAll: true, targetUserId: '' });
     } catch (error) {
       showAlert('Hata', 'Bildirim gönderilemedi');
     }
@@ -555,20 +570,176 @@ export default function AdminPanel() {
   const renderNotifications = () => (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>Bildirim Gönder</Text>
-      <TouchableOpacity
-        style={styles.sendNotificationBtn}
-        onPress={() => setShowNotificationModal(true)}
-      >
-        <LinearGradient
-          colors={['#FF6B6B', '#FF8E53']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.sendNotificationGradient}
+      
+      {/* Notification Type Selection */}
+      <View style={styles.notificationCard}>
+        <Text style={styles.notificationLabel}>Bildirim Türü</Text>
+        <View style={styles.notificationTypeRow}>
+          <TouchableOpacity
+            style={[
+              styles.notificationTypeBtn,
+              notificationForm.type === 'push' && styles.notificationTypeBtnActive
+            ]}
+            onPress={() => setNotificationForm({...notificationForm, type: 'push'})}
+          >
+            <Ionicons 
+              name="notifications" 
+              size={20} 
+              color={notificationForm.type === 'push' ? '#fff' : '#888'} 
+            />
+            <Text style={[
+              styles.notificationTypeText,
+              notificationForm.type === 'push' && styles.notificationTypeTextActive
+            ]}>Push</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={[
+              styles.notificationTypeBtn,
+              notificationForm.type === 'email' && styles.notificationTypeBtnActive
+            ]}
+            onPress={() => setNotificationForm({...notificationForm, type: 'email'})}
+          >
+            <Ionicons 
+              name="mail" 
+              size={20} 
+              color={notificationForm.type === 'email' ? '#fff' : '#888'} 
+            />
+            <Text style={[
+              styles.notificationTypeText,
+              notificationForm.type === 'email' && styles.notificationTypeTextActive
+            ]}>E-posta</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={[
+              styles.notificationTypeBtn,
+              notificationForm.type === 'both' && styles.notificationTypeBtnActive
+            ]}
+            onPress={() => setNotificationForm({...notificationForm, type: 'both'})}
+          >
+            <Ionicons 
+              name="megaphone" 
+              size={20} 
+              color={notificationForm.type === 'both' ? '#fff' : '#888'} 
+            />
+            <Text style={[
+              styles.notificationTypeText,
+              notificationForm.type === 'both' && styles.notificationTypeTextActive
+            ]}>Her İkisi</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Target Selection */}
+        <Text style={[styles.notificationLabel, {marginTop: 16}]}>Hedef Kitle</Text>
+        <View style={styles.notificationTypeRow}>
+          <TouchableOpacity
+            style={[
+              styles.notificationTypeBtn,
+              notificationForm.targetAll && styles.notificationTypeBtnActive
+            ]}
+            onPress={() => setNotificationForm({...notificationForm, targetAll: true, targetUserId: ''})}
+          >
+            <Ionicons 
+              name="people" 
+              size={20} 
+              color={notificationForm.targetAll ? '#fff' : '#888'} 
+            />
+            <Text style={[
+              styles.notificationTypeText,
+              notificationForm.targetAll && styles.notificationTypeTextActive
+            ]}>Tüm Kullanıcılar</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={[
+              styles.notificationTypeBtn,
+              !notificationForm.targetAll && styles.notificationTypeBtnActive
+            ]}
+            onPress={() => setNotificationForm({...notificationForm, targetAll: false})}
+          >
+            <Ionicons 
+              name="person" 
+              size={20} 
+              color={!notificationForm.targetAll ? '#fff' : '#888'} 
+            />
+            <Text style={[
+              styles.notificationTypeText,
+              !notificationForm.targetAll && styles.notificationTypeTextActive
+            ]}>Belirli Kullanıcı</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* User Selection if specific user */}
+        {!notificationForm.targetAll && (
+          <View style={styles.userSelectContainer}>
+            <Text style={styles.userSelectLabel}>Kullanıcı Seçin:</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.userSelectScroll}>
+              {users.map((u) => (
+                <TouchableOpacity
+                  key={u.id}
+                  style={[
+                    styles.userSelectChip,
+                    notificationForm.targetUserId === u.id && styles.userSelectChipActive
+                  ]}
+                  onPress={() => setNotificationForm({...notificationForm, targetUserId: u.id})}
+                >
+                  <Text style={[
+                    styles.userSelectChipText,
+                    notificationForm.targetUserId === u.id && styles.userSelectChipTextActive
+                  ]}>{u.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* Notification Content */}
+        <Text style={[styles.notificationLabel, {marginTop: 16}]}>Bildirim İçeriği</Text>
+        <TextInput
+          style={styles.notificationInput}
+          placeholder="Bildirim Başlığı"
+          placeholderTextColor="#666"
+          value={notificationForm.title}
+          onChangeText={(t) => setNotificationForm({...notificationForm, title: t})}
+        />
+        <TextInput
+          style={[styles.notificationInput, styles.notificationTextArea]}
+          placeholder="Bildirim Mesajı"
+          placeholderTextColor="#666"
+          value={notificationForm.body}
+          onChangeText={(t) => setNotificationForm({...notificationForm, body: t})}
+          multiline
+          numberOfLines={4}
+        />
+
+        {/* Send Button */}
+        <TouchableOpacity
+          style={styles.sendNotificationBtn}
+          onPress={handleSendNotification}
         >
-          <Ionicons name="notifications" size={24} color="#fff" />
-          <Text style={styles.sendNotificationText}>Tüm Kullanıcılara Bildirim Gönder</Text>
-        </LinearGradient>
-      </TouchableOpacity>
+          <LinearGradient
+            colors={notificationForm.type === 'email' ? ['#2196F3', '#1976D2'] : 
+                    notificationForm.type === 'both' ? ['#9C27B0', '#7B1FA2'] :
+                    ['#FF6B6B', '#FF8E53']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.sendNotificationGradient}
+          >
+            <Ionicons 
+              name={notificationForm.type === 'email' ? 'mail' : 
+                    notificationForm.type === 'both' ? 'megaphone' : 'notifications'} 
+              size={24} 
+              color="#fff" 
+            />
+            <Text style={styles.sendNotificationText}>
+              {notificationForm.type === 'email' ? 'E-posta Gönder' :
+               notificationForm.type === 'both' ? 'Push + E-posta Gönder' :
+               'Push Bildirim Gönder'}
+            </Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 
@@ -1531,5 +1702,84 @@ const styles = StyleSheet.create({
     color: '#FF6B6B',
     fontSize: 14,
     fontWeight: '600',
+  },
+  // Notification styles
+  notificationCard: {
+    backgroundColor: '#1a1a2e',
+    borderRadius: 16,
+    padding: 16,
+  },
+  notificationLabel: {
+    color: '#888',
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: 10,
+  },
+  notificationTypeRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  notificationTypeBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 10,
+    gap: 6,
+  },
+  notificationTypeBtnActive: {
+    backgroundColor: '#FF6B6B',
+  },
+  notificationTypeText: {
+    color: '#888',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  notificationTypeTextActive: {
+    color: '#fff',
+  },
+  userSelectContainer: {
+    marginTop: 12,
+  },
+  userSelectLabel: {
+    color: '#888',
+    fontSize: 12,
+    marginBottom: 8,
+  },
+  userSelectScroll: {
+    maxHeight: 50,
+  },
+  userSelectChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 20,
+    marginRight: 8,
+  },
+  userSelectChipActive: {
+    backgroundColor: '#FF6B6B',
+  },
+  userSelectChipText: {
+    color: '#888',
+    fontSize: 13,
+  },
+  userSelectChipTextActive: {
+    color: '#fff',
+  },
+  notificationInput: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 10,
+    padding: 14,
+    color: '#fff',
+    fontSize: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  notificationTextArea: {
+    height: 100,
+    textAlignVertical: 'top',
   },
 });
