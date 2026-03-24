@@ -23,6 +23,9 @@ from sendgrid.helpers.mail import Mail
 import firebase_admin
 from firebase_admin import credentials, messaging
 
+# iyzico Payment SDK
+import iyzipay
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
@@ -185,6 +188,39 @@ class NotificationResponse(BaseModel):
     read: bool
     created_at: datetime
 
+# iyzico Payment Models
+class PaymentCardRequest(BaseModel):
+    card_holder_name: str
+    card_number: str
+    expire_month: str
+    expire_year: str
+    cvc: str
+
+class BuyerInfo(BaseModel):
+    name: str
+    surname: str
+    email: str
+    phone: str
+    identity_number: str = "11111111111"  # TC Kimlik No (test için varsayılan)
+    address: str = "Istanbul, Turkey"
+    city: str = "Istanbul"
+    country: str = "Turkey"
+    zip_code: str = "34000"
+
+class CreatePaymentRequest(BaseModel):
+    event_id: str
+    quantity: int = 1
+    card: PaymentCardRequest
+    buyer: BuyerInfo
+
+class PaymentResponse(BaseModel):
+    success: bool
+    payment_id: Optional[str] = None
+    conversation_id: Optional[str] = None
+    status: str
+    message: str
+    tickets: Optional[List[dict]] = None
+
 # ==================== HELPER FUNCTIONS ====================
 
 def create_access_token(data: dict):
@@ -248,6 +284,100 @@ async def require_staff(user: dict = Depends(get_user_from_header)):
     if user.get('role') not in ['admin', 'staff']:
         raise HTTPException(status_code=403, detail="Staff access required")
     return user
+
+# iyzico Helper Function
+async def get_iyzico_options():
+    """Get iyzico configuration from database settings"""
+    settings = await db.settings.find_one({"type": "integrations"})
+    if not settings:
+        return None
+    
+    iyzico_config = settings.get("data", {}).get("iyzico", {})
+    api_key = iyzico_config.get("api_key")
+    secret_key = iyzico_config.get("secret_key")
+    base_url = iyzico_config.get("base_url", "https://sandbox-api.iyzipay.com")
+    
+    if not api_key or not secret_key:
+        return None
+    
+    options = {
+        'api_key': api_key,
+        'secret_key': secret_key,
+        'base_url': base_url
+    }
+    return options
+
+def create_iyzico_payment(options, event, user_data, card_data, buyer_data, quantity, conversation_id):
+    """Create iyzico payment request"""
+    total_price = float(event["price"]) * quantity
+    
+    # Payment card
+    payment_card = {
+        'cardHolderName': card_data.card_holder_name,
+        'cardNumber': card_data.card_number,
+        'expireMonth': card_data.expire_month,
+        'expireYear': card_data.expire_year,
+        'cvc': card_data.cvc,
+        'registerCard': '0'
+    }
+    
+    # Buyer
+    buyer = {
+        'id': user_data["id"],
+        'name': buyer_data.name,
+        'surname': buyer_data.surname,
+        'gsmNumber': buyer_data.phone,
+        'email': buyer_data.email,
+        'identityNumber': buyer_data.identity_number,
+        'lastLoginDate': datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),
+        'registrationDate': datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),
+        'registrationAddress': buyer_data.address,
+        'ip': '85.34.78.112',
+        'city': buyer_data.city,
+        'country': buyer_data.country,
+        'zipCode': buyer_data.zip_code
+    }
+    
+    # Shipping and Billing address
+    address = {
+        'contactName': f"{buyer_data.name} {buyer_data.surname}",
+        'city': buyer_data.city,
+        'country': buyer_data.country,
+        'address': buyer_data.address,
+        'zipCode': buyer_data.zip_code
+    }
+    
+    # Basket items
+    basket_items = []
+    for i in range(quantity):
+        basket_items.append({
+            'id': f"ticket_{i+1}",
+            'name': f"{event['title']} Bileti",
+            'category1': 'Etkinlik',
+            'category2': 'Zumba',
+            'itemType': 'VIRTUAL',
+            'price': str(event["price"])
+        })
+    
+    # Payment request
+    request = {
+        'locale': 'tr',
+        'conversationId': conversation_id,
+        'price': str(total_price),
+        'paidPrice': str(total_price),
+        'currency': 'TRY',
+        'installment': '1',
+        'basketId': f"event_{event['id']}",
+        'paymentChannel': 'WEB',
+        'paymentGroup': 'PRODUCT',
+        'paymentCard': payment_card,
+        'buyer': buyer,
+        'shippingAddress': address,
+        'billingAddress': address,
+        'basketItems': basket_items
+    }
+    
+    return request
 
 # ==================== AUTH ROUTES ====================
 
@@ -395,6 +525,7 @@ async def create_event(event_data: EventCreate, user: dict = Depends(require_adm
 
 @api_router.post("/buy-ticket", response_model=List[TicketResponse])
 async def buy_ticket(request: BuyTicketRequest, user: dict = Depends(get_user_from_header)):
+    """Legacy endpoint - creates tickets without payment (for testing)"""
     event = await db.events.find_one({"id": request.event_id})
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
@@ -404,9 +535,15 @@ async def buy_ticket(request: BuyTicketRequest, user: dict = Depends(get_user_fr
     if tickets_sold + request.quantity > event["capacity"]:
         raise HTTPException(status_code=400, detail="Not enough tickets available")
     
-    # MOCK: In production, process payment with iyzico here
-    # For now, we just create tickets directly
+    # Check if iyzico is configured - if so, require payment endpoint
+    iyzico_options = await get_iyzico_options()
+    if iyzico_options:
+        raise HTTPException(
+            status_code=400, 
+            detail="Payment required. Use /api/payment/create endpoint with card details."
+        )
     
+    # MOCK mode - create tickets without payment
     tickets = []
     for _ in range(request.quantity):
         ticket_id = str(uuid.uuid4())
@@ -432,6 +569,132 @@ async def buy_ticket(request: BuyTicketRequest, user: dict = Depends(get_user_fr
         ))
     
     return tickets
+
+@api_router.post("/payment/create", response_model=PaymentResponse)
+async def create_payment(request: CreatePaymentRequest, user: dict = Depends(get_user_from_header)):
+    """Create payment with iyzico"""
+    # Get event
+    event = await db.events.find_one({"id": request.event_id})
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    # Check capacity
+    tickets_sold = await db.tickets.count_documents({"event_id": request.event_id})
+    if tickets_sold + request.quantity > event["capacity"]:
+        raise HTTPException(status_code=400, detail="Not enough tickets available")
+    
+    # Get iyzico configuration
+    iyzico_options = await get_iyzico_options()
+    if not iyzico_options:
+        # Fallback to mock mode
+        return await create_mock_payment(event, user, request.quantity)
+    
+    try:
+        conversation_id = str(uuid.uuid4())
+        payment_request = create_iyzico_payment(
+            iyzico_options, 
+            event, 
+            user, 
+            request.card, 
+            request.buyer, 
+            request.quantity,
+            conversation_id
+        )
+        
+        # Make iyzico payment
+        payment = iyzipay.Payment().create(payment_request, iyzico_options)
+        result = json.loads(payment.read().decode('utf-8'))
+        
+        if result.get('status') == 'success':
+            # Payment successful - create tickets
+            tickets = []
+            for _ in range(request.quantity):
+                ticket_id = str(uuid.uuid4())
+                qr_token = generate_qr_token()
+                ticket = {
+                    "id": ticket_id,
+                    "user_id": user["id"],
+                    "event_id": request.event_id,
+                    "qr_token": qr_token,
+                    "status": "VALID",
+                    "payment_id": result.get('paymentId'),
+                    "created_at": datetime.utcnow()
+                }
+                await db.tickets.insert_one(ticket)
+                tickets.append({
+                    "id": ticket_id,
+                    "event_title": event["title"],
+                    "qr_token": qr_token
+                })
+            
+            # Store payment record
+            await db.payments.insert_one({
+                "id": str(uuid.uuid4()),
+                "user_id": user["id"],
+                "event_id": request.event_id,
+                "payment_id": result.get('paymentId'),
+                "conversation_id": conversation_id,
+                "amount": float(event["price"]) * request.quantity,
+                "status": "SUCCESS",
+                "iyzico_response": result,
+                "created_at": datetime.utcnow()
+            })
+            
+            return PaymentResponse(
+                success=True,
+                payment_id=result.get('paymentId'),
+                conversation_id=conversation_id,
+                status="SUCCESS",
+                message="Ödeme başarılı! Biletleriniz oluşturuldu.",
+                tickets=tickets
+            )
+        else:
+            # Payment failed
+            error_message = result.get('errorMessage', 'Ödeme işlemi başarısız')
+            return PaymentResponse(
+                success=False,
+                status="FAILED",
+                message=error_message
+            )
+            
+    except Exception as e:
+        logging.error(f"iyzico payment error: {str(e)}")
+        return PaymentResponse(
+            success=False,
+            status="ERROR",
+            message=f"Ödeme hatası: {str(e)}"
+        )
+
+async def create_mock_payment(event, user, quantity):
+    """Create mock payment when iyzico is not configured"""
+    tickets = []
+    for _ in range(quantity):
+        ticket_id = str(uuid.uuid4())
+        qr_token = generate_qr_token()
+        ticket = {
+            "id": ticket_id,
+            "user_id": user["id"],
+            "event_id": event["id"],
+            "qr_token": qr_token,
+            "status": "VALID",
+            "payment_id": f"mock_{uuid.uuid4()}",
+            "created_at": datetime.utcnow()
+        }
+        await db.tickets.insert_one(ticket)
+        tickets.append({
+            "id": ticket_id,
+            "event_title": event["title"],
+            "qr_token": qr_token
+        })
+    
+    return PaymentResponse(
+        success=True,
+        payment_id=f"mock_{uuid.uuid4()}",
+        conversation_id=str(uuid.uuid4()),
+        status="MOCK_SUCCESS",
+        message="[MOCK] Ödeme simülasyonu başarılı. iyzico ayarlarını yapılandırın.",
+        tickets=tickets
+    )
 
 @api_router.get("/my-tickets", response_model=List[TicketResponse])
 async def get_my_tickets(user: dict = Depends(get_user_from_header)):

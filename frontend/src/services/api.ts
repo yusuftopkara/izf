@@ -62,6 +62,33 @@ class ApiService {
     return response.data;
   }
 
+  // iyzico Payment
+  async createPayment(data: {
+    event_id: string;
+    quantity: number;
+    card: {
+      card_holder_name: string;
+      card_number: string;
+      expire_month: string;
+      expire_year: string;
+      cvc: string;
+    };
+    buyer: {
+      name: string;
+      surname: string;
+      email: string;
+      phone: string;
+      identity_number?: string;
+      address?: string;
+      city?: string;
+      country?: string;
+      zip_code?: string;
+    };
+  }) {
+    const response = await this.axiosInstance.post('/payment/create', data);
+    return response.data;
+  }
+
   async getMyTickets() {
     const response = await this.axiosInstance.get('/my-tickets');
     return response.data;
