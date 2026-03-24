@@ -354,12 +354,12 @@ export default function AdminPanel() {
   };
 
   const tabs: { id: TabType; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-    { id: 'stats', label: 'İstatistikler', icon: 'stats-chart' },
-    { id: 'users', label: 'Kullanıcılar', icon: 'people' },
-    { id: 'events', label: 'Etkinlikler', icon: 'calendar' },
-    { id: 'videos', label: 'Videolar', icon: 'videocam' },
-    { id: 'challenges', label: 'Challenges', icon: 'flash' },
-    { id: 'notifications', label: 'Bildirimler', icon: 'notifications' },
+    { id: 'stats', label: 'İstatistik', icon: 'stats-chart' },
+    { id: 'users', label: 'Kullanıcı', icon: 'people' },
+    { id: 'events', label: 'Etkinlik', icon: 'calendar' },
+    { id: 'videos', label: 'Video', icon: 'videocam' },
+    { id: 'challenges', label: 'Challenge', icon: 'flash' },
+    { id: 'notifications', label: 'Bildirim', icon: 'notifications' },
   ];
 
   const renderStats = () => (
@@ -560,30 +560,45 @@ export default function AdminPanel() {
         </View>
       </LinearGradient>
 
-      {/* Tabs */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.tabsContainer}
-        contentContainerStyle={styles.tabsContent}
-      >
-        {tabs.map((tab) => (
-          <TouchableOpacity
-            key={tab.id}
-            style={[styles.tab, activeTab === tab.id && styles.tabActive]}
-            onPress={() => setActiveTab(tab.id)}
-          >
-            <Ionicons
-              name={tab.icon}
-              size={20}
-              color={activeTab === tab.id ? '#FF6B6B' : '#666'}
-            />
-            <Text style={[styles.tabText, activeTab === tab.id && styles.tabTextActive]}>
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      {/* Tabs - 2 rows for mobile */}
+      <View style={styles.tabsWrapper}>
+        <View style={styles.tabRow}>
+          {tabs.slice(0, 3).map((tab) => (
+            <TouchableOpacity
+              key={tab.id}
+              style={[styles.tab, activeTab === tab.id && styles.tabActive]}
+              onPress={() => setActiveTab(tab.id)}
+            >
+              <Ionicons
+                name={tab.icon}
+                size={18}
+                color={activeTab === tab.id ? '#FF6B6B' : '#666'}
+              />
+              <Text style={[styles.tabText, activeTab === tab.id && styles.tabTextActive]}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <View style={styles.tabRow}>
+          {tabs.slice(3).map((tab) => (
+            <TouchableOpacity
+              key={tab.id}
+              style={[styles.tab, activeTab === tab.id && styles.tabActive]}
+              onPress={() => setActiveTab(tab.id)}
+            >
+              <Ionicons
+                name={tab.icon}
+                size={18}
+                color={activeTab === tab.id ? '#FF6B6B' : '#666'}
+              />
+              <Text style={[styles.tabText, activeTab === tab.id && styles.tabTextActive]}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
 
       <ScrollView
         style={styles.content}
@@ -873,13 +888,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
+  tabsWrapper: {
+    backgroundColor: '#1a1a2e',
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+  },
+  tabRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 6,
+  },
   tab: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    marginHorizontal: 4,
-    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginHorizontal: 2,
+    borderRadius: 16,
     backgroundColor: 'rgba(255,255,255,0.05)',
   },
   tabActive: {
@@ -887,8 +912,8 @@ const styles = StyleSheet.create({
   },
   tabText: {
     color: '#666',
-    marginLeft: 6,
-    fontSize: 13,
+    marginLeft: 4,
+    fontSize: 11,
     fontWeight: '500',
   },
   tabTextActive: {
