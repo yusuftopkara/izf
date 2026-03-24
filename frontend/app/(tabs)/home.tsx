@@ -8,7 +8,6 @@ import {
   Image,
   ActivityIndicator,
   RefreshControl,
-  Linking,
   Dimensions,
   Alert,
 } from 'react-native';
@@ -65,8 +64,8 @@ export default function HomeScreen() {
     fetchData();
   };
 
-  const openVideo = (url: string, isPremium: boolean) => {
-    if (isPremium && !user) {
+  const openVideo = (video: Video) => {
+    if (video.is_premium && !user) {
       Alert.alert(
         'Premium İçerik',
         'Bu içeriği izlemek için giriş yapmanız gerekiyor.',
@@ -77,7 +76,7 @@ export default function HomeScreen() {
       );
       return;
     }
-    Linking.openURL(url);
+    router.push(`/video/${video.id}`);
   };
 
   const getYoutubeThumbnail = (url: string) => {
@@ -148,7 +147,7 @@ export default function HomeScreen() {
             <Text style={styles.sectionTitle}>Günün Videosu</Text>
             <TouchableOpacity
               style={styles.dailyVideoCard}
-              onPress={() => openVideo(dailyVideo.youtube_url, dailyVideo.is_premium)}
+              onPress={() => openVideo(dailyVideo)}
             >
               <Image
                 source={{ uri: dailyVideo.thumbnail || getYoutubeThumbnail(dailyVideo.youtube_url) || 'https://via.placeholder.com/400x225' }}
@@ -178,7 +177,7 @@ export default function HomeScreen() {
             <TouchableOpacity
               key={video.id}
               style={styles.videoCard}
-              onPress={() => openVideo(video.youtube_url, video.is_premium)}
+              onPress={() => openVideo(video)}
             >
               <Image
                 source={{ uri: video.thumbnail || getYoutubeThumbnail(video.youtube_url) || 'https://via.placeholder.com/120x68' }}

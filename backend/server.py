@@ -875,11 +875,21 @@ async def set_user_role_by_id(request: SetRoleRequest, user: dict = Depends(requ
 # ==================== SEED DATA ====================
 
 @api_router.post("/seed")
-async def seed_data():
+async def seed_data(force: bool = False):
     """Seed initial data for testing"""
     # Check if already seeded
-    if await db.events.count_documents({}) > 0:
+    if not force and await db.events.count_documents({}) > 0:
         return {"message": "Data already seeded"}
+    
+    # Clear existing data if force
+    if force:
+        await db.users.delete_many({})
+        await db.events.delete_many({})
+        await db.videos.delete_many({})
+        await db.challenges.delete_many({})
+        await db.posts.delete_many({})
+        await db.tickets.delete_many({})
+        await db.challenge_completions.delete_many({})
     
     # Create admin user
     admin_id = str(uuid.uuid4())
@@ -951,8 +961,8 @@ async def seed_data():
         {
             "id": str(uuid.uuid4()),
             "title": "Başlangıç Seviye Zumba",
-            "youtube_url": "https://www.youtube.com/watch?v=ZlXWu7_wkqE",
-            "thumbnail": "https://img.youtube.com/vi/ZlXWu7_wkqE/maxresdefault.jpg",
+            "youtube_url": "https://www.youtube.com/watch?v=sad7Hnjd5g8",
+            "thumbnail": "https://img.youtube.com/vi/sad7Hnjd5g8/maxresdefault.jpg",
             "is_premium": False,
             "is_daily": True,
             "created_at": datetime.utcnow()
@@ -960,8 +970,8 @@ async def seed_data():
         {
             "id": str(uuid.uuid4()),
             "title": "30 Dakika Zumba Workout",
-            "youtube_url": "https://www.youtube.com/watch?v=tT2-9SccYJc",
-            "thumbnail": "https://img.youtube.com/vi/tT2-9SccYJc/maxresdefault.jpg",
+            "youtube_url": "https://www.youtube.com/watch?v=R_ckhEQDRNw",
+            "thumbnail": "https://img.youtube.com/vi/R_ckhEQDRNw/maxresdefault.jpg",
             "is_premium": False,
             "is_daily": False,
             "created_at": datetime.utcnow()
@@ -969,8 +979,8 @@ async def seed_data():
         {
             "id": str(uuid.uuid4()),
             "title": "Pro Zumba Rutini",
-            "youtube_url": "https://www.youtube.com/watch?v=eFJmj7a7F84",
-            "thumbnail": "https://img.youtube.com/vi/eFJmj7a7F84/maxresdefault.jpg",
+            "youtube_url": "https://www.youtube.com/watch?v=kd-RA_w28Go",
+            "thumbnail": "https://img.youtube.com/vi/kd-RA_w28Go/maxresdefault.jpg",
             "is_premium": True,
             "is_daily": False,
             "created_at": datetime.utcnow()
