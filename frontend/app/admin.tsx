@@ -57,11 +57,12 @@ type TabType = 'stats' | 'users' | 'events' | 'videos' | 'challenges' | 'notific
 export default function AdminPanel() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, token, isLoading: authLoading } = useAuth();
   
   const [activeTab, setActiveTab] = useState<TabType>('stats');
   const [isLoading, setIsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   
   // Data
   const [stats, setStats] = useState<any>(null);
@@ -120,9 +121,13 @@ export default function AdminPanel() {
   }, [user, authLoading]);
 
   const fetchData = useCallback(async () => {
-    if (!user || user.role !== 'admin') return;
+    if (!user || user.role !== 'admin' || !token) return;
+    
+    // Ensure token is set before making requests
+    api.setAuthToken(token);
     
     setIsLoading(true);
+    setFetchError(null);
     try {
       const [statsData, usersData, eventsData, videosData, challengesData] = await Promise.all([
         api.getAdminStats(),
@@ -136,19 +141,20 @@ export default function AdminPanel() {
       setEvents(eventsData);
       setVideos(videosData);
       setChallenges(challengesData);
-    } catch (error) {
-      console.error('Error fetching data:', error);
+    } catch (error: any) {
+      console.error('Error fetching admin data:', error);
+      setFetchError(error.response?.data?.detail || 'Veriler yüklenemedi');
     } finally {
       setIsLoading(false);
       setRefreshing(false);
     }
-  }, [user]);
+  }, [user, token]);
 
   useEffect(() => {
-    if (user && user.role === 'admin') {
+    if (user && user.role === 'admin' && token) {
       fetchData();
     }
-  }, [user, fetchData]);
+  }, [user, token, fetchData]);
 
   const onRefresh = () => {
     setRefreshing(true);
