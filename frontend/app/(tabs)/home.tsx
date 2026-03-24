@@ -20,6 +20,7 @@ import { useAuth } from '../../src/context/AuthContext';
 import { api } from '../../src/services/api';
 
 const { width } = Dimensions.get('window');
+const LOGO_URL = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR86xQQVC5BJOg6hzF8RrhjJDnu2UwKTBsnpw&s';
 
 interface Video {
   id: string;
@@ -99,11 +100,14 @@ export default function HomeScreen() {
         style={[styles.header, { paddingTop: insets.top + 10 }]}
       >
         <View style={styles.headerContent}>
-          <View>
-            <Text style={styles.greeting}>
-              {user ? `Merhaba, ${user.name}!` : 'Zumba\'ya Hoş Geldin!'}
-            </Text>
-            <Text style={styles.subtitle}>Bugün dans etmeye hazır mısın?</Text>
+          <View style={styles.headerLeft}>
+            <Image source={{ uri: LOGO_URL }} style={styles.headerLogo} />
+            <View>
+              <Text style={styles.greeting}>
+                {user ? `Merhaba, ${user.name}!` : 'IZF\'a Hoş Geldin!'}
+              </Text>
+              <Text style={styles.subtitle}>Bugün dans etmeye hazır mısın?</Text>
+            </View>
           </View>
           {user ? (
             <View style={styles.streakBadge}>
@@ -209,15 +213,26 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  headerLogo: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    marginRight: 12,
+  },
   greeting: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '700',
     color: '#fff',
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#888',
-    marginTop: 4,
+    marginTop: 2,
   },
   streakBadge: {
     flexDirection: 'row',

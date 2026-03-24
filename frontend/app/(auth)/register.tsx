@@ -10,12 +10,15 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { useRouter, Link } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../src/context/AuthContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+const LOGO_URL = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR86xQQVC5BJOg6hzF8RrhjJDnu2UwKTBsnpw&s';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -70,7 +73,8 @@ export default function RegisterScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.header}>
-            <Text style={styles.logo}>ZUMBA</Text>
+            <Image source={{ uri: LOGO_URL }} style={styles.logo} />
+            <Text style={styles.appName}>IZF</Text>
             <Text style={styles.subtitle}>Yeni hesap oluşturun</Text>
           </View>
 
@@ -183,6 +187,12 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   logo: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    marginBottom: 16,
+  },
+  appName: {
     fontSize: 48,
     fontWeight: '900',
     color: '#FF6B6B',

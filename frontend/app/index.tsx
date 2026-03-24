@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../src/context/AuthContext';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -23,7 +23,12 @@ export default function Index() {
         end={{ x: 1, y: 1 }}
         style={styles.gradient}
       >
-        <Text style={styles.logo}>ZUMBA</Text>
+        <Image
+          source={{ uri: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR86xQQVC5BJOg6hzF8RrhjJDnu2UwKTBsnpw&s' }}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+        <Text style={styles.title}>IZF</Text>
         <Text style={styles.subtitle}>Dans Et, Eğlen, Yaşa!</Text>
         <ActivityIndicator size="large" color="#fff" style={styles.loader} />
       </LinearGradient>
@@ -41,6 +46,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logo: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    marginBottom: 16,
+  },
+  title: {
     fontSize: 56,
     fontWeight: '900',
     color: '#fff',

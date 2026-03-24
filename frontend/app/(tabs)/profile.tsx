@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   Alert,
+  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,6 +16,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../src/context/AuthContext';
 import { api } from '../../src/services/api';
+
+const LOGO_URL = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR86xQQVC5BJOg6hzF8RrhjJDnu2UwKTBsnpw&s';
 
 interface Ticket {
   id: string;
@@ -62,6 +65,9 @@ export default function ProfileScreen() {
     if (user) {
       setIsLoading(true);
       fetchData();
+    } else {
+      setTickets([]);
+      setAdminStats(null);
     }
   }, [user, fetchData]);
 
@@ -71,7 +77,7 @@ export default function ProfileScreen() {
     if (user) refreshUser();
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     Alert.alert(
       'Çıkış',
       'Çıkış yapmak istediğinize emin misiniz?',
@@ -81,9 +87,16 @@ export default function ProfileScreen() {
           text: 'Çıkış Yap',
           style: 'destructive',
           onPress: async () => {
-            await logout();
-            setTickets([]);
-            setAdminStats(null);
+            try {
+              await logout();
+              // Clear local state
+              setTickets([]);
+              setAdminStats(null);
+              // Navigate to login
+              router.replace('/(tabs)/home');
+            } catch (error) {
+              console.error('Logout error:', error);
+            }
           },
         },
       ]
@@ -94,7 +107,7 @@ export default function ProfileScreen() {
     try {
       const result = await api.seedData();
       Alert.alert('Başarılı', result.message);
-      fetchData();
+      if (user) fetchData();
     } catch (error: any) {
       Alert.alert('Bilgi', error.response?.data?.message || 'Veri zaten mevcut');
     }
@@ -112,10 +125,8 @@ export default function ProfileScreen() {
         </LinearGradient>
 
         <View style={styles.guestContainer}>
-          <View style={styles.guestIcon}>
-            <Ionicons name="person-outline" size={64} color="#FF6B6B" />
-          </View>
-          <Text style={styles.guestTitle}>Giriş Yapın</Text>
+          <Image source={{ uri: LOGO_URL }} style={styles.guestLogo} />
+          <Text style={styles.guestTitle}>IZF'a Giriş Yapın</Text>
           <Text style={styles.guestText}>
             Biletlerinizi görmek, challenge'lara katılmak ve daha fazlası için giriş yapın.
           </Text>
@@ -320,13 +331,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 40,
   },
-  guestIcon: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(255,107,107,0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
+  guestLogo: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     marginBottom: 24,
   },
   guestTitle: {
