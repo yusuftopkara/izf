@@ -1,0 +1,157 @@
+import axios, { AxiosInstance } from 'axios';
+
+const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8001';
+const API_URL = `${BACKEND_URL}/api`;
+
+class ApiService {
+  private axiosInstance: AxiosInstance;
+  private authToken: string | null = null;
+
+  constructor() {
+    this.axiosInstance = axios.create({
+      baseURL: API_URL,
+      timeout: 30000,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    this.axiosInstance.interceptors.request.use((config) => {
+      if (this.authToken) {
+        config.headers.Authorization = `Bearer ${this.authToken}`;
+      }
+      return config;
+    });
+  }
+
+  setAuthToken(token: string | null) {
+    this.authToken = token;
+  }
+
+  // Auth
+  async login(email: string, password: string) {
+    const response = await this.axiosInstance.post('/login', { email, password });
+    return response.data;
+  }
+
+  async register(email: string, password: string, name: string) {
+    const response = await this.axiosInstance.post('/register', { email, password, name });
+    return response.data;
+  }
+
+  async getMe() {
+    const response = await this.axiosInstance.get('/me');
+    return response.data;
+  }
+
+  // Events
+  async getEvents(city?: string) {
+    const params = city ? { city } : {};
+    const response = await this.axiosInstance.get('/events', { params });
+    return response.data;
+  }
+
+  async getEvent(eventId: string) {
+    const response = await this.axiosInstance.get(`/events/${eventId}`);
+    return response.data;
+  }
+
+  // Tickets
+  async buyTicket(eventId: string, quantity: number = 1) {
+    const response = await this.axiosInstance.post('/buy-ticket', { event_id: eventId, quantity });
+    return response.data;
+  }
+
+  async getMyTickets() {
+    const response = await this.axiosInstance.get('/my-tickets');
+    return response.data;
+  }
+
+  async checkTicket(qrToken: string) {
+    const response = await this.axiosInstance.post('/check-ticket', { qr_token: qrToken });
+    return response.data;
+  }
+
+  // Videos
+  async getVideos() {
+    const response = await this.axiosInstance.get('/videos');
+    return response.data;
+  }
+
+  async getDailyVideo() {
+    const response = await this.axiosInstance.get('/videos/daily');
+    return response.data;
+  }
+
+  // Challenges
+  async getChallenges() {
+    const response = await this.axiosInstance.get('/challenges');
+    return response.data;
+  }
+
+  async completeChallenge(challengeId: string) {
+    const response = await this.axiosInstance.post(`/challenges/complete/${challengeId}`);
+    return response.data;
+  }
+
+  async getMyStreak() {
+    const response = await this.axiosInstance.get('/my-streak');
+    return response.data;
+  }
+
+  // Social
+  async getPosts() {
+    const response = await this.axiosInstance.get('/posts');
+    return response.data;
+  }
+
+  async createPost(mediaUrl: string, caption: string) {
+    const response = await this.axiosInstance.post('/posts', { media_url: mediaUrl, caption });
+    return response.data;
+  }
+
+  async likePost(postId: string) {
+    const response = await this.axiosInstance.post(`/posts/${postId}/like`);
+    return response.data;
+  }
+
+  async getComments(eventId: string) {
+    const response = await this.axiosInstance.get(`/comments/${eventId}`);
+    return response.data;
+  }
+
+  async createComment(eventId: string, text: string, rating: number) {
+    const response = await this.axiosInstance.post('/comments', { event_id: eventId, text, rating });
+    return response.data;
+  }
+
+  // Notifications
+  async getNotifications() {
+    const response = await this.axiosInstance.get('/notifications');
+    return response.data;
+  }
+
+  async markNotificationRead(notificationId: string) {
+    const response = await this.axiosInstance.post(`/notifications/${notificationId}/read`);
+    return response.data;
+  }
+
+  // Admin
+  async getAdminStats() {
+    const response = await this.axiosInstance.get('/admin/stats');
+    return response.data;
+  }
+
+  async sendNotification(title: string, body: string, userId?: string) {
+    const response = await this.axiosInstance.post('/admin/notifications', { title, body, user_id: userId });
+    return response.data;
+  }
+
+  // Seed
+  async seedData() {
+    const response = await this.axiosInstance.post('/seed');
+    return response.data;
+  }
+}
+
+export const api = new ApiService();
