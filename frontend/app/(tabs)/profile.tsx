@@ -9,6 +9,8 @@ import {
   RefreshControl,
   Alert,
   Image,
+  Modal,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -37,6 +39,7 @@ export default function ProfileScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [adminStats, setAdminStats] = useState<any>(null);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (!user) {
@@ -78,27 +81,34 @@ export default function ProfileScreen() {
   };
 
   const handleLogout = async () => {
-    Alert.alert(
-      'Çıkış',
-      'Çıkış yapmak istediğinize emin misiniz?',
-      [
-        { text: 'İptal', style: 'cancel' },
-        {
-          text: 'Çıkış Yap',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await logout();
-              setTickets([]);
-              setAdminStats(null);
-              router.replace('/(tabs)/home');
-            } catch (error) {
-              console.error('Logout error:', error);
-            }
+    if (Platform.OS === 'web') {
+      setShowLogoutModal(true);
+    } else {
+      Alert.alert(
+        'Çıkış',
+        'Çıkış yapmak istediğinize emin misiniz?',
+        [
+          { text: 'İptal', style: 'cancel' },
+          {
+            text: 'Çıkış Yap',
+            style: 'destructive',
+            onPress: performLogout,
           },
-        },
-      ]
-    );
+        ]
+      );
+    }
+  };
+
+  const performLogout = async () => {
+    try {
+      await logout();
+      setTickets([]);
+      setAdminStats(null);
+      setShowLogoutModal(false);
+      router.replace('/(tabs)/home');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   const handleSeedData = async () => {
@@ -310,6 +320,35 @@ export default function ProfileScreen() {
 
         <View style={{ height: 100 }} />
       </ScrollView>
+
+      {/* Logout Confirmation Modal for Web */}
+      <Modal
+        visible={showLogoutModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowLogoutModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Çıkış</Text>
+            <Text style={styles.modalText}>Çıkış yapmak istediğinize emin misiniz?</Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalCancelButton]}
+                onPress={() => setShowLogoutModal(false)}
+              >
+                <Text style={styles.modalCancelText}>İptal</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalLogoutButton]}
+                onPress={performLogout}
+              >
+                <Text style={styles.modalLogoutText}>Çıkış Yap</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -578,5 +617,56 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 15,
     fontWeight: '500',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#1a1a2e',
+    borderRadius: 16,
+    padding: 24,
+    width: '100%',
+    maxWidth: 320,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#fff',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  modalText: {
+    fontSize: 15,
+    color: '#888',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  modalCancelButton: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  modalCancelText: {
+    color: '#888',
+    fontWeight: '600',
+  },
+  modalLogoutButton: {
+    backgroundColor: '#f44336',
+  },
+  modalLogoutText: {
+    color: '#fff',
+    fontWeight: '700',
   },
 });
