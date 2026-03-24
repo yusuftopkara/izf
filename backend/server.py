@@ -787,6 +787,91 @@ async def set_user_role(email: str, role: str, user: dict = Depends(require_admi
     
     return {"success": True, "message": f"User role updated to {role}"}
 
+# Get all users (admin only)
+@api_router.get("/admin/users", response_model=List[UserResponse])
+async def get_all_users(user: dict = Depends(require_admin)):
+    users = await db.users.find().sort("created_at", -1).to_list(500)
+    return [UserResponse(
+        id=u["id"],
+        email=u["email"],
+        name=u["name"],
+        role=u["role"],
+        streak=u.get("streak", 0),
+        created_at=u["created_at"]
+    ) for u in users]
+
+# Delete event (admin only)
+@api_router.delete("/admin/events/{event_id}")
+async def delete_event(event_id: str, user: dict = Depends(require_admin)):
+    result = await db.events.delete_one({"id": event_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Event not found")
+    # Also delete related tickets
+    await db.tickets.delete_many({"event_id": event_id})
+    return {"success": True, "message": "Event deleted"}
+
+# Update event (admin only)
+@api_router.put("/admin/events/{event_id}", response_model=EventResponse)
+async def update_event(event_id: str, event_data: EventCreate, user: dict = Depends(require_admin)):
+    result = await db.events.update_one(
+        {"id": event_id},
+        {"$set": event_data.dict()}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    event = await db.events.find_one({"id": event_id})
+    tickets_sold = await db.tickets.count_documents({"event_id": event_id})
+    return EventResponse(
+        id=event["id"],
+        title=event["title"],
+        description=event["description"],
+        city=event["city"],
+        location=event["location"],
+        date=event["date"],
+        capacity=event["capacity"],
+        price=event["price"],
+        image_url=event.get("image_url"),
+        tickets_sold=tickets_sold,
+        created_at=event["created_at"]
+    )
+
+# Delete video (admin only)
+@api_router.delete("/admin/videos/{video_id}")
+async def delete_video(video_id: str, user: dict = Depends(require_admin)):
+    result = await db.videos.delete_one({"id": video_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Video not found")
+    return {"success": True, "message": "Video deleted"}
+
+# Delete user (admin only)
+@api_router.delete("/admin/users/{user_id}")
+async def delete_user(user_id: str, user: dict = Depends(require_admin)):
+    if user_id == user["id"]:
+        raise HTTPException(status_code=400, detail="Cannot delete yourself")
+    result = await db.users.delete_one({"id": user_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"success": True, "message": "User deleted"}
+
+class SetRoleRequest(BaseModel):
+    user_id: str
+    role: str
+
+@api_router.post("/admin/set-role-by-id")
+async def set_user_role_by_id(request: SetRoleRequest, user: dict = Depends(require_admin)):
+    if request.role not in ["user", "admin", "staff"]:
+        raise HTTPException(status_code=400, detail="Invalid role")
+    
+    result = await db.users.update_one(
+        {"id": request.user_id},
+        {"$set": {"role": request.role}}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return {"success": True, "message": f"User role updated to {request.role}"}
+
 # ==================== SEED DATA ====================
 
 @api_router.post("/seed")

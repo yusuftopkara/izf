@@ -288,6 +288,19 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>İşlemler</Text>
           
+          {user.role === 'admin' && (
+            <TouchableOpacity
+              style={styles.actionItem}
+              onPress={() => router.push('/admin')}
+            >
+              <View style={[styles.actionIcon, { backgroundColor: 'rgba(255,107,107,0.2)' }]}>
+                <Ionicons name="settings" size={22} color="#FF6B6B" />
+              </View>
+              <Text style={styles.actionText}>Admin Panel</Text>
+              <Ionicons name="chevron-forward" size={20} color="#666" />
+            </TouchableOpacity>
+          )}
+          
           {(user.role === 'staff' || user.role === 'admin') && (
             <TouchableOpacity
               style={styles.actionItem}

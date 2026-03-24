@@ -147,6 +147,70 @@ class ApiService {
     return response.data;
   }
 
+  async getAllUsers() {
+    const response = await this.axiosInstance.get('/admin/users');
+    return response.data;
+  }
+
+  async setUserRole(userId: string, role: string) {
+    const response = await this.axiosInstance.post('/admin/set-role-by-id', { user_id: userId, role });
+    return response.data;
+  }
+
+  async deleteUser(userId: string) {
+    const response = await this.axiosInstance.delete(`/admin/users/${userId}`);
+    return response.data;
+  }
+
+  async createEvent(eventData: {
+    title: string;
+    description: string;
+    city: string;
+    location: string;
+    date: string;
+    capacity: number;
+    price: number;
+    image_url?: string;
+  }) {
+    const response = await this.axiosInstance.post('/events', eventData);
+    return response.data;
+  }
+
+  async updateEvent(eventId: string, eventData: {
+    title: string;
+    description: string;
+    city: string;
+    location: string;
+    date: string;
+    capacity: number;
+    price: number;
+    image_url?: string;
+  }) {
+    const response = await this.axiosInstance.put(`/admin/events/${eventId}`, eventData);
+    return response.data;
+  }
+
+  async deleteEvent(eventId: string) {
+    const response = await this.axiosInstance.delete(`/admin/events/${eventId}`);
+    return response.data;
+  }
+
+  async createVideo(videoData: {
+    title: string;
+    youtube_url: string;
+    thumbnail?: string;
+    is_premium: boolean;
+    is_daily: boolean;
+  }) {
+    const response = await this.axiosInstance.post('/videos', videoData);
+    return response.data;
+  }
+
+  async deleteVideo(videoId: string) {
+    const response = await this.axiosInstance.delete(`/admin/videos/${videoId}`);
+    return response.data;
+  }
+
   // Seed
   async seedData() {
     const response = await this.axiosInstance.post('/seed');
