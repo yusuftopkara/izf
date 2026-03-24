@@ -31,16 +31,22 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { user, logout, refreshUser } = useAuth();
   const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [adminStats, setAdminStats] = useState<any>(null);
 
   const fetchData = useCallback(async () => {
+    if (!user) {
+      setIsLoading(false);
+      setRefreshing(false);
+      return;
+    }
+    
     try {
       const ticketsData = await api.getMyTickets();
       setTickets(ticketsData);
       
-      if (user?.role === 'admin') {
+      if (user.role === 'admin') {
         const stats = await api.getAdminStats();
         setAdminStats(stats);
       }
@@ -50,16 +56,19 @@ export default function ProfileScreen() {
       setIsLoading(false);
       setRefreshing(false);
     }
-  }, [user?.role]);
+  }, [user]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (user) {
+      setIsLoading(true);
+      fetchData();
+    }
+  }, [user, fetchData]);
 
   const onRefresh = () => {
     setRefreshing(true);
     fetchData();
-    refreshUser();
+    if (user) refreshUser();
   };
 
   const handleLogout = () => {
@@ -73,7 +82,8 @@ export default function ProfileScreen() {
           style: 'destructive',
           onPress: async () => {
             await logout();
-            router.replace('/(auth)/login');
+            setTickets([]);
+            setAdminStats(null);
           },
         },
       ]
@@ -90,14 +100,57 @@ export default function ProfileScreen() {
     }
   };
 
-  if (isLoading) {
+  // Not logged in state
+  if (!user) {
     return (
-      <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color="#FF6B6B" />
+      <View style={styles.container}>
+        <LinearGradient
+          colors={['#1a1a2e', '#16213e']}
+          style={[styles.header, { paddingTop: insets.top + 10 }]}
+        >
+          <Text style={styles.headerTitle}>Profil</Text>
+        </LinearGradient>
+
+        <View style={styles.guestContainer}>
+          <View style={styles.guestIcon}>
+            <Ionicons name="person-outline" size={64} color="#FF6B6B" />
+          </View>
+          <Text style={styles.guestTitle}>Giriş Yapın</Text>
+          <Text style={styles.guestText}>
+            Biletlerinizi görmek, challenge'lara katılmak ve daha fazlası için giriş yapın.
+          </Text>
+          
+          <TouchableOpacity
+            style={styles.loginButton}
+            onPress={() => router.push('/(auth)/login')}
+          >
+            <LinearGradient
+              colors={['#FF6B6B', '#FF8E53']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.loginButtonGradient}
+            >
+              <Text style={styles.loginButtonText}>Giriş Yap</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={styles.registerButton}
+            onPress={() => router.push('/(auth)/register')}
+          >
+            <Text style={styles.registerButtonText}>Hesap Oluştur</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.seedButton} onPress={handleSeedData}>
+            <Ionicons name="cloud-download" size={18} color="#2196F3" />
+            <Text style={styles.seedButtonText}>Demo Veri Yükle</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
 
+  // Logged in state
   const validTickets = tickets.filter(t => t.status === 'VALID');
   const usedTickets = tickets.filter(t => t.status === 'USED');
 
@@ -109,13 +162,13 @@ export default function ProfileScreen() {
       >
         <View style={styles.profileSection}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{user?.name?.charAt(0).toUpperCase() || 'U'}</Text>
+            <Text style={styles.avatarText}>{user.name?.charAt(0).toUpperCase() || 'U'}</Text>
           </View>
-          <Text style={styles.userName}>{user?.name}</Text>
-          <Text style={styles.userEmail}>{user?.email}</Text>
+          <Text style={styles.userName}>{user.name}</Text>
+          <Text style={styles.userEmail}>{user.email}</Text>
           <View style={styles.roleBadge}>
             <Text style={styles.roleText}>
-              {user?.role === 'admin' ? 'Yönetici' : user?.role === 'staff' ? 'Görevli' : 'Kullanıcı'}
+              {user.role === 'admin' ? 'Yönetici' : user.role === 'staff' ? 'Görevli' : 'Kullanıcı'}
             </Text>
           </View>
         </View>
@@ -132,7 +185,7 @@ export default function ProfileScreen() {
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
             <Ionicons name="flame" size={24} color="#FF6B6B" />
-            <Text style={styles.statNumber}>{user?.streak || 0}</Text>
+            <Text style={styles.statNumber}>{user.streak || 0}</Text>
             <Text style={styles.statLabel}>Streak</Text>
           </View>
           <View style={styles.statCard}>
@@ -148,7 +201,7 @@ export default function ProfileScreen() {
         </View>
 
         {/* Admin Stats */}
-        {user?.role === 'admin' && adminStats && (
+        {user.role === 'admin' && adminStats && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Admin İstatistikleri</Text>
             <View style={styles.adminStatsGrid}>
@@ -175,7 +228,9 @@ export default function ProfileScreen() {
         {/* My Tickets */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Biletlerim</Text>
-          {tickets.length === 0 ? (
+          {isLoading ? (
+            <ActivityIndicator size="small" color="#FF6B6B" />
+          ) : tickets.length === 0 ? (
             <View style={styles.emptyTickets}>
               <Ionicons name="ticket-outline" size={48} color="#444" />
               <Text style={styles.emptyText}>Henüz biletiniz yok</Text>
@@ -192,7 +247,7 @@ export default function ProfileScreen() {
                   <Text style={styles.ticketLocation}>{ticket.event_location}</Text>
                 </View>
                 <View style={[styles.statusBadge, ticket.status === 'USED' && styles.statusUsed]}>
-                  <Text style={styles.statusText}>
+                  <Text style={[styles.statusText, ticket.status === 'USED' && styles.statusTextUsed]}>
                     {ticket.status === 'VALID' ? 'Geçerli' : 'Kullanıldı'}
                   </Text>
                 </View>
@@ -205,7 +260,7 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>İşlemler</Text>
           
-          {(user?.role === 'staff' || user?.role === 'admin') && (
+          {(user.role === 'staff' || user.role === 'admin') && (
             <TouchableOpacity
               style={styles.actionItem}
               onPress={() => router.push('/scanner')}
@@ -253,6 +308,78 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 20,
     paddingBottom: 24,
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  guestContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  guestIcon: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255,107,107,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  guestTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#fff',
+    marginBottom: 12,
+  },
+  guestText: {
+    fontSize: 15,
+    color: '#888',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 32,
+  },
+  loginButton: {
+    width: '100%',
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 12,
+  },
+  loginButtonGradient: {
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  loginButtonText: {
+    color: '#fff',
+    fontSize: 17,
+    fontWeight: '700',
+  },
+  registerButton: {
+    width: '100%',
+    paddingVertical: 16,
+    alignItems: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FF6B6B',
+  },
+  registerButtonText: {
+    color: '#FF6B6B',
+    fontSize: 17,
+    fontWeight: '600',
+  },
+  seedButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 32,
+    padding: 12,
+  },
+  seedButtonText: {
+    color: '#2196F3',
+    fontSize: 14,
+    marginLeft: 8,
   },
   profileSection: {
     alignItems: 'center',
@@ -396,6 +523,9 @@ const styles = StyleSheet.create({
     color: '#4CAF50',
     fontSize: 12,
     fontWeight: '600',
+  },
+  statusTextUsed: {
+    color: '#9e9e9e',
   },
   actionItem: {
     backgroundColor: '#1a1a2e',

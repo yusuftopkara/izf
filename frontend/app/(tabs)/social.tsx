@@ -15,6 +15,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { useAuth } from '../../src/context/AuthContext';
 import { api } from '../../src/services/api';
 import { format } from 'date-fns';
@@ -33,6 +34,7 @@ interface Post {
 
 export default function SocialScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { user } = useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -64,6 +66,18 @@ export default function SocialScreen() {
   };
 
   const handleLike = async (postId: string) => {
+    if (!user) {
+      Alert.alert(
+        'Giriş Gerekli',
+        'Beğeni yapmak için giriş yapmanız gerekiyor.',
+        [
+          { text: 'İptal', style: 'cancel' },
+          { text: 'Giriş Yap', onPress: () => router.push('/(auth)/login') },
+        ]
+      );
+      return;
+    }
+
     try {
       const result = await api.likePost(postId);
       setPosts(posts.map(p => 
@@ -74,6 +88,21 @@ export default function SocialScreen() {
     } catch (error) {
       console.error('Error liking post:', error);
     }
+  };
+
+  const handleNewPost = () => {
+    if (!user) {
+      Alert.alert(
+        'Giriş Gerekli',
+        'Paylaşım yapmak için giriş yapmanız gerekiyor.',
+        [
+          { text: 'İptal', style: 'cancel' },
+          { text: 'Giriş Yap', onPress: () => router.push('/(auth)/login') },
+        ]
+      );
+      return;
+    }
+    setShowNewPost(true);
   };
 
   const handleCreatePost = async () => {
@@ -122,14 +151,23 @@ export default function SocialScreen() {
       >
         <View style={styles.headerRow}>
           <Text style={styles.headerTitle}>Topluluk</Text>
-          {user && (
+          <View style={styles.headerButtons}>
+            {!user && (
+              <TouchableOpacity
+                style={styles.loginBadge}
+                onPress={() => router.push('/(auth)/login')}
+              >
+                <Ionicons name="person" size={16} color="#fff" />
+                <Text style={styles.loginBadgeText}>Giriş</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               style={styles.newPostButton}
-              onPress={() => setShowNewPost(true)}
+              onPress={handleNewPost}
             >
               <Ionicons name="add" size={24} color="#fff" />
             </TouchableOpacity>
-          )}
+          </View>
         </View>
       </LinearGradient>
 
@@ -266,6 +304,25 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '700',
     color: '#fff',
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  loginBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,107,107,0.3)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  loginBadgeText: {
+    color: '#FF6B6B',
+    fontWeight: '600',
+    fontSize: 13,
+    marginLeft: 4,
   },
   newPostButton: {
     width: 40,

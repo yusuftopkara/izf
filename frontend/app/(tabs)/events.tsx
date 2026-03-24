@@ -13,6 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useAuth } from '../../src/context/AuthContext';
 import { api } from '../../src/services/api';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -33,6 +34,7 @@ interface Event {
 export default function EventsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { user } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -83,7 +85,18 @@ export default function EventsScreen() {
         colors={['#1a1a2e', '#16213e']}
         style={[styles.header, { paddingTop: insets.top + 10 }]}
       >
-        <Text style={styles.headerTitle}>Etkinlikler</Text>
+        <View style={styles.headerRow}>
+          <Text style={styles.headerTitle}>Etkinlikler</Text>
+          {!user && (
+            <TouchableOpacity
+              style={styles.loginBadge}
+              onPress={() => router.push('/(auth)/login')}
+            >
+              <Ionicons name="person" size={16} color="#fff" />
+              <Text style={styles.loginBadgeText}>Giriş</Text>
+            </TouchableOpacity>
+          )}
+        </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.cityFilter}>
           <TouchableOpacity
             style={[styles.cityChip, !selectedCity && styles.cityChipActive]}
@@ -179,10 +192,29 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 16,
   },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   headerTitle: {
     fontSize: 28,
     fontWeight: '700',
     color: '#fff',
+  },
+  loginBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FF6B6B',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  loginBadgeText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 13,
+    marginLeft: 4,
   },
   cityFilter: {
     marginTop: 16,

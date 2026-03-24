@@ -6,17 +6,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 export default function Index() {
   const router = useRouter();
-  const { user, isLoading } = useAuth();
+  const { isLoading } = useAuth();
 
   useEffect(() => {
     if (!isLoading) {
-      if (user) {
-        router.replace('/(tabs)/home');
-      } else {
-        router.replace('/(auth)/login');
-      }
+      // Always redirect to home, auth is optional now
+      router.replace('/(tabs)/home');
     }
-  }, [user, isLoading]);
+  }, [isLoading]);
 
   return (
     <View style={styles.container}>

@@ -104,6 +104,17 @@ export default function EventDetailScreen() {
     }
   };
 
+  const handleAddComment = () => {
+    if (!user) {
+      Alert.alert('Giriş Gerekli', 'Yorum yapmak için giriş yapmanız gerekiyor.', [
+        { text: 'İptal', style: 'cancel' },
+        { text: 'Giriş Yap', onPress: () => router.push('/(auth)/login') },
+      ]);
+      return;
+    }
+    setShowCommentForm(!showCommentForm);
+  };
+
   const handleComment = async () => {
     if (!commentText.trim()) {
       Alert.alert('Hata', 'Lütfen bir yorum yazın');
@@ -229,11 +240,9 @@ export default function EventDetailScreen() {
           <View style={styles.commentsSection}>
             <View style={styles.commentHeader}>
               <Text style={styles.sectionTitle}>Yorumlar ({comments.length})</Text>
-              {user && (
-                <TouchableOpacity onPress={() => setShowCommentForm(!showCommentForm)}>
-                  <Ionicons name={showCommentForm ? 'close' : 'add-circle'} size={24} color="#FF6B6B" />
-                </TouchableOpacity>
-              )}
+              <TouchableOpacity onPress={handleAddComment}>
+                <Ionicons name={showCommentForm ? 'close' : 'add-circle'} size={24} color="#FF6B6B" />
+              </TouchableOpacity>
             </View>
 
             {showCommentForm && (
@@ -316,7 +325,7 @@ export default function EventDetailScreen() {
               <ActivityIndicator color="#fff" />
             ) : (
               <Text style={styles.buyButtonText}>
-                {availableTickets === 0 ? 'Tükenmiş' : 'Bilet Al'}
+                {availableTickets === 0 ? 'Tükenmiş' : (user ? 'Bilet Al' : 'Giriş Yap ve Al')}
               </Text>
             )}
           </LinearGradient>

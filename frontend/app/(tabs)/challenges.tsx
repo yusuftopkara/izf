@@ -12,6 +12,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { useAuth } from '../../src/context/AuthContext';
 import { api } from '../../src/services/api';
 
@@ -25,6 +26,7 @@ interface Challenge {
 
 export default function ChallengesScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { user, refreshUser } = useAuth();
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -53,6 +55,18 @@ export default function ChallengesScreen() {
   };
 
   const completeChallenge = async (challengeId: string) => {
+    if (!user) {
+      Alert.alert(
+        'Giriş Gerekli',
+        'Challenge tamamlamak için giriş yapmanız gerekiyor.',
+        [
+          { text: 'İptal', style: 'cancel' },
+          { text: 'Giriş Yap', onPress: () => router.push('/(auth)/login') },
+        ]
+      );
+      return;
+    }
+
     setCompletingId(challengeId);
     try {
       const result = await api.completeChallenge(challengeId);
@@ -86,7 +100,18 @@ export default function ChallengesScreen() {
         colors={['#1a1a2e', '#16213e']}
         style={[styles.header, { paddingTop: insets.top + 10 }]}
       >
-        <Text style={styles.headerTitle}>Günlük Challenge</Text>
+        <View style={styles.headerRow}>
+          <Text style={styles.headerTitle}>Günlük Challenge</Text>
+          {!user && (
+            <TouchableOpacity
+              style={styles.loginBadge}
+              onPress={() => router.push('/(auth)/login')}
+            >
+              <Ionicons name="person" size={16} color="#fff" />
+              <Text style={styles.loginBadgeText}>Giriş</Text>
+            </TouchableOpacity>
+          )}
+        </View>
         
         {/* Streak Card */}
         <View style={styles.streakCard}>
@@ -158,7 +183,9 @@ export default function ChallengesScreen() {
                 ) : (
                   <>
                     <Ionicons name="checkmark-circle" size={20} color="#fff" />
-                    <Text style={styles.completeButtonText}>Tamamla</Text>
+                    <Text style={styles.completeButtonText}>
+                      {user ? 'Tamamla' : 'Giriş Yap ve Tamamla'}
+                    </Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -192,11 +219,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 20,
   },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   headerTitle: {
     fontSize: 28,
     fontWeight: '700',
     color: '#fff',
-    marginBottom: 16,
+  },
+  loginBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FF6B6B',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  loginBadgeText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 13,
+    marginLeft: 4,
   },
   streakCard: {
     borderRadius: 16,
