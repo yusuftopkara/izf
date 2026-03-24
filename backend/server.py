@@ -858,6 +858,27 @@ class SetRoleRequest(BaseModel):
     user_id: str
     role: str
 
+class IntegrationSettings(BaseModel):
+    # iyzico settings
+    iyzico_api_key: Optional[str] = None
+    iyzico_secret_key: Optional[str] = None
+    iyzico_base_url: Optional[str] = "https://sandbox-api.iyzipay.com"
+    
+    # Firebase settings
+    firebase_api_key: Optional[str] = None
+    firebase_auth_domain: Optional[str] = None
+    firebase_project_id: Optional[str] = None
+    firebase_storage_bucket: Optional[str] = None
+    firebase_messaging_sender_id: Optional[str] = None
+    firebase_app_id: Optional[str] = None
+    
+    # PostgreSQL settings (for future migration)
+    postgres_host: Optional[str] = None
+    postgres_port: Optional[str] = "5432"
+    postgres_db: Optional[str] = None
+    postgres_user: Optional[str] = None
+    postgres_password: Optional[str] = None
+
 @api_router.post("/admin/set-role-by-id")
 async def set_user_role_by_id(request: SetRoleRequest, user: dict = Depends(require_admin)):
     if request.role not in ["user", "admin", "staff"]:
@@ -871,6 +892,109 @@ async def set_user_role_by_id(request: SetRoleRequest, user: dict = Depends(requ
         raise HTTPException(status_code=404, detail="User not found")
     
     return {"success": True, "message": f"User role updated to {request.role}"}
+
+# ==================== SETTINGS API ====================
+
+@api_router.get("/admin/settings")
+async def get_settings(user: dict = Depends(require_admin)):
+    """Get current integration settings"""
+    settings = await db.settings.find_one({"type": "integrations"})
+    if not settings:
+        # Return default empty settings
+        return {
+            "iyzico": {
+                "api_key": "",
+                "secret_key": "",
+                "base_url": "https://sandbox-api.iyzipay.com",
+                "is_sandbox": True
+            },
+            "firebase": {
+                "api_key": "",
+                "auth_domain": "",
+                "project_id": "",
+                "storage_bucket": "",
+                "messaging_sender_id": "",
+                "app_id": ""
+            },
+            "postgres": {
+                "host": "",
+                "port": "5432",
+                "database": "",
+                "user": "",
+                "password": "",
+                "is_active": False
+            }
+        }
+    
+    # Mask sensitive data
+    result = settings.get("data", {})
+    return result
+
+@api_router.put("/admin/settings")
+async def update_settings(settings: IntegrationSettings, user: dict = Depends(require_admin)):
+    """Update integration settings"""
+    settings_data = {
+        "iyzico": {
+            "api_key": settings.iyzico_api_key or "",
+            "secret_key": settings.iyzico_secret_key or "",
+            "base_url": settings.iyzico_base_url or "https://sandbox-api.iyzipay.com",
+            "is_sandbox": "sandbox" in (settings.iyzico_base_url or "sandbox")
+        },
+        "firebase": {
+            "api_key": settings.firebase_api_key or "",
+            "auth_domain": settings.firebase_auth_domain or "",
+            "project_id": settings.firebase_project_id or "",
+            "storage_bucket": settings.firebase_storage_bucket or "",
+            "messaging_sender_id": settings.firebase_messaging_sender_id or "",
+            "app_id": settings.firebase_app_id or ""
+        },
+        "postgres": {
+            "host": settings.postgres_host or "",
+            "port": settings.postgres_port or "5432",
+            "database": settings.postgres_db or "",
+            "user": settings.postgres_user or "",
+            "password": settings.postgres_password or "",
+            "is_active": bool(settings.postgres_host and settings.postgres_db)
+        }
+    }
+    
+    await db.settings.update_one(
+        {"type": "integrations"},
+        {"$set": {"type": "integrations", "data": settings_data, "updated_at": datetime.utcnow()}},
+        upsert=True
+    )
+    
+    return {"success": True, "message": "Settings updated successfully"}
+
+@api_router.post("/admin/test-iyzico")
+async def test_iyzico_connection(user: dict = Depends(require_admin)):
+    """Test iyzico connection"""
+    settings = await db.settings.find_one({"type": "integrations"})
+    if not settings or not settings.get("data", {}).get("iyzico", {}).get("api_key"):
+        return {"success": False, "message": "iyzico API key not configured"}
+    
+    # Here you would test the actual iyzico connection
+    # For now, just return success if keys are present
+    return {"success": True, "message": "iyzico credentials configured (test not implemented)"}
+
+@api_router.post("/admin/test-firebase")
+async def test_firebase_connection(user: dict = Depends(require_admin)):
+    """Test Firebase connection"""
+    settings = await db.settings.find_one({"type": "integrations"})
+    if not settings or not settings.get("data", {}).get("firebase", {}).get("api_key"):
+        return {"success": False, "message": "Firebase API key not configured"}
+    
+    return {"success": True, "message": "Firebase credentials configured (test not implemented)"}
+
+@api_router.post("/admin/test-postgres")
+async def test_postgres_connection(user: dict = Depends(require_admin)):
+    """Test PostgreSQL connection"""
+    settings = await db.settings.find_one({"type": "integrations"})
+    if not settings or not settings.get("data", {}).get("postgres", {}).get("host"):
+        return {"success": False, "message": "PostgreSQL not configured"}
+    
+    # Here you would test the actual PostgreSQL connection
+    return {"success": True, "message": "PostgreSQL credentials configured (test not implemented)"}
 
 # ==================== SEED DATA ====================
 

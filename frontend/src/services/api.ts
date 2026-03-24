@@ -220,9 +220,76 @@ class ApiService {
     return response.data;
   }
 
+  // Admin - Create User
+  async createUser(userData: {
+    email: string;
+    password: string;
+    name: string;
+    role: string;
+  }) {
+    const response = await this.axiosInstance.post('/admin/create-user', userData);
+    return response.data;
+  }
+
+  // Admin - Create Post
+  async createPost(postData: {
+    content: string;
+    image_url?: string;
+    hashtags?: string[];
+  }) {
+    const response = await this.axiosInstance.post('/posts', postData);
+    return response.data;
+  }
+
   // Seed
-  async seedData() {
-    const response = await this.axiosInstance.post('/seed');
+  async seedData(force: boolean = false) {
+    const response = await this.axiosInstance.post(`/seed?force=${force}`);
+    return response.data;
+  }
+
+  async forceSeedData() {
+    const response = await this.axiosInstance.post('/seed?force=true');
+    return response.data;
+  }
+
+  // Settings
+  async getSettings() {
+    const response = await this.axiosInstance.get('/admin/settings');
+    return response.data;
+  }
+
+  async updateSettings(settings: {
+    iyzico_api_key?: string;
+    iyzico_secret_key?: string;
+    iyzico_base_url?: string;
+    firebase_api_key?: string;
+    firebase_auth_domain?: string;
+    firebase_project_id?: string;
+    firebase_storage_bucket?: string;
+    firebase_messaging_sender_id?: string;
+    firebase_app_id?: string;
+    postgres_host?: string;
+    postgres_port?: string;
+    postgres_db?: string;
+    postgres_user?: string;
+    postgres_password?: string;
+  }) {
+    const response = await this.axiosInstance.put('/admin/settings', settings);
+    return response.data;
+  }
+
+  async testIyzico() {
+    const response = await this.axiosInstance.post('/admin/test-iyzico');
+    return response.data;
+  }
+
+  async testFirebase() {
+    const response = await this.axiosInstance.post('/admin/test-firebase');
+    return response.data;
+  }
+
+  async testPostgres() {
+    const response = await this.axiosInstance.post('/admin/test-postgres');
     return response.data;
   }
 }

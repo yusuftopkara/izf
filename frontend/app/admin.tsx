@@ -52,7 +52,32 @@ interface Challenge {
   points: number;
 }
 
-type TabType = 'stats' | 'users' | 'events' | 'videos' | 'challenges' | 'notifications';
+type TabType = 'stats' | 'users' | 'events' | 'videos' | 'challenges' | 'notifications' | 'settings';
+
+interface SettingsData {
+  iyzico: {
+    api_key: string;
+    secret_key: string;
+    base_url: string;
+    is_sandbox: boolean;
+  };
+  firebase: {
+    api_key: string;
+    auth_domain: string;
+    project_id: string;
+    storage_bucket: string;
+    messaging_sender_id: string;
+    app_id: string;
+  };
+  postgres: {
+    host: string;
+    port: string;
+    database: string;
+    user: string;
+    password: string;
+    is_active: boolean;
+  };
+}
 
 export default function AdminPanel() {
   const insets = useSafeAreaInsets();
@@ -70,6 +95,7 @@ export default function AdminPanel() {
   const [events, setEvents] = useState<Event[]>([]);
   const [videos, setVideos] = useState<Video[]>([]);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
+  const [settings, setSettings] = useState<SettingsData | null>(null);
   
   // Modals
   const [showEventModal, setShowEventModal] = useState(false);
@@ -129,18 +155,20 @@ export default function AdminPanel() {
     setIsLoading(true);
     setFetchError(null);
     try {
-      const [statsData, usersData, eventsData, videosData, challengesData] = await Promise.all([
+      const [statsData, usersData, eventsData, videosData, challengesData, settingsData] = await Promise.all([
         api.getAdminStats(),
         api.getAllUsers(),
         api.getEvents(),
         api.getVideos(),
         api.getChallenges(),
+        api.getSettings(),
       ]);
       setStats(statsData);
       setUsers(usersData);
       setEvents(eventsData);
       setVideos(videosData);
       setChallenges(challengesData);
+      setSettings(settingsData);
     } catch (error: any) {
       console.error('Error fetching admin data:', error);
       setFetchError(error.response?.data?.detail || 'Veriler yüklenemedi');
@@ -366,6 +394,7 @@ export default function AdminPanel() {
     { id: 'videos', label: 'Video', icon: 'videocam' },
     { id: 'challenges', label: 'Challenge', icon: 'flash' },
     { id: 'notifications', label: 'Bildirim', icon: 'notifications' },
+    { id: 'settings', label: 'Ayarlar', icon: 'settings' },
   ];
 
   const renderStats = () => (
@@ -543,6 +572,244 @@ export default function AdminPanel() {
     </View>
   );
 
+  // Settings form state
+  const [settingsForm, setSettingsForm] = useState({
+    iyzico_api_key: '',
+    iyzico_secret_key: '',
+    iyzico_base_url: 'https://sandbox-api.iyzipay.com',
+    firebase_api_key: '',
+    firebase_auth_domain: '',
+    firebase_project_id: '',
+    firebase_storage_bucket: '',
+    firebase_messaging_sender_id: '',
+    firebase_app_id: '',
+    postgres_host: '',
+    postgres_port: '5432',
+    postgres_db: '',
+    postgres_user: '',
+    postgres_password: '',
+  });
+
+  // Update form when settings loaded
+  useEffect(() => {
+    if (settings) {
+      setSettingsForm({
+        iyzico_api_key: settings.iyzico?.api_key || '',
+        iyzico_secret_key: settings.iyzico?.secret_key || '',
+        iyzico_base_url: settings.iyzico?.base_url || 'https://sandbox-api.iyzipay.com',
+        firebase_api_key: settings.firebase?.api_key || '',
+        firebase_auth_domain: settings.firebase?.auth_domain || '',
+        firebase_project_id: settings.firebase?.project_id || '',
+        firebase_storage_bucket: settings.firebase?.storage_bucket || '',
+        firebase_messaging_sender_id: settings.firebase?.messaging_sender_id || '',
+        firebase_app_id: settings.firebase?.app_id || '',
+        postgres_host: settings.postgres?.host || '',
+        postgres_port: settings.postgres?.port || '5432',
+        postgres_db: settings.postgres?.database || '',
+        postgres_user: settings.postgres?.user || '',
+        postgres_password: settings.postgres?.password || '',
+      });
+    }
+  }, [settings]);
+
+  const handleSaveSettings = async () => {
+    try {
+      await api.updateSettings(settingsForm);
+      showAlert('Başarılı', 'Ayarlar kaydedildi');
+      fetchData();
+    } catch (error: any) {
+      showAlert('Hata', error.response?.data?.detail || 'Ayarlar kaydedilemedi');
+    }
+  };
+
+  const renderSettings = () => (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>Entegrasyon Ayarları</Text>
+      
+      {/* iyzico Settings */}
+      <View style={styles.settingsCard}>
+        <View style={styles.settingsCardHeader}>
+          <Ionicons name="card" size={24} color="#FF6B6B" />
+          <Text style={styles.settingsCardTitle}>iyzico Ödeme</Text>
+          {settings?.iyzico?.api_key ? (
+            <View style={styles.statusBadgeActive}>
+              <Text style={styles.statusText}>Aktif</Text>
+            </View>
+          ) : (
+            <View style={styles.statusBadgeInactive}>
+              <Text style={styles.statusText}>Yapılandırılmadı</Text>
+            </View>
+          )}
+        </View>
+        <TextInput
+          style={styles.settingsInput}
+          placeholder="API Key"
+          placeholderTextColor="#666"
+          value={settingsForm.iyzico_api_key}
+          onChangeText={(t) => setSettingsForm({...settingsForm, iyzico_api_key: t})}
+        />
+        <TextInput
+          style={styles.settingsInput}
+          placeholder="Secret Key"
+          placeholderTextColor="#666"
+          value={settingsForm.iyzico_secret_key}
+          onChangeText={(t) => setSettingsForm({...settingsForm, iyzico_secret_key: t})}
+          secureTextEntry
+        />
+        <TextInput
+          style={styles.settingsInput}
+          placeholder="Base URL (sandbox veya production)"
+          placeholderTextColor="#666"
+          value={settingsForm.iyzico_base_url}
+          onChangeText={(t) => setSettingsForm({...settingsForm, iyzico_base_url: t})}
+        />
+      </View>
+
+      {/* Firebase Settings */}
+      <View style={styles.settingsCard}>
+        <View style={styles.settingsCardHeader}>
+          <Ionicons name="flame" size={24} color="#FFA000" />
+          <Text style={styles.settingsCardTitle}>Firebase</Text>
+          {settings?.firebase?.api_key ? (
+            <View style={styles.statusBadgeActive}>
+              <Text style={styles.statusText}>Aktif</Text>
+            </View>
+          ) : (
+            <View style={styles.statusBadgeInactive}>
+              <Text style={styles.statusText}>Yapılandırılmadı</Text>
+            </View>
+          )}
+        </View>
+        <TextInput
+          style={styles.settingsInput}
+          placeholder="API Key"
+          placeholderTextColor="#666"
+          value={settingsForm.firebase_api_key}
+          onChangeText={(t) => setSettingsForm({...settingsForm, firebase_api_key: t})}
+        />
+        <TextInput
+          style={styles.settingsInput}
+          placeholder="Auth Domain"
+          placeholderTextColor="#666"
+          value={settingsForm.firebase_auth_domain}
+          onChangeText={(t) => setSettingsForm({...settingsForm, firebase_auth_domain: t})}
+        />
+        <TextInput
+          style={styles.settingsInput}
+          placeholder="Project ID"
+          placeholderTextColor="#666"
+          value={settingsForm.firebase_project_id}
+          onChangeText={(t) => setSettingsForm({...settingsForm, firebase_project_id: t})}
+        />
+        <TextInput
+          style={styles.settingsInput}
+          placeholder="Storage Bucket"
+          placeholderTextColor="#666"
+          value={settingsForm.firebase_storage_bucket}
+          onChangeText={(t) => setSettingsForm({...settingsForm, firebase_storage_bucket: t})}
+        />
+        <TextInput
+          style={styles.settingsInput}
+          placeholder="Messaging Sender ID"
+          placeholderTextColor="#666"
+          value={settingsForm.firebase_messaging_sender_id}
+          onChangeText={(t) => setSettingsForm({...settingsForm, firebase_messaging_sender_id: t})}
+        />
+        <TextInput
+          style={styles.settingsInput}
+          placeholder="App ID"
+          placeholderTextColor="#666"
+          value={settingsForm.firebase_app_id}
+          onChangeText={(t) => setSettingsForm({...settingsForm, firebase_app_id: t})}
+        />
+      </View>
+
+      {/* PostgreSQL Settings */}
+      <View style={styles.settingsCard}>
+        <View style={styles.settingsCardHeader}>
+          <Ionicons name="server" size={24} color="#336791" />
+          <Text style={styles.settingsCardTitle}>PostgreSQL</Text>
+          {settings?.postgres?.is_active ? (
+            <View style={styles.statusBadgeActive}>
+              <Text style={styles.statusText}>Aktif</Text>
+            </View>
+          ) : (
+            <View style={styles.statusBadgeInactive}>
+              <Text style={styles.statusText}>Yapılandırılmadı</Text>
+            </View>
+          )}
+        </View>
+        <TextInput
+          style={styles.settingsInput}
+          placeholder="Host"
+          placeholderTextColor="#666"
+          value={settingsForm.postgres_host}
+          onChangeText={(t) => setSettingsForm({...settingsForm, postgres_host: t})}
+        />
+        <TextInput
+          style={styles.settingsInput}
+          placeholder="Port"
+          placeholderTextColor="#666"
+          value={settingsForm.postgres_port}
+          onChangeText={(t) => setSettingsForm({...settingsForm, postgres_port: t})}
+          keyboardType="numeric"
+        />
+        <TextInput
+          style={styles.settingsInput}
+          placeholder="Database Name"
+          placeholderTextColor="#666"
+          value={settingsForm.postgres_db}
+          onChangeText={(t) => setSettingsForm({...settingsForm, postgres_db: t})}
+        />
+        <TextInput
+          style={styles.settingsInput}
+          placeholder="Username"
+          placeholderTextColor="#666"
+          value={settingsForm.postgres_user}
+          onChangeText={(t) => setSettingsForm({...settingsForm, postgres_user: t})}
+        />
+        <TextInput
+          style={styles.settingsInput}
+          placeholder="Password"
+          placeholderTextColor="#666"
+          value={settingsForm.postgres_password}
+          onChangeText={(t) => setSettingsForm({...settingsForm, postgres_password: t})}
+          secureTextEntry
+        />
+      </View>
+
+      {/* Save Button */}
+      <TouchableOpacity style={styles.saveSettingsBtn} onPress={handleSaveSettings}>
+        <LinearGradient
+          colors={['#4CAF50', '#45a049']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.saveSettingsGradient}
+        >
+          <Ionicons name="save" size={20} color="#fff" />
+          <Text style={styles.saveSettingsText}>Ayarları Kaydet</Text>
+        </LinearGradient>
+      </TouchableOpacity>
+
+      {/* Force Seed Data */}
+      <TouchableOpacity 
+        style={styles.seedBtn} 
+        onPress={async () => {
+          try {
+            await api.forceSeedData();
+            showAlert('Başarılı', 'Demo veriler yeniden yüklendi');
+            fetchData();
+          } catch (error) {
+            showAlert('Hata', 'Veriler yüklenemedi');
+          }
+        }}
+      >
+        <Ionicons name="refresh" size={20} color="#FF6B6B" />
+        <Text style={styles.seedBtnText}>Demo Verileri Sıfırla ve Yükle</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   if (authLoading || !user || user.role !== 'admin') {
     return (
       <View style={[styles.container, styles.centered]}>
@@ -569,7 +836,7 @@ export default function AdminPanel() {
       {/* Tabs - 2 rows for mobile */}
       <View style={styles.tabsWrapper}>
         <View style={styles.tabRow}>
-          {tabs.slice(0, 3).map((tab) => (
+          {tabs.slice(0, 4).map((tab) => (
             <TouchableOpacity
               key={tab.id}
               style={[styles.tab, activeTab === tab.id && styles.tabActive]}
@@ -587,7 +854,7 @@ export default function AdminPanel() {
           ))}
         </View>
         <View style={styles.tabRow}>
-          {tabs.slice(3).map((tab) => (
+          {tabs.slice(4).map((tab) => (
             <TouchableOpacity
               key={tab.id}
               style={[styles.tab, activeTab === tab.id && styles.tabActive]}
@@ -622,6 +889,7 @@ export default function AdminPanel() {
             {activeTab === 'videos' && renderVideos()}
             {activeTab === 'challenges' && renderChallenges()}
             {activeTab === 'notifications' && renderNotifications()}
+            {activeTab === 'settings' && renderSettings()}
           </>
         )}
         <View style={{ height: 100 }} />
@@ -1185,5 +1453,83 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 15,
     fontWeight: '500',
+  },
+  // Settings styles
+  settingsCard: {
+    backgroundColor: '#1a1a2e',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+  },
+  settingsCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 12,
+  },
+  settingsCardTitle: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    flex: 1,
+  },
+  statusBadgeActive: {
+    backgroundColor: 'rgba(76,175,80,0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  statusBadgeInactive: {
+    backgroundColor: 'rgba(255,152,0,0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  settingsInput: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 10,
+    padding: 14,
+    color: '#fff',
+    fontSize: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  saveSettingsBtn: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginTop: 8,
+  },
+  saveSettingsGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    gap: 8,
+  },
+  saveSettingsText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  seedBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    backgroundColor: 'rgba(255,107,107,0.1)',
+    borderRadius: 12,
+    marginTop: 16,
+    gap: 8,
+  },
+  seedBtnText: {
+    color: '#FF6B6B',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
