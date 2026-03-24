@@ -89,10 +89,8 @@ export default function ProfileScreen() {
           onPress: async () => {
             try {
               await logout();
-              // Clear local state
               setTickets([]);
               setAdminStats(null);
-              // Navigate to login
               router.replace('/(tabs)/home');
             } catch (error) {
               console.error('Logout error:', error);
@@ -125,7 +123,16 @@ export default function ProfileScreen() {
         </LinearGradient>
 
         <View style={styles.guestContainer}>
-          <Image source={{ uri: LOGO_URL }} style={styles.guestLogo} />
+          <View style={styles.logoContainer}>
+            <LinearGradient
+              colors={['#FF6B6B', '#FF8E53']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.logoGradient}
+            >
+              <Image source={{ uri: LOGO_URL }} style={styles.guestLogo} />
+            </LinearGradient>
+          </View>
           <Text style={styles.guestTitle}>IZF'a Giriş Yapın</Text>
           <Text style={styles.guestText}>
             Biletlerinizi görmek, challenge'lara katılmak ve daha fazlası için giriş yapın.
@@ -331,11 +338,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 40,
   },
+  logoContainer: {
+    shadowColor: '#FF6B6B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    marginBottom: 24,
+  },
+  logoGradient: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    padding: 5,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   guestLogo: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    marginBottom: 24,
   },
   guestTitle: {
     fontSize: 24,

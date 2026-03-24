@@ -101,7 +101,16 @@ export default function HomeScreen() {
       >
         <View style={styles.headerContent}>
           <View style={styles.headerLeft}>
-            <Image source={{ uri: LOGO_URL }} style={styles.headerLogo} />
+            <View style={styles.logoContainer}>
+              <LinearGradient
+                colors={['#FF6B6B', '#FF8E53']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.logoGradient}
+              >
+                <Image source={{ uri: LOGO_URL }} style={styles.headerLogo} />
+              </LinearGradient>
+            </View>
             <View>
               <Text style={styles.greeting}>
                 {user ? `Merhaba, ${user.name}!` : 'IZF\'a Hoş Geldin!'}
@@ -218,11 +227,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
+  logoContainer: {
+    marginRight: 12,
+  },
+  logoGradient: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    padding: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   headerLogo: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    marginRight: 12,
   },
   greeting: {
     fontSize: 20,

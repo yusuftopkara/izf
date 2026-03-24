@@ -4,13 +4,14 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '../src/context/AuthContext';
 import { LinearGradient } from 'expo-linear-gradient';
 
+const LOGO_URL = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR86xQQVC5BJOg6hzF8RrhjJDnu2UwKTBsnpw&s';
+
 export default function Index() {
   const router = useRouter();
   const { isLoading } = useAuth();
 
   useEffect(() => {
     if (!isLoading) {
-      // Always redirect to home, auth is optional now
       router.replace('/(tabs)/home');
     }
   }, [isLoading]);
@@ -23,11 +24,20 @@ export default function Index() {
         end={{ x: 1, y: 1 }}
         style={styles.gradient}
       >
-        <Image
-          source={{ uri: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR86xQQVC5BJOg6hzF8RrhjJDnu2UwKTBsnpw&s' }}
-          style={styles.logo}
-          resizeMode="contain"
-        />
+        <View style={styles.logoContainer}>
+          <LinearGradient
+            colors={['#FF6B6B', '#FF8E53']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.logoGradient}
+          >
+            <Image
+              source={{ uri: LOGO_URL }}
+              style={styles.logo}
+              resizeMode="cover"
+            />
+          </LinearGradient>
+        </View>
         <Text style={styles.title}>IZF</Text>
         <Text style={styles.subtitle}>Dans Et, Eğlen, Yaşa!</Text>
         <ActivityIndicator size="large" color="#fff" style={styles.loader} />
@@ -45,11 +55,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  logoContainer: {
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  logoGradient: {
+    width: 130,
+    height: 130,
+    borderRadius: 65,
+    padding: 5,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   logo: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    marginBottom: 16,
   },
   title: {
     fontSize: 56,

@@ -61,7 +61,16 @@ export default function LoginScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.header}>
-            <Image source={{ uri: LOGO_URL }} style={styles.logo} />
+            <View style={styles.logoContainer}>
+              <LinearGradient
+                colors={['#FF6B6B', '#FF8E53']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.logoGradient}
+              >
+                <Image source={{ uri: LOGO_URL }} style={styles.logo} />
+              </LinearGradient>
+            </View>
             <Text style={styles.appName}>IZF</Text>
             <Text style={styles.subtitle}>Hesabınıza giriş yapın</Text>
           </View>
@@ -150,11 +159,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 48,
   },
+  logoContainer: {
+    shadowColor: '#FF6B6B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  logoGradient: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    padding: 5,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   logo: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    marginBottom: 16,
   },
   appName: {
     fontSize: 48,
