@@ -30,8 +30,7 @@
         "WRITE_EXTERNAL_STORAGE",
         "VIBRATE",
         "RECEIVE_BOOT_COMPLETED"
-      ],
-      "googleServicesFile": "./google-services.json"
+      ]
     },
     "web": {
       "bundler": "metro",
