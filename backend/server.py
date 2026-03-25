@@ -252,7 +252,7 @@ async def get_current_user(token: str = None):
             return None
         user = await db.users.find_one({"id": user_id})
         return user
-    except:
+    except Exception:
         return None
 
 async def require_auth(authorization: str = None):
@@ -449,6 +449,20 @@ async def get_me(user: dict = Depends(get_user_from_header)):
         streak=user.get("streak", 0),
         created_at=user["created_at"]
     )
+
+# ==================== PUSH NOTIFICATION TOKEN ====================
+
+class PushTokenRequest(BaseModel):
+    push_token: str
+
+@api_router.post("/me/register-push-token")
+async def register_push_token(request: PushTokenRequest, user: dict = Depends(get_user_from_header)):
+    """Register device push notification token for current user"""
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {"push_token": request.push_token, "push_token_updated_at": datetime.utcnow()}}
+    )
+    return {"success": True, "message": "Push token registered successfully"}
 
 # ==================== EVENT ROUTES ====================
 
@@ -1258,13 +1272,6 @@ class IntegrationSettings(BaseModel):
     sendgrid_api_key: Optional[str] = None
     sendgrid_from_email: Optional[str] = None
     sendgrid_from_name: Optional[str] = "IZF Zumba"
-    
-    # PostgreSQL settings (for future migration)
-    postgres_host: Optional[str] = None
-    postgres_port: Optional[str] = "5432"
-    postgres_db: Optional[str] = None
-    postgres_user: Optional[str] = None
-    postgres_password: Optional[str] = None
 
 @api_router.post("/admin/set-role-by-id")
 async def set_user_role_by_id(request: SetRoleRequest, user: dict = Depends(require_admin)):
@@ -1310,14 +1317,6 @@ async def get_settings(user: dict = Depends(require_admin)):
                 "from_email": "",
                 "from_name": "IZF Zumba",
                 "is_active": False
-            },
-            "postgres": {
-                "host": "",
-                "port": "5432",
-                "database": "",
-                "user": "",
-                "password": "",
-                "is_active": False
             }
         }
     
@@ -1350,14 +1349,6 @@ async def update_settings(settings: IntegrationSettings, user: dict = Depends(re
             "from_email": settings.sendgrid_from_email or "",
             "from_name": settings.sendgrid_from_name or "IZF Zumba",
             "is_active": bool(settings.sendgrid_api_key and settings.sendgrid_from_email)
-        },
-        "postgres": {
-            "host": settings.postgres_host or "",
-            "port": settings.postgres_port or "5432",
-            "database": settings.postgres_db or "",
-            "user": settings.postgres_user or "",
-            "password": settings.postgres_password or "",
-            "is_active": bool(settings.postgres_host and settings.postgres_db)
         }
     }
     
@@ -1388,16 +1379,6 @@ async def test_firebase_connection(user: dict = Depends(require_admin)):
         return {"success": False, "message": "Firebase API key not configured"}
     
     return {"success": True, "message": "Firebase credentials configured (test not implemented)"}
-
-@api_router.post("/admin/test-postgres")
-async def test_postgres_connection(user: dict = Depends(require_admin)):
-    """Test PostgreSQL connection"""
-    settings = await db.settings.find_one({"type": "integrations"})
-    if not settings or not settings.get("data", {}).get("postgres", {}).get("host"):
-        return {"success": False, "message": "PostgreSQL not configured"}
-    
-    # Here you would test the actual PostgreSQL connection
-    return {"success": True, "message": "PostgreSQL credentials configured (test not implemented)"}
 
 # ==================== SEED DATA ====================
 

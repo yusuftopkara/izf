@@ -77,14 +77,6 @@ interface SettingsData {
     from_name: string;
     is_active: boolean;
   };
-  postgres: {
-    host: string;
-    port: string;
-    database: string;
-    user: string;
-    password: string;
-    is_active: boolean;
-  };
 }
 
 export default function AdminPanel() {
@@ -767,11 +759,6 @@ export default function AdminPanel() {
     sendgrid_api_key: '',
     sendgrid_from_email: '',
     sendgrid_from_name: 'IZF Zumba',
-    postgres_host: '',
-    postgres_port: '5432',
-    postgres_db: '',
-    postgres_user: '',
-    postgres_password: '',
   });
 
   // Update form when settings loaded
@@ -792,11 +779,6 @@ export default function AdminPanel() {
         sendgrid_api_key: settings.sendgrid?.api_key || '',
         sendgrid_from_email: settings.sendgrid?.from_email || '',
         sendgrid_from_name: settings.sendgrid?.from_name || 'IZF Zumba',
-        postgres_host: settings.postgres?.host || '',
-        postgres_port: settings.postgres?.port || '5432',
-        postgres_db: settings.postgres?.database || '',
-        postgres_user: settings.postgres?.user || '',
-        postgres_password: settings.postgres?.password || '',
       });
     }
   }, [settings]);
@@ -968,60 +950,6 @@ export default function AdminPanel() {
           placeholderTextColor="#666"
           value={settingsForm.sendgrid_from_name}
           onChangeText={(t) => setSettingsForm({...settingsForm, sendgrid_from_name: t})}
-        />
-      </View>
-
-      {/* PostgreSQL Settings */}
-      <View style={styles.settingsCard}>
-        <View style={styles.settingsCardHeader}>
-          <Ionicons name="server" size={24} color="#336791" />
-          <Text style={styles.settingsCardTitle}>PostgreSQL</Text>
-          {settings?.postgres?.is_active ? (
-            <View style={styles.statusBadgeActive}>
-              <Text style={styles.statusText}>Aktif</Text>
-            </View>
-          ) : (
-            <View style={styles.statusBadgeInactive}>
-              <Text style={styles.statusText}>Yapılandırılmadı</Text>
-            </View>
-          )}
-        </View>
-        <TextInput
-          style={styles.settingsInput}
-          placeholder="Host"
-          placeholderTextColor="#666"
-          value={settingsForm.postgres_host}
-          onChangeText={(t) => setSettingsForm({...settingsForm, postgres_host: t})}
-        />
-        <TextInput
-          style={styles.settingsInput}
-          placeholder="Port"
-          placeholderTextColor="#666"
-          value={settingsForm.postgres_port}
-          onChangeText={(t) => setSettingsForm({...settingsForm, postgres_port: t})}
-          keyboardType="numeric"
-        />
-        <TextInput
-          style={styles.settingsInput}
-          placeholder="Database Name"
-          placeholderTextColor="#666"
-          value={settingsForm.postgres_db}
-          onChangeText={(t) => setSettingsForm({...settingsForm, postgres_db: t})}
-        />
-        <TextInput
-          style={styles.settingsInput}
-          placeholder="Username"
-          placeholderTextColor="#666"
-          value={settingsForm.postgres_user}
-          onChangeText={(t) => setSettingsForm({...settingsForm, postgres_user: t})}
-        />
-        <TextInput
-          style={styles.settingsInput}
-          placeholder="Password"
-          placeholderTextColor="#666"
-          value={settingsForm.postgres_password}
-          onChangeText={(t) => setSettingsForm({...settingsForm, postgres_password: t})}
-          secureTextEntry
         />
       </View>
 

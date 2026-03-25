@@ -310,11 +310,6 @@ class ApiService {
     sendgrid_api_key?: string;
     sendgrid_from_email?: string;
     sendgrid_from_name?: string;
-    postgres_host?: string;
-    postgres_port?: string;
-    postgres_db?: string;
-    postgres_user?: string;
-    postgres_password?: string;
   }) {
     const response = await this.axiosInstance.put('/admin/settings', settings);
     return response.data;
@@ -330,8 +325,9 @@ class ApiService {
     return response.data;
   }
 
-  async testPostgres() {
-    const response = await this.axiosInstance.post('/admin/test-postgres');
+  // Push Notification Token Registration
+  async registerPushToken(token: string) {
+    const response = await this.axiosInstance.post('/me/register-push-token', { push_token: token });
     return response.data;
   }
 }

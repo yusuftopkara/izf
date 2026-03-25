@@ -1,6 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api } from '../services/api';
+import { 
+  registerForPushNotificationsAsync, 
+  registerPushTokenWithBackend,
+  addNotificationReceivedListener,
+  addNotificationResponseReceivedListener
+} from '../services/notifications';
 
 interface User {
   id: string;
@@ -31,6 +37,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     loadStoredAuth();
   }, []);
+
+  // Setup notification listeners
+  useEffect(() => {
+    const notificationListener = addNotificationReceivedListener(notification => {
+      console.log('Notification received:', notification);
+    });
+
+    const responseListener = addNotificationResponseReceivedListener(response => {
+      console.log('Notification response:', response);
+      // Handle notification tap - navigate to relevant screen based on data
+    });
+
+    return () => {
+      notificationListener.remove();
+      responseListener.remove();
+    };
+  }, []);
+
+  // Register push token when user is authenticated
+  useEffect(() => {
+    if (user && token) {
+      registerPushNotifications();
+    }
+  }, [user, token]);
+
+  const registerPushNotifications = async () => {
+    try {
+      const pushToken = await registerForPushNotificationsAsync();
+      if (pushToken) {
+        await registerPushTokenWithBackend(pushToken);
+      }
+    } catch (error) {
+      console.error('Error registering push notifications:', error);
+    }
+  };
 
   const loadStoredAuth = async () => {
     try {

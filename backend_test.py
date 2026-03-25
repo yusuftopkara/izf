@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
 """
-Comprehensive Backend API Testing for Zumba App
-Tests all endpoints mentioned in the review request
+Backend API Testing for IZF Zumba App
+Testing PostgreSQL removal and Push Notification addition
 """
 
 import requests
 import json
 import sys
+import os
 from datetime import datetime
 
-# Backend URL from frontend environment
-BASE_URL = "https://zumba-fitness-1.preview.emergentagent.com/api"
+# Get backend URL from environment
+BACKEND_URL = os.environ.get('EXPO_PUBLIC_BACKEND_URL', 'https://zumba-fitness-1.preview.emergentagent.com')
+BASE_URL = f"{BACKEND_URL}/api"
 
 class ZumbaAPITester:
     def __init__(self):
@@ -513,6 +515,126 @@ class ZumbaAPITester:
             status = response.status_code if response else "No response"
             self.log_result("Payment No Auth", False, f"Expected 401 for no auth, got {status}")
     
+    def test_push_token_registration(self):
+        """Test new endpoint: POST /api/me/register-push-token"""
+        print("\n🧪 Testing Push Token Registration")
+        print("-" * 40)
+        
+        if not self.admin_token:
+            self.log_result("Push Token Registration", False, "No admin token available")
+            return
+        
+        # Test with valid push token
+        test_token = "ExponentPushToken[test-token-xxx]"
+        push_data = {"push_token": test_token}
+        
+        response = self.make_request("POST", "/me/register-push-token", data=push_data, token=self.admin_token)
+        if response and response.status_code == 200:
+            data = response.json()
+            expected_success = True
+            expected_message = "Push token registered successfully"
+            
+            if data.get("success") == expected_success and expected_message in data.get("message", ""):
+                self.log_result("Push Token Registration", True, 
+                              f"Push token registered successfully: {data}")
+            else:
+                self.log_result("Push Token Registration", False, 
+                              f"Unexpected response format: {data}")
+        else:
+            error_msg = response.json().get("detail", "Unknown error") if response else "No response"
+            self.log_result("Push Token Registration", False, f"Push token registration failed: {error_msg}")
+        
+        # Test without authentication
+        response = self.make_request("POST", "/me/register-push-token", data=push_data)
+        if response and response.status_code == 401:
+            self.log_result("Push Token No Auth", True, "Correctly rejected unauthenticated request")
+        else:
+            status = response.status_code if response else "No response"
+            self.log_result("Push Token No Auth", False, f"Expected 401 for no auth, got {status}")
+    
+    def test_settings_endpoint(self):
+        """Test settings endpoint - should have iyzico, firebase, sendgrid but NO postgres"""
+        print("\n🧪 Testing Settings Endpoint")
+        print("-" * 40)
+        
+        if not self.admin_token:
+            self.log_result("Settings Endpoint", False, "No admin token available")
+            return
+        
+        # Test admin settings endpoint
+        response = self.make_request("GET", "/admin/settings", token=self.admin_token)
+        if response and response.status_code == 200:
+            data = response.json()
+            
+            # Check for expected sections
+            has_iyzico = "iyzico" in data
+            has_firebase = "firebase" in data
+            has_sendgrid = "sendgrid" in data
+            has_postgres = "postgres" in data or "postgresql" in data
+            
+            sections_found = list(data.keys())
+            
+            if has_iyzico and has_firebase and has_sendgrid and not has_postgres:
+                self.log_result("Settings Endpoint", True, 
+                              f"Settings correctly configured - has iyzico, firebase, sendgrid but no postgres. Sections: {sections_found}")
+            else:
+                issues = []
+                if not has_iyzico:
+                    issues.append("missing iyzico")
+                if not has_firebase:
+                    issues.append("missing firebase")
+                if not has_sendgrid:
+                    issues.append("missing sendgrid")
+                if has_postgres:
+                    issues.append("still has postgres section")
+                
+                self.log_result("Settings Endpoint", False, 
+                              f"Settings issues: {', '.join(issues)}. Sections found: {sections_found}")
+        else:
+            error_msg = response.json().get("detail", "Unknown error") if response else "No response"
+            self.log_result("Settings Endpoint", False, f"Settings request failed: {error_msg}")
+    
+    def test_core_apis_still_work(self):
+        """Test that core APIs still work after PostgreSQL removal"""
+        print("\n🧪 Testing Core APIs Still Work")
+        print("-" * 40)
+        
+        # Test GET /api/events
+        response = self.make_request("GET", "/events")
+        if response and response.status_code == 200:
+            events = response.json()
+            if isinstance(events, list):
+                self.log_result("Events API", True, f"Events API working - {len(events)} events found")
+            else:
+                self.log_result("Events API", False, "Events API returned non-list response")
+        else:
+            error_msg = response.json().get("detail", "Unknown error") if response else "No response"
+            self.log_result("Events API", False, f"Events API failed: {error_msg}")
+        
+        # Test GET /api/videos
+        response = self.make_request("GET", "/videos")
+        if response and response.status_code == 200:
+            videos = response.json()
+            if isinstance(videos, list):
+                self.log_result("Videos API", True, f"Videos API working - {len(videos)} videos found")
+            else:
+                self.log_result("Videos API", False, "Videos API returned non-list response")
+        else:
+            error_msg = response.json().get("detail", "Unknown error") if response else "No response"
+            self.log_result("Videos API", False, f"Videos API failed: {error_msg}")
+        
+        # Test GET /api/challenges
+        response = self.make_request("GET", "/challenges")
+        if response and response.status_code == 200:
+            challenges = response.json()
+            if isinstance(challenges, list):
+                self.log_result("Challenges API", True, f"Challenges API working - {len(challenges)} challenges found")
+            else:
+                self.log_result("Challenges API", False, "Challenges API returned non-list response")
+        else:
+            error_msg = response.json().get("detail", "Unknown error") if response else "No response"
+            self.log_result("Challenges API", False, f"Challenges API failed: {error_msg}")
+    
     def run_all_tests(self):
         """Run all tests in sequence"""
         print(f"🚀 Starting Zumba App Backend API Tests")
@@ -553,6 +675,13 @@ class ZumbaAPITester:
         
         # Payment tests
         self.test_payment_create()
+        
+        # Review Request Specific Tests
+        print("\n🎯 REVIEW REQUEST SPECIFIC TESTS")
+        print("=" * 60)
+        self.test_push_token_registration()
+        self.test_settings_endpoint()
+        self.test_core_apis_still_work()
         
         # Summary
         self.print_summary()
