@@ -152,6 +152,12 @@ class ApiService {
     return response.data;
   }
 
+  // QR Ticket Check (for staff)
+  async checkTicket(qrToken: string) {
+    const response = await this.axiosInstance.post('/check-ticket', { qr_token: qrToken });
+    return response.data;
+  }
+
   // Notifications
   async getNotifications() {
     const response = await this.axiosInstance.get('/notifications');
