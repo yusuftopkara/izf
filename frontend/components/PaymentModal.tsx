@@ -178,7 +178,7 @@ export default function PaymentModal({
     <Modal
       visible={visible}
       animationType="slide"
-      presentationStyle="pageSheet"
+      transparent={false}
       onRequestClose={handleClose}
     >
       <KeyboardAvoidingView

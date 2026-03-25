@@ -79,6 +79,8 @@ export default function EventDetailScreen() {
   }, [fetchEvent]);
 
   const handleBuyTicket = async () => {
+    console.log('handleBuyTicket called, user:', user ? user.email : 'null');
+    
     if (!user) {
       Alert.alert('Giriş Gerekli', 'Bilet almak için giriş yapmanız gerekiyor.', [
         { text: 'İptal', style: 'cancel' },
@@ -88,6 +90,7 @@ export default function EventDetailScreen() {
     }
 
     // Open payment modal instead of direct purchase
+    console.log('Opening payment modal...');
     setShowPaymentModal(true);
   };
 
@@ -333,7 +336,7 @@ export default function EventDetailScreen() {
       </View>
 
       {/* Payment Modal */}
-      {user && event && (
+      {event && (
         <PaymentModal
           visible={showPaymentModal}
           onClose={() => setShowPaymentModal(false)}
@@ -344,11 +347,11 @@ export default function EventDetailScreen() {
             price: event.price,
           }}
           quantity={quantity}
-          user={{
+          user={user ? {
             id: user.id,
             email: user.email,
             name: user.name,
-          }}
+          } : { id: '', email: '', name: '' }}
         />
       )}
     </View>
