@@ -222,6 +222,21 @@ backend:
         agent: "main"
         comment: "POST /api/seed - tested via curl, working"
 
+  - task: "iyzico Payment API"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "POST /api/payment/create - iyzico payment integration with mock/real modes"
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED: iyzico payment endpoint working perfectly! Successfully tested with admin@zumba.com authentication, event validation, payment processing in MOCK mode (iyzico not configured), and ticket creation. Response format correct with success/status/message/tickets fields. Edge cases properly handled (404 for invalid event, 401 for no auth). Payment creates tickets correctly and they appear in user's my-tickets. MOCK mode indicates iyzico keys not configured as expected for MVP."
+
 frontend:
   - task: "Auth Screens (Login/Register)"
     implemented: true
@@ -339,8 +354,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Challenge System API"
-    - "Social Posts API"
+    - "iyzico Payment API"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -350,3 +364,7 @@ agent_communication:
     message: "Zumba app MVP implemented. Backend has auth, events, tickets, challenges, social APIs. Frontend has all screens. Need to test core backend APIs first."
   - agent: "testing"
     message: "✅ BACKEND TESTING COMPLETE: All high-priority backend APIs tested and working perfectly! Comprehensive testing completed for User Registration, User Login, Events CRUD, Ticket Purchase, QR Ticket Check, Challenge System, and Social Posts APIs. All endpoints returning correct responses with proper authentication, data validation, and business logic. Payment integration is MOCKED as expected for MVP. Admin and staff roles working correctly. Backend is production-ready for core functionality."
+  - agent: "main"
+    message: "iyzico payment frontend integration completed. Created PaymentModal component and integrated into event detail screen. Need to test /api/payment/create endpoint. Test both mock mode (no iyzico keys) and real mode if possible."
+  - agent: "testing"
+    message: "✅ IYZICO PAYMENT ENDPOINT TESTED: /api/payment/create endpoint working perfectly! Successfully tested authentication with admin@zumba.com, event validation, payment processing in MOCK mode, and ticket creation. Response format correct with success/status/message/tickets fields. Edge cases (invalid event ID, no auth) properly handled with 404/401 responses. Payment creates tickets correctly and they appear in user's my-tickets. MOCK mode message indicates iyzico not configured as expected. All payment functionality working as designed."

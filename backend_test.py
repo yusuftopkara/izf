@@ -413,6 +413,106 @@ class ZumbaAPITester:
             error_msg = response.json().get("detail", "Unknown error") if response else "No response"
             self.log_result("Admin Stats", False, f"Failed to get admin stats: {error_msg}")
     
+    def test_payment_create(self):
+        """Test iyzico payment endpoint /api/payment/create"""
+        print("\n🧪 Testing iyzico Payment Endpoint")
+        print("-" * 40)
+        
+        if not self.admin_token:
+            self.log_result("Payment Create", False, "No admin token available")
+            return
+        
+        # Get a valid event ID first
+        events_response = self.make_request("GET", "/events", token=self.admin_token)
+        if not events_response or events_response.status_code != 200:
+            self.log_result("Payment Create", False, "Could not fetch events for payment test")
+            return
+            
+        events = events_response.json()
+        if not events:
+            self.log_result("Payment Create", False, "No events available for payment test")
+            return
+            
+        test_event = events[0]
+        event_id = test_event["id"]
+        
+        # Test payment creation with mock data
+        payment_data = {
+            "event_id": event_id,
+            "quantity": 1,
+            "card": {
+                "card_holder_name": "Test User",
+                "card_number": "5528790000000008",
+                "expire_month": "12",
+                "expire_year": "2030",
+                "cvc": "123"
+            },
+            "buyer": {
+                "name": "Test",
+                "surname": "User", 
+                "email": "test@test.com",
+                "phone": "5551234567",
+                "identity_number": "11111111111",
+                "address": "Test Address",
+                "city": "Istanbul",
+                "country": "Turkey",
+                "zip_code": "34000"
+            }
+        }
+        
+        response = self.make_request("POST", "/payment/create", data=payment_data, token=self.admin_token)
+        if response and response.status_code == 200:
+            data = response.json()
+            
+            # Verify response structure
+            required_fields = ["success", "status", "message"]
+            if all(field in data for field in required_fields):
+                if data["success"]:
+                    # Check if tickets were created
+                    if "tickets" in data and data["tickets"]:
+                        tickets = data["tickets"]
+                        self.log_result("Payment Create", True, 
+                                      f"Payment successful! Created {len(tickets)} ticket(s). Mode: {data['status']}")
+                        
+                        # Verify tickets in user's account
+                        tickets_response = self.make_request("GET", "/my-tickets", token=self.admin_token)
+                        if tickets_response and tickets_response.status_code == 200:
+                            my_tickets = tickets_response.json()
+                            event_tickets = [t for t in my_tickets if t["event_id"] == event_id]
+                            if event_tickets:
+                                self.log_result("Payment Verification", True, 
+                                              f"Tickets verified in user account: {len(event_tickets)} ticket(s)")
+                            else:
+                                self.log_result("Payment Verification", False, "Tickets not found in user account")
+                    else:
+                        self.log_result("Payment Create", False, "Payment successful but no tickets in response")
+                else:
+                    self.log_result("Payment Create", False, f"Payment failed: {data['message']}")
+            else:
+                self.log_result("Payment Create", False, "Missing required fields in payment response")
+        else:
+            error_msg = response.json().get("detail", "Unknown error") if response else "No response"
+            self.log_result("Payment Create", False, f"Payment request failed: {error_msg}")
+        
+        # Test edge case: Invalid event ID
+        invalid_payment_data = payment_data.copy()
+        invalid_payment_data["event_id"] = "invalid-event-id"
+        
+        response = self.make_request("POST", "/payment/create", data=invalid_payment_data, token=self.admin_token)
+        if response and response.status_code == 404:
+            self.log_result("Payment Invalid Event", True, "Correctly rejected invalid event ID")
+        else:
+            status = response.status_code if response else "No response"
+            self.log_result("Payment Invalid Event", False, f"Expected 404 for invalid event, got {status}")
+        
+        # Test edge case: No authentication
+        response = self.make_request("POST", "/payment/create", data=payment_data)
+        if response and response.status_code == 401:
+            self.log_result("Payment No Auth", True, "Correctly rejected unauthenticated request")
+        else:
+            status = response.status_code if response else "No response"
+            self.log_result("Payment No Auth", False, f"Expected 401 for no auth, got {status}")
+    
     def run_all_tests(self):
         """Run all tests in sequence"""
         print(f"🚀 Starting Zumba App Backend API Tests")
@@ -450,6 +550,9 @@ class ZumbaAPITester:
         
         # Admin tests
         self.test_admin_stats()
+        
+        # Payment tests
+        self.test_payment_create()
         
         # Summary
         self.print_summary()

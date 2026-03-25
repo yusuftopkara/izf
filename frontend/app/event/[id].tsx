@@ -18,6 +18,7 @@ import { useAuth } from '../../src/context/AuthContext';
 import { api } from '../../src/services/api';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
+import PaymentModal from '../../components/PaymentModal';
 
 interface Event {
   id: string;
@@ -52,6 +53,7 @@ export default function EventDetailScreen() {
   const [isBuying, setIsBuying] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [showCommentForm, setShowCommentForm] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [commentRating, setCommentRating] = useState(5);
   const [isCommenting, setIsCommenting] = useState(false);
@@ -85,23 +87,21 @@ export default function EventDetailScreen() {
       return;
     }
 
-    setIsBuying(true);
-    try {
-      const tickets = await api.buyTicket(id as string, quantity);
-      Alert.alert(
-        'Başarılı!',
-        `${quantity} adet bilet satın alındı. Biletlerinizi Profil sayfasında görebilirsiniz.`,
-        [
-          { text: 'Tamam' },
-          { text: 'Biletlerime Git', onPress: () => router.push('/(tabs)/profile') },
-        ]
-      );
-      fetchEvent();
-    } catch (error: any) {
-      Alert.alert('Hata', error.response?.data?.detail || 'Bilet alınamadı');
-    } finally {
-      setIsBuying(false);
-    }
+    // Open payment modal instead of direct purchase
+    setShowPaymentModal(true);
+  };
+
+  const handlePaymentSuccess = (tickets: any[]) => {
+    setShowPaymentModal(false);
+    Alert.alert(
+      'Başarılı!',
+      `${tickets.length} adet bilet satın alındı. Biletlerinizi Profil sayfasında görebilirsiniz.`,
+      [
+        { text: 'Tamam' },
+        { text: 'Biletlerime Git', onPress: () => router.push('/(tabs)/profile') },
+      ]
+    );
+    fetchEvent();
   };
 
   const handleAddComment = () => {
@@ -331,6 +331,26 @@ export default function EventDetailScreen() {
           </LinearGradient>
         </TouchableOpacity>
       </View>
+
+      {/* Payment Modal */}
+      {user && event && (
+        <PaymentModal
+          visible={showPaymentModal}
+          onClose={() => setShowPaymentModal(false)}
+          onSuccess={handlePaymentSuccess}
+          event={{
+            id: event.id,
+            title: event.title,
+            price: event.price,
+          }}
+          quantity={quantity}
+          user={{
+            id: user.id,
+            email: user.email,
+            name: user.name,
+          }}
+        />
+      )}
     </View>
   );
 }
