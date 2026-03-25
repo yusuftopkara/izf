@@ -321,6 +321,14 @@ export default function ProfileScreen() {
             <Text style={styles.actionText}>Demo Veri Yükle</Text>
             <Ionicons name="chevron-forward" size={20} color="#666" />
           </TouchableOpacity>
+
+          <TouchableOpacity style={styles.actionItem} onPress={() => router.push('/privacy-policy')}>
+            <View style={[styles.actionIcon, { backgroundColor: 'rgba(100,100,255,0.2)' }]}>
+              <Ionicons name="shield-checkmark" size={22} color="#6464FF" />
+            </View>
+            <Text style={styles.actionText}>Gizlilik Politikası</Text>
+            <Ionicons name="chevron-forward" size={20} color="#666" />
+          </TouchableOpacity>
           
           <TouchableOpacity style={styles.actionItem} onPress={handleLogout}>
             <View style={[styles.actionIcon, { backgroundColor: 'rgba(244,67,54,0.2)' }]}>
