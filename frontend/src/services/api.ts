@@ -1,7 +1,20 @@
 import axios, { AxiosInstance } from 'axios';
+import Constants from 'expo-constants';
 
-const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8001';
-const API_URL = `${BACKEND_URL}/api`;
+// Production Railway URL or local development
+const getApiUrl = () => {
+  // Check for production API URL first
+  const productionUrl = process.env.EXPO_PUBLIC_API_URL;
+  if (productionUrl) {
+    return `${productionUrl}/api`;
+  }
+  
+  // Fallback to local development
+  const backendUrl = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8001';
+  return `${backendUrl}/api`;
+};
+
+const API_URL = getApiUrl();
 
 class ApiService {
   private axiosInstance: AxiosInstance;
