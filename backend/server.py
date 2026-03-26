@@ -450,6 +450,122 @@ async def get_me(user: dict = Depends(get_user_from_header)):
         created_at=user["created_at"]
     )
 
+# ==================== PROFILE UPDATE ====================
+
+class ProfileUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    city: Optional[str] = None
+    bio: Optional[str] = None
+
+@api_router.put("/me/profile")
+async def update_profile(request: ProfileUpdateRequest, user: dict = Depends(get_user_from_header)):
+    """Update current user's profile"""
+    update_data = {}
+    if request.name:
+        update_data["name"] = request.name
+    if request.phone is not None:
+        update_data["phone"] = request.phone
+    if request.city is not None:
+        update_data["city"] = request.city
+    if request.bio is not None:
+        update_data["bio"] = request.bio
+    
+    if update_data:
+        update_data["updated_at"] = datetime.utcnow()
+        await db.users.update_one({"id": user["id"]}, {"$set": update_data})
+    
+    updated_user = await db.users.find_one({"id": user["id"]})
+    return {
+        "success": True, 
+        "message": "Profil güncellendi",
+        "user": {
+            "id": updated_user["id"],
+            "email": updated_user["email"],
+            "name": updated_user["name"],
+            "role": updated_user["role"],
+            "phone": updated_user.get("phone", ""),
+            "city": updated_user.get("city", ""),
+            "bio": updated_user.get("bio", ""),
+            "streak": updated_user.get("streak", 0),
+            "created_at": updated_user["created_at"]
+        }
+    }
+
+@api_router.get("/me/profile")
+async def get_profile(user: dict = Depends(get_user_from_header)):
+    """Get current user's full profile"""
+    return {
+        "id": user["id"],
+        "email": user["email"],
+        "name": user["name"],
+        "role": user["role"],
+        "phone": user.get("phone", ""),
+        "city": user.get("city", ""),
+        "bio": user.get("bio", ""),
+        "streak": user.get("streak", 0),
+        "created_at": user["created_at"]
+    }
+
+# ==================== ADMIN USER MANAGEMENT ====================
+
+class AdminCreateUserRequest(BaseModel):
+    email: str
+    password: str
+    name: str
+    role: str = "user"  # user, staff, admin
+
+@api_router.post("/admin/users")
+async def admin_create_user(request: AdminCreateUserRequest, admin: dict = Depends(require_admin)):
+    """Admin creates a new user with specified role"""
+    # Check if email exists
+    existing = await db.users.find_one({"email": request.email})
+    if existing:
+        raise HTTPException(status_code=400, detail="Bu e-posta adresi zaten kullanımda")
+    
+    # Validate role
+    if request.role not in ["user", "staff", "admin"]:
+        raise HTTPException(status_code=400, detail="Geçersiz rol")
+    
+    # Create user
+    user_id = str(uuid.uuid4())
+    hashed_password = pwd_context.hash(request.password)
+    
+    new_user = {
+        "id": user_id,
+        "email": request.email,
+        "password": hashed_password,
+        "name": request.name,
+        "role": request.role,
+        "streak": 0,
+        "created_at": datetime.utcnow()
+    }
+    
+    await db.users.insert_one(new_user)
+    
+    return {
+        "success": True,
+        "message": f"{request.role} rolünde kullanıcı oluşturuldu",
+        "user": {
+            "id": user_id,
+            "email": request.email,
+            "name": request.name,
+            "role": request.role
+        }
+    }
+
+@api_router.put("/admin/users/{user_id}/role")
+async def admin_update_user_role(user_id: str, role: str, admin: dict = Depends(require_admin)):
+    """Admin updates a user's role"""
+    if role not in ["user", "staff", "admin"]:
+        raise HTTPException(status_code=400, detail="Geçersiz rol")
+    
+    result = await db.users.update_one({"id": user_id}, {"$set": {"role": role}})
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+    
+    return {"success": True, "message": f"Kullanıcı rolü {role} olarak güncellendi"}
+
 # ==================== PUSH NOTIFICATION TOKEN ====================
 
 class PushTokenRequest(BaseModel):

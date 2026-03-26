@@ -336,6 +336,28 @@ class ApiService {
     const response = await this.axiosInstance.post('/me/register-push-token', { push_token: token });
     return response.data;
   }
+
+  // Profile Management
+  async getProfile() {
+    const response = await this.axiosInstance.get('/me/profile');
+    return response.data;
+  }
+
+  async updateProfile(data: { name?: string; phone?: string; city?: string; bio?: string }) {
+    const response = await this.axiosInstance.put('/me/profile', data);
+    return response.data;
+  }
+
+  // Admin User Management
+  async adminCreateUser(data: { email: string; password: string; name: string; role: string }) {
+    const response = await this.axiosInstance.post('/admin/users', data);
+    return response.data;
+  }
+
+  async adminUpdateUserRole(userId: string, role: string) {
+    const response = await this.axiosInstance.put(`/admin/users/${userId}/role?role=${role}`);
+    return response.data;
+  }
 }
 
 export const api = new ApiService();

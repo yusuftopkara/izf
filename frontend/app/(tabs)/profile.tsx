@@ -288,6 +288,18 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>İşlemler</Text>
           
+          {/* Profile Settings - for all users */}
+          <TouchableOpacity
+            style={styles.actionItem}
+            onPress={() => router.push('/profile-settings')}
+          >
+            <View style={[styles.actionIcon, { backgroundColor: 'rgba(156,39,176,0.2)' }]}>
+              <Ionicons name="person-circle" size={22} color="#9C27B0" />
+            </View>
+            <Text style={styles.actionText}>Profil Ayarları</Text>
+            <Ionicons name="chevron-forward" size={20} color="#666" />
+          </TouchableOpacity>
+          
           {user.role === 'admin' && (
             <TouchableOpacity
               style={styles.actionItem}
@@ -304,7 +316,7 @@ export default function ProfileScreen() {
           {(user.role === 'staff' || user.role === 'admin') && (
             <TouchableOpacity
               style={styles.actionItem}
-              onPress={() => router.push('/scanner')}
+              onPress={() => router.push('/qr-scanner')}
             >
               <View style={[styles.actionIcon, { backgroundColor: 'rgba(76,175,80,0.2)' }]}>
                 <Ionicons name="qr-code" size={22} color="#4CAF50" />

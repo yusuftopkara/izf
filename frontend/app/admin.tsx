@@ -139,6 +139,15 @@ export default function AdminPanel() {
     points: '',
   });
 
+  // User creation form
+  const [showCreateUserModal, setShowCreateUserModal] = useState(false);
+  const [createUserForm, setCreateUserForm] = useState({
+    email: '',
+    password: '',
+    name: '',
+    role: 'user',
+  });
+
   // Check admin access - only redirect after auth is loaded
   useEffect(() => {
     if (!authLoading && (!user || user.role !== 'admin')) {
@@ -342,6 +351,23 @@ export default function AdminPanel() {
     });
   };
 
+  const handleCreateUser = async () => {
+    if (!createUserForm.email || !createUserForm.password || !createUserForm.name) {
+      showAlert('Hata', 'Lütfen tüm gerekli alanları doldurun');
+      return;
+    }
+    
+    try {
+      await api.adminCreateUser(createUserForm);
+      showAlert('Başarılı', `${createUserForm.role === 'admin' ? 'Yönetici' : createUserForm.role === 'staff' ? 'Görevli' : 'Kullanıcı'} başarıyla oluşturuldu`);
+      setShowCreateUserModal(false);
+      setCreateUserForm({ email: '', password: '', name: '', role: 'user' });
+      fetchData();
+    } catch (error: any) {
+      showAlert('Hata', error.response?.data?.detail || 'Kullanıcı oluşturulamadı');
+    }
+  };
+
   const handleCreateChallenge = async () => {
     if (!challengeForm.title || !challengeForm.description) {
       showAlert('Hata', 'Lütfen gerekli alanları doldurun');
@@ -449,7 +475,13 @@ export default function AdminPanel() {
 
   const renderUsers = () => (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Kullanıcılar ({users.length})</Text>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Kullanıcılar ({users.length})</Text>
+        <TouchableOpacity style={styles.addBtn} onPress={() => setShowCreateUserModal(true)}>
+          <Ionicons name="add" size={20} color="#fff" />
+          <Text style={styles.addBtnText}>Ekle</Text>
+        </TouchableOpacity>
+      </View>
       {users.map((u) => (
         <View key={u.id} style={styles.listItem}>
           <View style={styles.listItemInfo}>
@@ -1302,6 +1334,71 @@ export default function AdminPanel() {
           </View>
         </View>
       </Modal>
+
+      {/* Create User Modal */}
+      <Modal visible={showCreateUserModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Yeni Kullanıcı Oluştur</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Ad Soyad"
+              placeholderTextColor="#666"
+              value={createUserForm.name}
+              onChangeText={(t) => setCreateUserForm({ ...createUserForm, name: t })}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="E-posta"
+              placeholderTextColor="#666"
+              value={createUserForm.email}
+              onChangeText={(t) => setCreateUserForm({ ...createUserForm, email: t })}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Şifre"
+              placeholderTextColor="#666"
+              value={createUserForm.password}
+              onChangeText={(t) => setCreateUserForm({ ...createUserForm, password: t })}
+              secureTextEntry
+            />
+            <Text style={styles.inputLabel}>Rol Seçin:</Text>
+            <View style={styles.roleSelector}>
+              <TouchableOpacity
+                style={[styles.roleOption, createUserForm.role === 'user' && styles.roleOptionSelected]}
+                onPress={() => setCreateUserForm({ ...createUserForm, role: 'user' })}
+              >
+                <Ionicons name="person" size={20} color={createUserForm.role === 'user' ? '#fff' : '#888'} />
+                <Text style={[styles.roleOptionText, createUserForm.role === 'user' && styles.roleOptionTextSelected]}>Kullanıcı</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.roleOption, createUserForm.role === 'staff' && styles.roleOptionSelected]}
+                onPress={() => setCreateUserForm({ ...createUserForm, role: 'staff' })}
+              >
+                <Ionicons name="qr-code" size={20} color={createUserForm.role === 'staff' ? '#fff' : '#888'} />
+                <Text style={[styles.roleOptionText, createUserForm.role === 'staff' && styles.roleOptionTextSelected]}>Görevli</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.roleOption, createUserForm.role === 'admin' && styles.roleOptionSelected]}
+                onPress={() => setCreateUserForm({ ...createUserForm, role: 'admin' })}
+              >
+                <Ionicons name="shield" size={20} color={createUserForm.role === 'admin' ? '#fff' : '#888'} />
+                <Text style={[styles.roleOptionText, createUserForm.role === 'admin' && styles.roleOptionTextSelected]}>Yönetici</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowCreateUserModal(false)}>
+                <Text style={styles.cancelBtnText}>İptal</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.saveBtn} onPress={handleCreateUser}>
+                <Text style={styles.saveBtnText}>Oluştur</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1624,10 +1721,27 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     gap: 12,
   },
+  roleOptionSelected: {
+    backgroundColor: 'rgba(255,107,107,0.3)',
+    borderWidth: 1,
+    borderColor: '#FF6B6B',
+  },
   roleOptionText: {
-    color: '#fff',
+    color: '#888',
     fontSize: 15,
     fontWeight: '500',
+  },
+  roleOptionTextSelected: {
+    color: '#fff',
+  },
+  roleSelector: {
+    marginBottom: 16,
+  },
+  inputLabel: {
+    color: '#888',
+    fontSize: 12,
+    marginBottom: 8,
+    marginTop: 8,
   },
   // Settings styles
   settingsCard: {
