@@ -14,7 +14,9 @@
       "infoPlist": {
         "NSCameraUsageDescription": "QR kod taramak için kamera erişimi gerekli",
         "NSPhotoLibraryUsageDescription": "Profil fotoğrafı ve paylaşımlar için galeri erişimi",
-        "UIBackgroundModes": ["remote-notification"]
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
       }
     },
     "android": {
@@ -29,7 +31,9 @@
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE",
         "VIBRATE",
-        "RECEIVE_BOOT_COMPLETED"
+        "RECEIVE_BOOT_COMPLETED",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
@@ -72,8 +76,10 @@
     },
     "extra": {
       "eas": {
-        "projectId": "your-project-id"
-      }
-    }
+        "projectId": "29edd0cb-3fcc-48a7-8fad-c996e341ca54"
+      },
+      "router": {}
+    },
+    "owner": "topqara"
   }
 }

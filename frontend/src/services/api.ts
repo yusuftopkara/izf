@@ -1,20 +1,14 @@
 import axios, { AxiosInstance } from 'axios';
-import Constants from 'expo-constants';
 
-// Production Railway URL or local development
+// Railway Backend URL
 const getApiUrl = () => {
-  // Check for production API URL first
-  const productionUrl = process.env.EXPO_PUBLIC_API_URL;
-  if (productionUrl) {
-    return `${productionUrl}/api`;
-  }
-  
-  // Fallback to local development
   const backendUrl = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8001';
   return `${backendUrl}/api`;
 };
 
 const API_URL = getApiUrl();
+
+console.log('📡 API URL:', API_URL);   // Debug için (build sırasında göreceğiz)
 
 class ApiService {
   private axiosInstance: AxiosInstance;
@@ -76,28 +70,7 @@ class ApiService {
   }
 
   // iyzico Payment
-  async createPayment(data: {
-    event_id: string;
-    quantity: number;
-    card: {
-      card_holder_name: string;
-      card_number: string;
-      expire_month: string;
-      expire_year: string;
-      cvc: string;
-    };
-    buyer: {
-      name: string;
-      surname: string;
-      email: string;
-      phone: string;
-      identity_number?: string;
-      address?: string;
-      city?: string;
-      country?: string;
-      zip_code?: string;
-    };
-  }) {
+  async createPayment(data: any) {
     const response = await this.axiosInstance.post('/payment/create', data);
     return response.data;
   }
@@ -165,12 +138,6 @@ class ApiService {
     return response.data;
   }
 
-  // QR Ticket Check (for staff)
-  async checkTicket(qrToken: string) {
-    const response = await this.axiosInstance.post('/check-ticket', { qr_token: qrToken });
-    return response.data;
-  }
-
   // Notifications
   async getNotifications() {
     const response = await this.axiosInstance.get('/notifications');
@@ -188,28 +155,25 @@ class ApiService {
     return response.data;
   }
 
-  async sendNotification(title: string, body: string, userId?: string) {
-    const response = await this.axiosInstance.post('/admin/notifications', { title, body, user_id: userId });
+  // Seed Data (test için)
+  async seedData(force: boolean = false) {
+    const response = await this.axiosInstance.post(`/seed?force=${force}`);
     return response.data;
   }
+}
 
-  async sendNotificationAdvanced(data: {
-    title: string;
-    body: string;
-    type: 'push' | 'email' | 'both';
-    user_id?: string;
-  }) {
-    const response = await this.axiosInstance.post('/admin/notifications/advanced', data);
-    return response.data;
-  }
-
-  async getAllUsers() {
+async getAllUsers() {
     const response = await this.axiosInstance.get('/admin/users');
     return response.data;
   }
 
-  async setUserRole(userId: string, role: string) {
-    const response = await this.axiosInstance.post('/admin/set-role-by-id', { user_id: userId, role });
+  async getSettings() {
+    const response = await this.axiosInstance.get('/admin/settings');
+    return response.data;
+  }
+
+  async updateSettings(settings: any) {
+    const response = await this.axiosInstance.put('/admin/settings', settings);
     return response.data;
   }
 
@@ -218,31 +182,28 @@ class ApiService {
     return response.data;
   }
 
-  async createEvent(eventData: {
-    title: string;
-    description: string;
-    city: string;
-    location: string;
-    date: string;
-    capacity: number;
-    price: number;
-    image_url?: string;
-  }) {
-    const response = await this.axiosInstance.post('/events', eventData);
+  async updateUserRole(userId: string, role: string) {
+    const response = await this.axiosInstance.put(`/admin/users/${userId}/role`, { role });
     return response.data;
   }
 
-  async updateEvent(eventId: string, eventData: {
-    title: string;
-    description: string;
-    city: string;
-    location: string;
-    date: string;
-    capacity: number;
-    price: number;
-    image_url?: string;
-  }) {
-    const response = await this.axiosInstance.put(`/admin/events/${eventId}`, eventData);
+async adminCreateUser(data: { email: string; password: string; name: string; role: string }) {
+  const response = await this.axiosInstance.post('/admin/users', data);
+  return response.data;
+}
+
+  async sendNotification(title: string, body: string, type: string, targetAll: boolean, targetUserId?: string) {
+    const response = await this.axiosInstance.post('/admin/notifications/send', { title, body, type, target_all: targetAll, target_user_id: targetUserId });
+    return response.data;
+  }
+
+  async createEvent(data: any) {
+    const response = await this.axiosInstance.post('/admin/events', data);
+    return response.data;
+  }
+
+  async updateEvent(eventId: string, data: any) {
+    const response = await this.axiosInstance.put(`/admin/events/${eventId}`, data);
     return response.data;
   }
 
@@ -251,14 +212,8 @@ class ApiService {
     return response.data;
   }
 
-  async createVideo(videoData: {
-    title: string;
-    youtube_url: string;
-    thumbnail?: string;
-    is_premium: boolean;
-    is_daily: boolean;
-  }) {
-    const response = await this.axiosInstance.post('/videos', videoData);
+  async createVideo(data: any) {
+    const response = await this.axiosInstance.post('/admin/videos', data);
     return response.data;
   }
 
@@ -267,110 +222,14 @@ class ApiService {
     return response.data;
   }
 
-  async createChallenge(challengeData: {
-    title: string;
-    description: string;
-    points: number;
-  }) {
-    const response = await this.axiosInstance.post('/admin/create-challenge', challengeData);
+  async createChallenge(data: any) {
+    const response = await this.axiosInstance.post('/admin/challenges', data);
     return response.data;
   }
 
-  // Admin - Create User
-  async createUser(userData: {
-    email: string;
-    password: string;
-    name: string;
-    role: string;
-  }) {
-    const response = await this.axiosInstance.post('/admin/create-user', userData);
+  async deleteChallenge(challengeId: string) {
+    const response = await this.axiosInstance.delete(`/admin/challenges/${challengeId}`);
     return response.data;
   }
-
-  // Admin - Create Post
-  async createPost(postData: {
-    content: string;
-    image_url?: string;
-    hashtags?: string[];
-  }) {
-    const response = await this.axiosInstance.post('/posts', postData);
-    return response.data;
-  }
-
-  // Seed
-  async seedData(force: boolean = false) {
-    const response = await this.axiosInstance.post(`/seed?force=${force}`);
-    return response.data;
-  }
-
-  async forceSeedData() {
-    const response = await this.axiosInstance.post('/seed?force=true');
-    return response.data;
-  }
-
-  // Settings
-  async getSettings() {
-    const response = await this.axiosInstance.get('/admin/settings');
-    return response.data;
-  }
-
-  async updateSettings(settings: {
-    iyzico_api_key?: string;
-    iyzico_secret_key?: string;
-    iyzico_base_url?: string;
-    firebase_api_key?: string;
-    firebase_auth_domain?: string;
-    firebase_project_id?: string;
-    firebase_storage_bucket?: string;
-    firebase_messaging_sender_id?: string;
-    firebase_app_id?: string;
-    firebase_server_key?: string;
-    firebase_service_account_json?: string;
-    sendgrid_api_key?: string;
-    sendgrid_from_email?: string;
-    sendgrid_from_name?: string;
-  }) {
-    const response = await this.axiosInstance.put('/admin/settings', settings);
-    return response.data;
-  }
-
-  async testIyzico() {
-    const response = await this.axiosInstance.post('/admin/test-iyzico');
-    return response.data;
-  }
-
-  async testFirebase() {
-    const response = await this.axiosInstance.post('/admin/test-firebase');
-    return response.data;
-  }
-
-  // Push Notification Token Registration
-  async registerPushToken(token: string) {
-    const response = await this.axiosInstance.post('/me/register-push-token', { push_token: token });
-    return response.data;
-  }
-
-  // Profile Management
-  async getProfile() {
-    const response = await this.axiosInstance.get('/me/profile');
-    return response.data;
-  }
-
-  async updateProfile(data: { name?: string; phone?: string; city?: string; bio?: string }) {
-    const response = await this.axiosInstance.put('/me/profile', data);
-    return response.data;
-  }
-
-  // Admin User Management
-  async adminCreateUser(data: { email: string; password: string; name: string; role: string }) {
-    const response = await this.axiosInstance.post('/admin/users', data);
-    return response.data;
-  }
-
-  async adminUpdateUserRole(userId: string, role: string) {
-    const response = await this.axiosInstance.put(`/admin/users/${userId}/role?role=${role}`);
-    return response.data;
-  }
-}
 
 export const api = new ApiService();

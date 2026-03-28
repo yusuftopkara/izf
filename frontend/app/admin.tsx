@@ -191,10 +191,10 @@ export default function AdminPanel() {
   }, [user, token]);
 
   useEffect(() => {
-    if (user && user.role === 'admin' && token) {
-      fetchData();
-    }
-  }, [user, token, fetchData]);
+  if (!authLoading && user && user.role === 'admin' && token) {
+    fetchData();
+  }
+}, [user, token, fetchData, authLoading]);
 
   const onRefresh = () => {
     setRefreshing(true);

@@ -11,6 +11,8 @@ import {
   TextInput,
   Alert,
   Modal,
+  Dimensions,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,6 +22,9 @@ import { useAuth } from '../../src/context/AuthContext';
 import { api } from '../../src/services/api';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
+import YoutubePlayer from 'react-native-youtube-iframe';
+
+const { width } = Dimensions.get('window');
 
 interface Post {
   id: string;
@@ -31,6 +36,15 @@ interface Post {
   liked_by_me: boolean;
   created_at: string;
 }
+
+const getYoutubeVideoId = (url: string): string | null => {
+  const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/);
+  return match ? match[1] : null;
+};
+
+const isYoutubeUrl = (url: string): boolean => {
+  return url.includes('youtube.com') || url.includes('youtu.be');
+};
 
 export default function SocialScreen() {
   const insets = useSafeAreaInsets();
@@ -80,8 +94,8 @@ export default function SocialScreen() {
 
     try {
       const result = await api.likePost(postId);
-      setPosts(posts.map(p => 
-        p.id === postId 
+      setPosts(posts.map(p =>
+        p.id === postId
           ? { ...p, likes: result.likes, liked_by_me: result.liked }
           : p
       ));
@@ -133,6 +147,42 @@ export default function SocialScreen() {
     } catch {
       return '';
     }
+  };
+
+  const renderMedia = (mediaUrl: string) => {
+    if (isYoutubeUrl(mediaUrl)) {
+      const videoId = getYoutubeVideoId(mediaUrl);
+      if (videoId) {
+        if (Platform.OS === 'web') {
+          return (
+            <View style={{ width: '100%', height: width * 9 / 16 }}>
+              {/* @ts-ignore */}
+              <iframe
+                width="100%"
+                height="100%"
+                src={`https://www.youtube.com/embed/${videoId}?rel=0`}
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                style={{ border: 'none' }}
+              />
+            </View>
+          );
+        } else {
+          return (
+            <YoutubePlayer
+              height={width * 9 / 16}
+              width={width}
+              videoId={videoId}
+              play={false}
+            />
+          );
+        }
+      }
+    }
+    return (
+      <Image source={{ uri: mediaUrl }} style={styles.postImage} />
+    );
   };
 
   if (isLoading) {
@@ -196,9 +246,9 @@ export default function SocialScreen() {
                   <Text style={styles.postDate}>{formatDate(post.created_at)}</Text>
                 </View>
               </View>
-              
-              <Image source={{ uri: post.media_url }} style={styles.postImage} />
-              
+
+              {renderMedia(post.media_url)}
+
               <View style={styles.postActions}>
                 <TouchableOpacity
                   style={styles.actionButton}
@@ -218,7 +268,7 @@ export default function SocialScreen() {
                   <Ionicons name="share-outline" size={24} color="#fff" />
                 </TouchableOpacity>
               </View>
-              
+
               <View style={styles.postCaption}>
                 <Text style={styles.captionUser}>{post.user_name}</Text>
                 <Text style={styles.captionText}>{post.caption}</Text>
@@ -229,7 +279,6 @@ export default function SocialScreen() {
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* New Post Modal */}
       <Modal
         visible={showNewPost}
         animationType="slide"
@@ -251,18 +300,18 @@ export default function SocialScreen() {
                 )}
               </TouchableOpacity>
             </View>
-            
+
             <View style={styles.formGroup}>
-              <Text style={styles.label}>Görsel URL (isteğe bağlı)</Text>
+              <Text style={styles.label}>Görsel veya YouTube URL (isteğe bağlı)</Text>
               <TextInput
                 style={styles.input}
-                placeholder="https://..."
+                placeholder="https://... veya YouTube linki"
                 placeholderTextColor="#666"
                 value={newMediaUrl}
                 onChangeText={setNewMediaUrl}
               />
             </View>
-            
+
             <View style={styles.formGroup}>
               <Text style={styles.label}>Açıklama</Text>
               <TextInput

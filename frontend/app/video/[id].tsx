@@ -13,6 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import YoutubePlayer from 'react-native-youtube-iframe';
 import { api } from '../../src/services/api';
 
 const { width } = Dimensions.get('window');
@@ -30,7 +31,7 @@ export default function VideoPlayerScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  
+
   const [video, setVideo] = useState<Video | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -100,37 +101,42 @@ export default function VideoPlayerScreen() {
       </LinearGradient>
 
       <ScrollView style={styles.content}>
-        {/* Video Player - Web uses iframe */}
         <View style={styles.playerContainer}>
-          {videoId && Platform.OS === 'web' ? (
-            <View style={{ width: '100%', height: width * 9 / 16 }}>
-              {/* @ts-ignore - iframe is web only */}
-              <iframe
-                width="100%"
-                height="100%"
-                src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`}
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                style={{ border: 'none' }}
+          {videoId ? (
+            Platform.OS === 'web' ? (
+              <View style={{ width: '100%', height: width * 9 / 16 }}>
+                {/* @ts-ignore */}
+                <iframe
+                  width="100%"
+                  height="100%"
+                  src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`}
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  style={{ border: 'none' }}
+                />
+              </View>
+            ) : (
+              <YoutubePlayer
+                height={width * 9 / 16}
+                width={width}
+                videoId={videoId}
+                play={true}
               />
-            </View>
+            )
           ) : (
             <View style={[styles.playerPlaceholder, { height: width * 9 / 16 }]}>
               <Ionicons name="play-circle" size={64} color="#FF6B6B" />
-              <Text style={styles.placeholderText}>
-                {Platform.OS === 'web' ? 'Video yüklenemedi' : 'Mobil uygulamada izleyin'}
-              </Text>
+              <Text style={styles.placeholderText}>Video yüklenemedi</Text>
             </View>
           )}
         </View>
 
-        {/* Video Info */}
         <View style={styles.videoInfo}>
           <View style={styles.titleRow}>
             <Text style={styles.videoTitle}>{video.title}</Text>
           </View>
-          
+
           <View style={styles.badgeRow}>
             {video.is_premium && (
               <View style={styles.premiumBadge}>
@@ -146,7 +152,6 @@ export default function VideoPlayerScreen() {
             )}
           </View>
 
-          {/* Related Videos Placeholder */}
           <View style={styles.relatedSection}>
             <Text style={styles.sectionTitle}>Diğer Videolar</Text>
             <TouchableOpacity
