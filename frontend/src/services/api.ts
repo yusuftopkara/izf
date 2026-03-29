@@ -217,8 +217,8 @@ async createEvent(data: any) {
     const response = await this.axiosInstance.delete(`/admin/challenges/${challengeId}`);
     return response.data;
   }
-}
-async getProfile() {
+
+  async getProfile() {
     const response = await this.axiosInstance.get('/me/profile');
     return response.data;
   }
@@ -227,4 +227,6 @@ async getProfile() {
     const response = await this.axiosInstance.put('/me/profile', data);
     return response.data;
   }
+}
+
 export const api = new ApiService();
