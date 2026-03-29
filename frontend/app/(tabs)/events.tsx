@@ -74,7 +74,7 @@ export default function EventsScreen() {
   if (isLoading) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color="#FF6B6B" />
+        <ActivityIndicator size="large" color="#E91E8C" />
       </View>
     );
   }
@@ -82,7 +82,7 @@ export default function EventsScreen() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#1a1a2e', '#16213e']}
+        colors={['#1a0a2e', '#16213e']}
         style={[styles.header, { paddingTop: insets.top + 10 }]}
       >
         <View style={styles.headerRow}>
@@ -121,7 +121,7 @@ export default function EventsScreen() {
       <ScrollView
         style={styles.content}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FF6B6B" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#E91E8C" />
         }
         showsVerticalScrollIndicator={false}
       >
@@ -152,11 +152,11 @@ export default function EventsScreen() {
                 <Text style={styles.eventTitle}>{event.title}</Text>
                 <View style={styles.eventDetails}>
                   <View style={styles.eventDetail}>
-                    <Ionicons name="calendar-outline" size={14} color="#FF6B6B" />
+                    <Ionicons name="calendar-outline" size={14} color="#E91E8C" />
                     <Text style={styles.eventDetailText}>{formatDate(event.date)}</Text>
                   </View>
                   <View style={styles.eventDetail}>
-                    <Ionicons name="location-outline" size={14} color="#FF6B6B" />
+                    <Ionicons name="location-outline" size={14} color="#E91E8C" />
                     <Text style={styles.eventDetailText}>{event.location}</Text>
                   </View>
                 </View>
@@ -182,7 +182,7 @@ export default function EventsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a0a',
+    backgroundColor: '#1a0a2e',
   },
   centered: {
     justifyContent: 'center',
@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
   loginBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#E91E8C',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   cityChipActive: {
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#E91E8C',
   },
   cityChipText: {
     color: '#888',
@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
   eventPrice: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#FF6B6B',
+    color: '#E91E8C',
   },
   capacityBadge: {
     flexDirection: 'row',
@@ -329,3 +329,4 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
 });
+

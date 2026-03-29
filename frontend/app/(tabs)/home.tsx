@@ -87,7 +87,7 @@ export default function HomeScreen() {
   if (isLoading) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color="#FF6B6B" />
+        <ActivityIndicator size="large" color="#E91E8C" />
       </View>
     );
   }
@@ -95,14 +95,14 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#1a1a2e', '#16213e']}
+        colors={['#1a0a2e', '#16213e']}
         style={[styles.header, { paddingTop: insets.top + 10 }]}
       >
         <View style={styles.headerContent}>
           <View style={styles.headerLeft}>
             <View style={styles.logoContainer}>
               <LinearGradient
-                colors={['#FF6B6B', '#FF8E53']}
+                colors={['#E91E8C', '#FF8E53']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.logoGradient}
@@ -119,7 +119,7 @@ export default function HomeScreen() {
           </View>
           {user ? (
             <View style={styles.streakBadge}>
-              <Ionicons name="flame" size={20} color="#FF6B6B" />
+              <Ionicons name="flame" size={20} color="#E91E8C" />
               <Text style={styles.streakText}>{user.streak || 0}</Text>
             </View>
           ) : (
@@ -137,7 +137,7 @@ export default function HomeScreen() {
       <ScrollView
         style={styles.content}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FF6B6B" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#E91E8C" />
         }
         showsVerticalScrollIndicator={false}
       >
@@ -192,7 +192,7 @@ export default function HomeScreen() {
                   </View>
                 )}
               </View>
-              <Ionicons name="play-circle" size={36} color="#FF6B6B" />
+              <Ionicons name="play-circle" size={36} color="#E91E8C" />
             </TouchableOpacity>
           ))}
         </View>
@@ -206,7 +206,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a0a',
+    backgroundColor: '#1a0a2e',
   },
   centered: {
     justifyContent: 'center',
@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   streakText: {
-    color: '#FF6B6B',
+    color: '#E91E8C',
     fontWeight: '700',
     fontSize: 16,
     marginLeft: 4,
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
   loginBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#E91E8C',
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
   videoCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1a1a2e',
+    backgroundColor: '#1a0a2e',
     borderRadius: 12,
     padding: 12,
     marginBottom: 12,
@@ -378,3 +378,4 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
 });
+

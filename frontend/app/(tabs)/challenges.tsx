@@ -86,7 +86,7 @@ export default function ChallengesScreen() {
   if (isLoading) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color="#FF6B6B" />
+        <ActivityIndicator size="large" color="#E91E8C" />
       </View>
     );
   }
@@ -97,7 +97,7 @@ export default function ChallengesScreen() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#1a1a2e', '#16213e']}
+        colors={['#1a0a2e', '#16213e']}
         style={[styles.header, { paddingTop: insets.top + 10 }]}
       >
         <View style={styles.headerRow}>
@@ -116,7 +116,7 @@ export default function ChallengesScreen() {
         {/* Streak Card */}
         <View style={styles.streakCard}>
           <LinearGradient
-            colors={['#FF6B6B', '#FF8E53']}
+            colors={['#E91E8C', '#FF8E53']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.streakGradient}
@@ -146,7 +146,7 @@ export default function ChallengesScreen() {
       <ScrollView
         style={styles.content}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FF6B6B" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#E91E8C" />
         }
         showsVerticalScrollIndicator={false}
       >
@@ -159,7 +159,7 @@ export default function ChallengesScreen() {
                 <Ionicons
                   name={challenge.completed ? 'checkmark' : 'flash'}
                   size={24}
-                  color={challenge.completed ? '#fff' : '#FF6B6B'}
+                  color={challenge.completed ? '#fff' : '#E91E8C'}
                 />
               </View>
               <View style={styles.challengeInfo}>
@@ -209,7 +209,7 @@ export default function ChallengesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a0a',
+    backgroundColor: '#1a0a2e',
   },
   centered: {
     justifyContent: 'center',
@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
   loginBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#E91E8C',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   challengeCard: {
-    backgroundColor: '#1a1a2e',
+    backgroundColor: '#1a0a2e',
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
@@ -354,7 +354,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#E91E8C',
     borderRadius: 12,
     paddingVertical: 12,
     marginTop: 12,
@@ -379,3 +379,4 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
 });
+

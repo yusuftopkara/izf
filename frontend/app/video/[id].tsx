@@ -64,7 +64,7 @@ export default function VideoPlayerScreen() {
   if (isLoading) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color="#FF6B6B" />
+        <ActivityIndicator size="large" color="#E91E8C" />
       </View>
     );
   }
@@ -72,7 +72,7 @@ export default function VideoPlayerScreen() {
   if (error || !video) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <Ionicons name="alert-circle" size={64} color="#FF6B6B" />
+        <Ionicons name="alert-circle" size={64} color="#E91E8C" />
         <Text style={styles.errorText}>{error || 'Video bulunamadı'}</Text>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Text style={styles.backButtonText}>Geri Dön</Text>
@@ -86,7 +86,7 @@ export default function VideoPlayerScreen() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#1a1a2e', '#16213e']}
+        colors={['#2d0a4e', '#1a0a2e']}
         style={[styles.header, { paddingTop: insets.top + 10 }]}
       >
         <View style={styles.headerRow}>
@@ -126,7 +126,7 @@ export default function VideoPlayerScreen() {
             )
           ) : (
             <View style={[styles.playerPlaceholder, { height: width * 9 / 16 }]}>
-              <Ionicons name="play-circle" size={64} color="#FF6B6B" />
+              <Ionicons name="play-circle" size={64} color="#E91E8C" />
               <Text style={styles.placeholderText}>Video yüklenemedi</Text>
             </View>
           )}
@@ -159,7 +159,7 @@ export default function VideoPlayerScreen() {
               onPress={() => router.push('/(tabs)/home')}
             >
               <Text style={styles.moreVideosText}>Tüm Videolara Git</Text>
-              <Ionicons name="arrow-forward" size={20} color="#FF6B6B" />
+              <Ionicons name="arrow-forward" size={20} color="#E91E8C" />
             </TouchableOpacity>
           </View>
         </View>
@@ -173,7 +173,7 @@ export default function VideoPlayerScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a0a',
+    backgroundColor: '#1a0a2e',
   },
   centered: {
     justifyContent: 'center',
@@ -283,7 +283,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   moreVideosText: {
-    color: '#FF6B6B',
+    color: '#E91E8C',
     fontSize: 15,
     fontWeight: '600',
   },
@@ -294,7 +294,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   backButton: {
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#E91E8C',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 20,

@@ -126,7 +126,7 @@ export default function ProfileScreen() {
     return (
       <View style={styles.container}>
         <LinearGradient
-          colors={['#1a1a2e', '#16213e']}
+          colors={['#1a0a2e', '#16213e']}
           style={[styles.header, { paddingTop: insets.top + 10 }]}
         >
           <Text style={styles.headerTitle}>Profil</Text>
@@ -135,7 +135,7 @@ export default function ProfileScreen() {
         <View style={styles.guestContainer}>
           <View style={styles.logoContainer}>
             <LinearGradient
-              colors={['#FF6B6B', '#FF8E53']}
+              colors={['#E91E8C', '#FF8E53']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.logoGradient}
@@ -153,7 +153,7 @@ export default function ProfileScreen() {
             onPress={() => router.push('/(auth)/login')}
           >
             <LinearGradient
-              colors={['#FF6B6B', '#FF8E53']}
+              colors={['#E91E8C', '#FF8E53']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.loginButtonGradient}
@@ -185,7 +185,7 @@ export default function ProfileScreen() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#1a1a2e', '#16213e']}
+        colors={['#1a0a2e', '#16213e']}
         style={[styles.header, { paddingTop: insets.top + 10 }]}
       >
         <View style={styles.profileSection}>
@@ -205,14 +205,14 @@ export default function ProfileScreen() {
       <ScrollView
         style={styles.content}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FF6B6B" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#E91E8C" />
         }
         showsVerticalScrollIndicator={false}
       >
         {/* Stats */}
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
-            <Ionicons name="flame" size={24} color="#FF6B6B" />
+            <Ionicons name="flame" size={24} color="#E91E8C" />
             <Text style={styles.statNumber}>{user.streak || 0}</Text>
             <Text style={styles.statLabel}>Streak</Text>
           </View>
@@ -257,7 +257,7 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Biletlerim</Text>
           {isLoading ? (
-            <ActivityIndicator size="small" color="#FF6B6B" />
+            <ActivityIndicator size="small" color="#E91E8C" />
           ) : tickets.length === 0 ? (
             <View style={styles.emptyTickets}>
               <Ionicons name="ticket-outline" size={48} color="#444" />
@@ -306,7 +306,7 @@ export default function ProfileScreen() {
               onPress={() => router.push('/admin')}
             >
               <View style={[styles.actionIcon, { backgroundColor: 'rgba(255,107,107,0.2)' }]}>
-                <Ionicons name="settings" size={22} color="#FF6B6B" />
+                <Ionicons name="settings" size={22} color="#E91E8C" />
               </View>
               <Text style={styles.actionText}>Admin Panel</Text>
               <Ionicons name="chevron-forward" size={20} color="#666" />
@@ -389,7 +389,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a0a',
+    backgroundColor: '#1a0a2e',
   },
   centered: {
     justifyContent: 'center',
@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
     padding: 40,
   },
   logoContainer: {
-    shadowColor: '#FF6B6B',
+    shadowColor: '#E91E8C',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -465,10 +465,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#FF6B6B',
+    borderColor: '#E91E8C',
   },
   registerButtonText: {
-    color: '#FF6B6B',
+    color: '#E91E8C',
     fontSize: 17,
     fontWeight: '600',
   },
@@ -490,7 +490,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#E91E8C',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
@@ -518,7 +518,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   roleText: {
-    color: '#FF6B6B',
+    color: '#E91E8C',
     fontSize: 12,
     fontWeight: '600',
   },
@@ -533,7 +533,7 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: '#1a0a2e',
     borderRadius: 16,
     padding: 16,
     alignItems: 'center',
@@ -565,7 +565,7 @@ const styles = StyleSheet.create({
   },
   adminStatCard: {
     width: '47%',
-    backgroundColor: '#1a1a2e',
+    backgroundColor: '#1a0a2e',
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
@@ -573,7 +573,7 @@ const styles = StyleSheet.create({
   adminStatNumber: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#FF6B6B',
+    color: '#E91E8C',
   },
   adminStatLabel: {
     fontSize: 13,
@@ -581,7 +581,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   emptyTickets: {
-    backgroundColor: '#1a1a2e',
+    backgroundColor: '#1a0a2e',
     borderRadius: 16,
     padding: 32,
     alignItems: 'center',
@@ -592,7 +592,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   ticketCard: {
-    backgroundColor: '#1a1a2e',
+    backgroundColor: '#1a0a2e',
     borderRadius: 12,
     padding: 16,
     marginBottom: 8,
@@ -630,7 +630,7 @@ const styles = StyleSheet.create({
     color: '#9e9e9e',
   },
   actionItem: {
-    backgroundColor: '#1a1a2e',
+    backgroundColor: '#1a0a2e',
     borderRadius: 12,
     padding: 16,
     marginBottom: 8,
@@ -659,7 +659,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modalContent: {
-    backgroundColor: '#1a1a2e',
+    backgroundColor: '#1a0a2e',
     borderRadius: 16,
     padding: 24,
     width: '100%',
@@ -703,3 +703,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
+

@@ -13,7 +13,7 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: styles.tabBar,
-        tabBarActiveTintColor: '#FF6B6B',
+        tabBarActiveTintColor: '#E91E8C',
         tabBarInactiveTintColor: '#666',
         tabBarLabelStyle: styles.tabLabel,
       }}
@@ -69,7 +69,7 @@ export default function TabLayout() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: '#1a1a2e',
+    backgroundColor: '#1a0a2e',
     borderTopColor: '#2a2a4e',
     borderTopWidth: 1,
     height: 85,
@@ -81,3 +81,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+

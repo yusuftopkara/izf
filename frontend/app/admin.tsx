@@ -228,7 +228,7 @@ export default function AdminPanel() {
       showAlert('Hata', 'Lütfen gerekli alanları doldurun');
       return;
     }
-    
+    if (token) api.setAuthToken(token);
     try {
       await api.createEvent({
         title: eventForm.title,
@@ -251,7 +251,8 @@ export default function AdminPanel() {
 
   const handleDeleteEvent = (eventId: string) => {
     confirmAction('Etkinliği Sil', 'Bu etkinliği silmek istediğinize emin misiniz?', async () => {
-      try {
+	if (token) api.setAuthToken(token);      
+try {
         await api.deleteEvent(eventId);
         fetchData();
       } catch (error) {
@@ -265,7 +266,7 @@ export default function AdminPanel() {
       showAlert('Hata', 'Lütfen gerekli alanları doldurun');
       return;
     }
-    
+    if (token) api.setAuthToken(token);
     try {
       // Extract video ID from YouTube URL to create thumbnail
       const videoId = videoForm.youtube_url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/)?.[1];
@@ -289,6 +290,7 @@ export default function AdminPanel() {
 
   const handleDeleteVideo = (videoId: string) => {
     confirmAction('Videoyu Sil', 'Bu videoyu silmek istediğinize emin misiniz?', async () => {
+	if (token) api.setAuthToken(token);
       try {
         await api.deleteVideo(videoId);
         fetchData();
@@ -356,7 +358,7 @@ export default function AdminPanel() {
       showAlert('Hata', 'Lütfen tüm gerekli alanları doldurun');
       return;
     }
-    
+    if (token) api.setAuthToken(token);
     try {
       await api.adminCreateUser(createUserForm);
       showAlert('Başarılı', `${createUserForm.role === 'admin' ? 'Yönetici' : createUserForm.role === 'staff' ? 'Görevli' : 'Kullanıcı'} başarıyla oluşturuldu`);
@@ -373,7 +375,7 @@ export default function AdminPanel() {
       showAlert('Hata', 'Lütfen gerekli alanları doldurun');
       return;
     }
-    
+    if (token) api.setAuthToken(token);
     try {
       await api.createChallenge({
         title: challengeForm.title,
@@ -406,7 +408,7 @@ export default function AdminPanel() {
 
   const handleUpdateEvent = async () => {
     if (!editingEvent) return;
-    
+    if (token) api.setAuthToken(token);
     try {
       await api.updateEvent(editingEvent.id, {
         title: eventForm.title,
@@ -444,7 +446,7 @@ export default function AdminPanel() {
       {stats && (
         <View style={styles.statsGrid}>
           <View style={styles.statCard}>
-            <Ionicons name="people" size={28} color="#FF6B6B" />
+            <Ionicons name="people" size={28} color="#E91E8C" />
             <Text style={styles.statNumber}>{stats.total_users}</Text>
             <Text style={styles.statLabel}>Kullanıcı</Text>
           </View>
@@ -753,7 +755,7 @@ export default function AdminPanel() {
           <LinearGradient
             colors={notificationForm.type === 'email' ? ['#2196F3', '#1976D2'] : 
                     notificationForm.type === 'both' ? ['#9C27B0', '#7B1FA2'] :
-                    ['#FF6B6B', '#FF8E53']}
+                    ['#E91E8C', '#FF8E53']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.sendNotificationGradient}
@@ -832,7 +834,7 @@ export default function AdminPanel() {
       {/* iyzico Settings */}
       <View style={styles.settingsCard}>
         <View style={styles.settingsCardHeader}>
-          <Ionicons name="card" size={24} color="#FF6B6B" />
+          <Ionicons name="card" size={24} color="#E91E8C" />
           <Text style={styles.settingsCardTitle}>iyzico Ödeme</Text>
           {settings?.iyzico?.api_key ? (
             <View style={styles.statusBadgeActive}>
@@ -1011,7 +1013,7 @@ export default function AdminPanel() {
           }
         }}
       >
-        <Ionicons name="refresh" size={20} color="#FF6B6B" />
+        <Ionicons name="refresh" size={20} color="#E91E8C" />
         <Text style={styles.seedBtnText}>Demo Verileri Sıfırla ve Yükle</Text>
       </TouchableOpacity>
     </View>
@@ -1020,7 +1022,7 @@ export default function AdminPanel() {
   if (authLoading || !user || user.role !== 'admin') {
     return (
       <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color="#FF6B6B" />
+        <ActivityIndicator size="large" color="#E91E8C" />
       </View>
     );
   }
@@ -1028,7 +1030,7 @@ export default function AdminPanel() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#1a1a2e', '#16213e']}
+        colors={['#1a0a2e', '#16213e']}
         style={[styles.header, { paddingTop: insets.top + 10 }]}
       >
         <View style={styles.headerRow}>
@@ -1052,7 +1054,7 @@ export default function AdminPanel() {
               <Ionicons
                 name={tab.icon}
                 size={18}
-                color={activeTab === tab.id ? '#FF6B6B' : '#666'}
+                color={activeTab === tab.id ? '#E91E8C' : '#666'}
               />
               <Text style={[styles.tabText, activeTab === tab.id && styles.tabTextActive]}>
                 {tab.label}
@@ -1070,7 +1072,7 @@ export default function AdminPanel() {
               <Ionicons
                 name={tab.icon}
                 size={18}
-                color={activeTab === tab.id ? '#FF6B6B' : '#666'}
+                color={activeTab === tab.id ? '#E91E8C' : '#666'}
               />
               <Text style={[styles.tabText, activeTab === tab.id && styles.tabTextActive]}>
                 {tab.label}
@@ -1083,11 +1085,11 @@ export default function AdminPanel() {
       <ScrollView
         style={styles.content}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FF6B6B" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#E91E8C" />
         }
       >
         {isLoading ? (
-          <ActivityIndicator size="large" color="#FF6B6B" style={{ marginTop: 40 }} />
+          <ActivityIndicator size="large" color="#E91E8C" style={{ marginTop: 40 }} />
         ) : (
           <>
             {activeTab === 'stats' && renderStats()}
@@ -1209,7 +1211,7 @@ export default function AdminPanel() {
               <Ionicons
                 name={videoForm.is_premium ? 'checkbox' : 'square-outline'}
                 size={24}
-                color="#FF6B6B"
+                color="#E91E8C"
               />
               <Text style={styles.checkboxLabel}>Premium Video</Text>
             </TouchableOpacity>
@@ -1220,7 +1222,7 @@ export default function AdminPanel() {
               <Ionicons
                 name={videoForm.is_daily ? 'checkbox' : 'square-outline'}
                 size={24}
-                color="#FF6B6B"
+                color="#E91E8C"
               />
               <Text style={styles.checkboxLabel}>Günün Videosu</Text>
             </TouchableOpacity>
@@ -1284,7 +1286,7 @@ export default function AdminPanel() {
               <Text style={styles.roleOptionText}>Görevli (QR Tarayabilir)</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.roleOption} onPress={() => handleChangeRole('admin')}>
-              <Ionicons name="shield" size={24} color="#FF6B6B" />
+              <Ionicons name="shield" size={24} color="#E91E8C" />
               <Text style={styles.roleOptionText}>Yönetici</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.cancelBtnFull} onPress={() => setShowRoleModal(false)}>
@@ -1406,7 +1408,7 @@ export default function AdminPanel() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a0a',
+    backgroundColor: '#1a0a2e',
   },
   centered: {
     justifyContent: 'center',
@@ -1428,14 +1430,14 @@ const styles = StyleSheet.create({
   },
   tabsContainer: {
     maxHeight: 60,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: '#1a0a2e',
   },
   tabsContent: {
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
   tabsWrapper: {
-    backgroundColor: '#1a1a2e',
+    backgroundColor: '#1a0a2e',
     paddingHorizontal: 8,
     paddingVertical: 8,
   },
@@ -1463,7 +1465,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   tabTextActive: {
-    color: '#FF6B6B',
+    color: '#E91E8C',
   },
   content: {
     flex: 1,
@@ -1491,7 +1493,7 @@ const styles = StyleSheet.create({
   },
   statCard: {
     width: '47%',
-    backgroundColor: '#1a1a2e',
+    backgroundColor: '#1a0a2e',
     borderRadius: 16,
     padding: 20,
     alignItems: 'center',
@@ -1508,7 +1510,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   listItem: {
-    backgroundColor: '#1a1a2e',
+    backgroundColor: '#1a0a2e',
     borderRadius: 12,
     padding: 16,
     marginBottom: 8,
@@ -1549,7 +1551,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#E91E8C',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1631,7 +1633,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modalContent: {
-    backgroundColor: '#1a1a2e',
+    backgroundColor: '#1a0a2e',
     borderRadius: 16,
     padding: 24,
     width: '100%',
@@ -1703,7 +1705,7 @@ const styles = StyleSheet.create({
   },
   saveBtn: {
     flex: 1,
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#E91E8C',
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
@@ -1724,7 +1726,7 @@ const styles = StyleSheet.create({
   roleOptionSelected: {
     backgroundColor: 'rgba(255,107,107,0.3)',
     borderWidth: 1,
-    borderColor: '#FF6B6B',
+    borderColor: '#E91E8C',
   },
   roleOptionText: {
     color: '#888',
@@ -1745,7 +1747,7 @@ const styles = StyleSheet.create({
   },
   // Settings styles
   settingsCard: {
-    backgroundColor: '#1a1a2e',
+    backgroundColor: '#1a0a2e',
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
@@ -1790,7 +1792,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.1)',
   },
   settingsSubLabel: {
-    color: '#FF6B6B',
+    color: '#E91E8C',
     fontSize: 12,
     fontWeight: '600',
     marginTop: 8,
@@ -1824,13 +1826,13 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   seedBtnText: {
-    color: '#FF6B6B',
+    color: '#E91E8C',
     fontSize: 14,
     fontWeight: '600',
   },
   // Notification styles
   notificationCard: {
-    backgroundColor: '#1a1a2e',
+    backgroundColor: '#1a0a2e',
     borderRadius: 16,
     padding: 16,
   },
@@ -1855,7 +1857,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   notificationTypeBtnActive: {
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#E91E8C',
   },
   notificationTypeText: {
     color: '#888',
@@ -1884,7 +1886,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   userSelectChipActive: {
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#E91E8C',
   },
   userSelectChipText: {
     color: '#888',
@@ -1908,3 +1910,4 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
 });
+

@@ -149,7 +149,7 @@ export default function EventDetailScreen() {
   if (isLoading || !event) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color="#FF6B6B" />
+        <ActivityIndicator size="large" color="#E91E8C" />
       </View>
     );
   }
@@ -164,7 +164,7 @@ export default function EventDetailScreen() {
         style={styles.headerImage}
       />
       <LinearGradient
-        colors={['transparent', 'rgba(0,0,0,0.8)', '#0a0a0a']}
+        colors={['transparent', 'rgba(0,0,0,0.8)', '#1a0a2e']}
         style={styles.headerOverlay}
       />
       
@@ -187,11 +187,11 @@ export default function EventDetailScreen() {
           
           <View style={styles.detailsRow}>
             <View style={styles.detailItem}>
-              <Ionicons name="calendar" size={18} color="#FF6B6B" />
+              <Ionicons name="calendar" size={18} color="#E91E8C" />
               <Text style={styles.detailText}>{formatDate(event.date)}</Text>
             </View>
             <View style={styles.detailItem}>
-              <Ionicons name="location-outline" size={18} color="#FF6B6B" />
+              <Ionicons name="location-outline" size={18} color="#E91E8C" />
               <Text style={styles.detailText}>{event.location}</Text>
             </View>
           </View>
@@ -244,7 +244,7 @@ export default function EventDetailScreen() {
             <View style={styles.commentHeader}>
               <Text style={styles.sectionTitle}>Yorumlar ({comments.length})</Text>
               <TouchableOpacity onPress={handleAddComment}>
-                <Ionicons name={showCommentForm ? 'close' : 'add-circle'} size={24} color="#FF6B6B" />
+                <Ionicons name={showCommentForm ? 'close' : 'add-circle'} size={24} color="#E91E8C" />
               </TouchableOpacity>
             </View>
 
@@ -319,7 +319,7 @@ export default function EventDetailScreen() {
           disabled={availableTickets === 0 || isBuying}
         >
           <LinearGradient
-            colors={availableTickets === 0 ? ['#666', '#444'] : ['#FF6B6B', '#FF8E53']}
+            colors={availableTickets === 0 ? ['#666', '#444'] : ['#E91E8C', '#FF8E53']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.buyButtonGradient}
@@ -361,7 +361,7 @@ export default function EventDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a0a',
+    backgroundColor: '#1a0a2e',
   },
   centered: {
     justifyContent: 'center',
@@ -401,7 +401,7 @@ const styles = StyleSheet.create({
   cityBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#E91E8C',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
@@ -469,7 +469,7 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#E91E8C',
     borderRadius: 3,
   },
   quantitySection: {
@@ -494,7 +494,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#E91E8C',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -538,7 +538,7 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   submitCommentButton: {
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#E91E8C',
     borderRadius: 8,
     paddingVertical: 12,
     alignItems: 'center',

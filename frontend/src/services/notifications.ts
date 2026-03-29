@@ -29,7 +29,7 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
       name: 'default',
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#FF6B6B',
+      lightColor: '#E91E8C',
     });
   }
 
@@ -132,3 +132,4 @@ export async function getBadgeCount(): Promise<number> {
 export async function setBadgeCount(count: number) {
   await Notifications.setBadgeCountAsync(count);
 }
+

@@ -188,7 +188,7 @@ export default function SocialScreen() {
   if (isLoading) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color="#FF6B6B" />
+        <ActivityIndicator size="large" color="#E91E8C" />
       </View>
     );
   }
@@ -196,7 +196,7 @@ export default function SocialScreen() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#1a1a2e', '#16213e']}
+        colors={['#1a0a2e', '#16213e']}
         style={[styles.header, { paddingTop: insets.top + 10 }]}
       >
         <View style={styles.headerRow}>
@@ -224,7 +224,7 @@ export default function SocialScreen() {
       <ScrollView
         style={styles.content}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FF6B6B" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#E91E8C" />
         }
         showsVerticalScrollIndicator={false}
       >
@@ -257,16 +257,11 @@ export default function SocialScreen() {
                   <Ionicons
                     name={post.liked_by_me ? 'heart' : 'heart-outline'}
                     size={26}
-                    color={post.liked_by_me ? '#FF6B6B' : '#fff'}
+                    color={post.liked_by_me ? '#E91E8C' : '#fff'}
                   />
                   <Text style={styles.actionCount}>{post.likes}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.actionButton}>
-                  <Ionicons name="chatbubble-outline" size={24} color="#fff" />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.actionButton}>
-                  <Ionicons name="share-outline" size={24} color="#fff" />
-                </TouchableOpacity>
+              
               </View>
 
               <View style={styles.postCaption}>
@@ -294,7 +289,7 @@ export default function SocialScreen() {
               <Text style={styles.modalTitle}>Yeni Paylaşım</Text>
               <TouchableOpacity onPress={handleCreatePost} disabled={isPosting}>
                 {isPosting ? (
-                  <ActivityIndicator size="small" color="#FF6B6B" />
+                  <ActivityIndicator size="small" color="#E91E8C" />
                 ) : (
                   <Text style={styles.shareButton}>Paylaş</Text>
                 )}
@@ -334,7 +329,7 @@ export default function SocialScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a0a',
+    backgroundColor: '#1a0a2e',
   },
   centered: {
     justifyContent: 'center',
@@ -368,7 +363,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   loginBadgeText: {
-    color: '#FF6B6B',
+    color: '#E91E8C',
     fontWeight: '600',
     fontSize: 13,
     marginLeft: 4,
@@ -377,7 +372,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#E91E8C',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -400,7 +395,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   postCard: {
-    backgroundColor: '#1a1a2e',
+    backgroundColor: '#1a0a2e',
     marginBottom: 1,
   },
   postHeader: {
@@ -412,7 +407,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#E91E8C',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -468,7 +463,7 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: '#0a0a0a',
+    backgroundColor: '#1a0a2e',
   },
   modalContent: {
     flex: 1,
@@ -490,7 +485,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   shareButton: {
-    color: '#FF6B6B',
+    color: '#E91E8C',
     fontSize: 16,
     fontWeight: '700',
   },
@@ -503,7 +498,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#1a1a2e',
+    backgroundColor: '#1a0a2e',
     borderRadius: 12,
     padding: 16,
     color: '#fff',

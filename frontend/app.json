@@ -23,7 +23,7 @@
       "package": "com.izf.zumba",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#0a0a0a"
+        "backgroundColor": "#1a0a2e"
       },
       "edgeToEdgeEnabled": true,
       "permissions": [
@@ -43,7 +43,7 @@
       "splash": {
         "image": "./assets/images/splash-web.png",
         "resizeMode": "contain",
-        "backgroundColor": "#1E1432"
+        "backgroundColor": "#1a0a2e"
       }
     },
     "plugins": [
@@ -53,14 +53,14 @@
         {
           "image": "./assets/images/splash-icon.png",
           "resizeMode": "cover",
-          "backgroundColor": "#FF6B35"
+          "backgroundColor": "#1a0a2e"
         }
       ],
       [
         "expo-notifications",
         {
           "icon": "./assets/images/notification-icon.png",
-          "color": "#FF6B6B",
+          "color": "#E91E8C",
           "sounds": []
         }
       ],

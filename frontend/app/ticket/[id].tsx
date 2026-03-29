@@ -60,7 +60,7 @@ export default function TicketDetailScreen() {
   if (isLoading) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color="#FF6B6B" />
+        <ActivityIndicator size="large" color="#E91E8C" />
       </View>
     );
   }
@@ -81,7 +81,7 @@ export default function TicketDetailScreen() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#1a1a2e', '#16213e', '#0f3460']}
+        colors={['#2d0a4e', '#1a0a2e', '#0f3460']}
         style={[styles.gradient, { paddingTop: insets.top }]}
       >
         <TouchableOpacity style={styles.closeButton} onPress={() => router.back()}>
@@ -105,11 +105,11 @@ export default function TicketDetailScreen() {
             
             <View style={styles.eventDetails}>
               <View style={styles.eventDetail}>
-                <Ionicons name="calendar-outline" size={18} color="#FF6B6B" />
+                <Ionicons name="calendar-outline" size={18} color="#E91E8C" />
                 <Text style={styles.eventDetailText}>{formatDate(ticket.event_date)}</Text>
               </View>
               <View style={styles.eventDetail}>
-                <Ionicons name="location-outline" size={18} color="#FF6B6B" />
+                <Ionicons name="location-outline" size={18} color="#E91E8C" />
                 <Text style={styles.eventDetailText}>{ticket.event_location}</Text>
               </View>
             </View>
@@ -147,13 +147,13 @@ export default function TicketDetailScreen() {
 
         <View style={styles.instructions}>
           <View style={styles.instructionItem}>
-            <Ionicons name="information-circle" size={20} color="#FF6B6B" />
+            <Ionicons name="information-circle" size={20} color="#E91E8C" />
             <Text style={styles.instructionText}>
               Etkinlik girişinde bu ekranı görevliye gösterin
             </Text>
           </View>
           <View style={styles.instructionItem}>
-            <Ionicons name="time-outline" size={20} color="#FF6B6B" />
+            <Ionicons name="time-outline" size={20} color="#E91E8C" />
             <Text style={styles.instructionText}>
               Etkinlik başlamadan 30 dakika önce orada olun
             </Text>
@@ -167,7 +167,7 @@ export default function TicketDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a0a',
+    backgroundColor: '#1a0a2e',
   },
   centered: {
     justifyContent: 'center',
@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
     paddingHorizontal: 24,
     paddingVertical: 12,
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#E91E8C',
     borderRadius: 8,
   },
   backButtonText: {

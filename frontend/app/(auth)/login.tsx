@@ -53,7 +53,7 @@ export default function LoginScreen() {
       style={styles.container}
     >
       <LinearGradient
-        colors={['#1a1a2e', '#16213e', '#0f3460']}
+        colors={['#1a0a2e', '#16213e', '#0f3460']}
         style={[styles.gradient, { paddingTop: insets.top }]}
       >
         <ScrollView
@@ -63,7 +63,7 @@ export default function LoginScreen() {
           <View style={styles.header}>
             <View style={styles.logoContainer}>
               <LinearGradient
-                colors={['#FF6B6B', '#FF8E53']}
+                colors={['#E91E8C', '#FF8E53']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.logoGradient}
@@ -77,7 +77,7 @@ export default function LoginScreen() {
 
           <View style={styles.form}>
             <View style={styles.inputContainer}>
-              <Ionicons name="mail-outline" size={22} color="#FF6B6B" style={styles.inputIcon} />
+              <Ionicons name="mail-outline" size={22} color="#E91E8C" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="E-posta"
@@ -91,7 +91,7 @@ export default function LoginScreen() {
             </View>
 
             <View style={styles.inputContainer}>
-              <Ionicons name="lock-closed-outline" size={22} color="#FF6B6B" style={styles.inputIcon} />
+              <Ionicons name="lock-closed-outline" size={22} color="#E91E8C" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="Şifre"
@@ -115,7 +115,7 @@ export default function LoginScreen() {
               disabled={isLoading}
             >
               <LinearGradient
-                colors={['#FF6B6B', '#FF8E53']}
+                colors={['#E91E8C', '#FF8E53']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.buttonGradient}
@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
     marginBottom: 48,
   },
   logoContainer: {
-    shadowColor: '#FF6B6B',
+    shadowColor: '#E91E8C',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
   appName: {
     fontSize: 48,
     fontWeight: '900',
-    color: '#FF6B6B',
+    color: '#E91E8C',
     letterSpacing: 6,
   },
   subtitle: {
@@ -237,8 +237,9 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   registerLink: {
-    color: '#FF6B6B',
+    color: '#E91E8C',
     fontSize: 15,
     fontWeight: '600',
   },
 });
+

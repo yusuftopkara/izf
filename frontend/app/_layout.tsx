@@ -14,7 +14,7 @@ export default function RootLayout() {
           <Stack
             screenOptions={{
               headerShown: false,
-              contentStyle: { backgroundColor: '#0a0a0a' },
+              contentStyle: { backgroundColor: '#1a0a2e' },
             }}
           >
             <Stack.Screen name="index" />
@@ -29,3 +29,4 @@ export default function RootLayout() {
     </GestureHandlerRootView>
   );
 }
+

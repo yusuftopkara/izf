@@ -247,7 +247,7 @@ export default function QRScanner() {
           
           <TouchableOpacity style={styles.scanAgainButton} onPress={resetScanner}>
             <LinearGradient
-              colors={['#FF6B6B', '#FF8E53']}
+              colors={['#E91E8C', '#FF8E53']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.scanAgainGradient}
@@ -298,7 +298,7 @@ export default function QRScanner() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a0a',
+    backgroundColor: '#1a0a2e',
   },
   header: {
     flexDirection: 'row',
@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#1a1a2e',
+    borderBottomColor: '#1a0a2e',
   },
   backButton: {
     width: 44,
@@ -344,7 +344,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 30,
     height: 30,
-    borderColor: '#FF6B6B',
+    borderColor: '#E91E8C',
   },
   topLeft: {
     top: 0,
@@ -383,7 +383,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   resultCard: {
-    backgroundColor: '#1a1a2e',
+    backgroundColor: '#1a0a2e',
     borderRadius: 20,
     padding: 30,
     alignItems: 'center',
@@ -444,7 +444,7 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   permissionButton: {
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#E91E8C',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
@@ -462,14 +462,14 @@ const styles = StyleSheet.create({
   },
   manualInput: {
     flex: 1,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: '#1a0a2e',
     borderRadius: 12,
     padding: 14,
     color: '#fff',
     fontSize: 14,
   },
   checkButton: {
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#E91E8C',
     borderRadius: 12,
     width: 50,
     justifyContent: 'center',
@@ -494,7 +494,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   manualCard: {
-    backgroundColor: '#1a1a2e',
+    backgroundColor: '#1a0a2e',
     borderRadius: 16,
     padding: 20,
     width: '100%',
@@ -525,7 +525,7 @@ const styles = StyleSheet.create({
   },
   manualCheckButton: {
     flex: 1,
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#E91E8C',
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
@@ -535,3 +535,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+

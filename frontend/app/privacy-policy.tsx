@@ -112,7 +112,7 @@ export default function PrivacyPolicy() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a0a',
+    backgroundColor: '#1a0a2e',
   },
   header: {
     flexDirection: 'row',
@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#1a1a2e',
+    borderBottomColor: '#1a0a2e',
   },
   backButton: {
     width: 44,
@@ -167,7 +167,8 @@ const styles = StyleSheet.create({
   },
   contactInfo: {
     fontSize: 14,
-    color: '#FF6B6B',
+    color: '#E91E8C',
     lineHeight: 24,
   },
 });
+

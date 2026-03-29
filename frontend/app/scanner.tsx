@@ -71,7 +71,7 @@ export default function ScannerScreen() {
   if (!permission.granted) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <Ionicons name="camera-outline" size={64} color="#FF6B6B" />
+        <Ionicons name="camera-outline" size={64} color="#E91E8C" />
         <Text style={styles.permissionText}>Kamera izni gerekli</Text>
         <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
           <Text style={styles.permissionButtonText}>İzin Ver</Text>
@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 40,
     height: 40,
-    borderColor: '#FF6B6B',
+    borderColor: '#E91E8C',
   },
   cornerTL: {
     top: 0,
@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   resultCard: {
-    backgroundColor: '#1a1a2e',
+    backgroundColor: '#1a0a2e',
     borderRadius: 20,
     padding: 24,
     alignItems: 'center',
@@ -295,14 +295,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   ticketInfoUser: {
-    color: '#FF6B6B',
+    color: '#E91E8C',
     fontSize: 14,
     marginTop: 4,
   },
   scanAgainButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#E91E8C',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 12,
@@ -320,7 +320,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   permissionButton: {
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#E91E8C',
     paddingHorizontal: 32,
     paddingVertical: 14,
     borderRadius: 12,
@@ -332,3 +332,4 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 });
+

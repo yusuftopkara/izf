@@ -82,7 +82,7 @@ export default function ProfileSettings() {
   if (isLoading) {
     return (
       <View style={[styles.container, styles.centerContent, { paddingTop: insets.top }]}>
-        <ActivityIndicator size="large" color="#FF6B6B" />
+        <ActivityIndicator size="large" color="#E91E8C" />
       </View>
     );
   }
@@ -182,7 +182,7 @@ export default function ProfileSettings() {
           disabled={isSaving}
         >
           <LinearGradient
-            colors={['#FF6B6B', '#FF8E53']}
+            colors={['#E91E8C', '#FF8E53']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.saveButtonGradient}
@@ -207,7 +207,7 @@ export default function ProfileSettings() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a0a',
+    backgroundColor: '#1a0a2e',
   },
   centerContent: {
     justifyContent: 'center',
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#1a1a2e',
+    borderBottomColor: '#1a0a2e',
   },
   backButton: {
     width: 44,
@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1a1a2e',
+    backgroundColor: '#1a0a2e',
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#2a2a4e',
@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
   readOnlyInput: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1a1a2e',
+    backgroundColor: '#1a0a2e',
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
@@ -312,3 +312,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
+

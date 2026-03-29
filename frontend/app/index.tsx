@@ -19,14 +19,14 @@ export default function Index() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#FF6B6B', '#FF8E53', '#FFC107']}
+        colors={['#E91E8C', '#FF8E53', '#FFC107']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradient}
       >
         <View style={styles.logoContainer}>
           <LinearGradient
-            colors={['#FF6B6B', '#FF8E53']}
+            colors={['#E91E8C', '#FF8E53']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.logoGradient}
@@ -95,3 +95,4 @@ const styles = StyleSheet.create({
     marginTop: 40,
   },
 });
+

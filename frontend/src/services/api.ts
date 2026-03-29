@@ -1,14 +1,11 @@
 import axios, { AxiosInstance } from 'axios';
 
-// Railway Backend URL
 const getApiUrl = () => {
   const backendUrl = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8001';
   return `${backendUrl}/api`;
 };
 
 const API_URL = getApiUrl();
-
-console.log('📡 API URL:', API_URL);   // Debug için (build sırasında göreceğiz)
 
 class ApiService {
   private axiosInstance: AxiosInstance;
@@ -35,7 +32,6 @@ class ApiService {
     this.authToken = token;
   }
 
-  // Auth
   async login(email: string, password: string) {
     const response = await this.axiosInstance.post('/login', { email, password });
     return response.data;
@@ -51,7 +47,6 @@ class ApiService {
     return response.data;
   }
 
-  // Events
   async getEvents(city?: string) {
     const params = city ? { city } : {};
     const response = await this.axiosInstance.get('/events', { params });
@@ -63,13 +58,11 @@ class ApiService {
     return response.data;
   }
 
-  // Tickets
   async buyTicket(eventId: string, quantity: number = 1) {
     const response = await this.axiosInstance.post('/buy-ticket', { event_id: eventId, quantity });
     return response.data;
   }
 
-  // iyzico Payment
   async createPayment(data: any) {
     const response = await this.axiosInstance.post('/payment/create', data);
     return response.data;
@@ -85,7 +78,6 @@ class ApiService {
     return response.data;
   }
 
-  // Videos
   async getVideos() {
     const response = await this.axiosInstance.get('/videos');
     return response.data;
@@ -96,7 +88,6 @@ class ApiService {
     return response.data;
   }
 
-  // Challenges
   async getChallenges() {
     const response = await this.axiosInstance.get('/challenges');
     return response.data;
@@ -112,7 +103,6 @@ class ApiService {
     return response.data;
   }
 
-  // Social
   async getPosts() {
     const response = await this.axiosInstance.get('/posts');
     return response.data;
@@ -138,7 +128,6 @@ class ApiService {
     return response.data;
   }
 
-  // Notifications
   async getNotifications() {
     const response = await this.axiosInstance.get('/notifications');
     return response.data;
@@ -149,20 +138,17 @@ class ApiService {
     return response.data;
   }
 
-  // Admin
   async getAdminStats() {
     const response = await this.axiosInstance.get('/admin/stats');
     return response.data;
   }
 
-  // Seed Data (test için)
   async seedData(force: boolean = false) {
     const response = await this.axiosInstance.post(`/seed?force=${force}`);
     return response.data;
   }
-}
 
-async getAllUsers() {
+  async getAllUsers() {
     const response = await this.axiosInstance.get('/admin/users');
     return response.data;
   }
@@ -187,19 +173,19 @@ async getAllUsers() {
     return response.data;
   }
 
-async adminCreateUser(data: { email: string; password: string; name: string; role: string }) {
-  const response = await this.axiosInstance.post('/admin/users', data);
-  return response.data;
-}
+  async adminCreateUser(data: { email: string; password: string; name: string; role: string }) {
+    const response = await this.axiosInstance.post('/admin/users', data);
+    return response.data;
+  }
 
   async sendNotification(title: string, body: string, type: string, targetAll: boolean, targetUserId?: string) {
     const response = await this.axiosInstance.post('/admin/notifications/send', { title, body, type, target_all: targetAll, target_user_id: targetUserId });
     return response.data;
   }
 
-  async createEvent(data: any) {
-    const response = await this.axiosInstance.post('/admin/events', data);
-    return response.data;
+async createEvent(data: any) {
+  const response = await this.axiosInstance.post('/events', data);
+  return response.data;
   }
 
   async updateEvent(eventId: string, data: any) {
@@ -231,5 +217,14 @@ async adminCreateUser(data: { email: string; password: string; name: string; rol
     const response = await this.axiosInstance.delete(`/admin/challenges/${challengeId}`);
     return response.data;
   }
+}
+async getProfile() {
+    const response = await this.axiosInstance.get('/me/profile');
+    return response.data;
+  }
 
+  async updateProfile(data: { name?: string; phone?: string; city?: string; bio?: string }) {
+    const response = await this.axiosInstance.put('/me/profile', data);
+    return response.data;
+  }
 export const api = new ApiService();
