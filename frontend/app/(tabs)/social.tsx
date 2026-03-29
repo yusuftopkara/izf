@@ -38,7 +38,7 @@ interface Post {
 }
 
 const getYoutubeVideoId = (url: string): string | null => {
-  const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/);
+  const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?]+)/);
   return match ? match[1] : null;
 };
 

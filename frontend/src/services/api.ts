@@ -179,7 +179,7 @@ class ApiService {
   }
 
   async sendNotification(title: string, body: string, type: string, targetAll: boolean, targetUserId?: string) {
-    const response = await this.axiosInstance.post('/admin/notifications/send', { title, body, type, target_all: targetAll, target_user_id: targetUserId });
+    const response = await this.axiosInstance.post('/admin/notifications/advanced', { title, body, type, target_all: targetAll, target_user_id: targetUserId });
     return response.data;
   }
 
@@ -199,17 +199,17 @@ async createEvent(data: any) {
   }
 
   async createVideo(data: any) {
-    const response = await this.axiosInstance.post('/admin/videos', data);
+    const response = await this.axiosInstance.post('/videos', data);
     return response.data;
   }
 
   async deleteVideo(videoId: string) {
-    const response = await this.axiosInstance.delete(`/admin/videos/${videoId}`);
+    const response = await this.axiosInstance.delete(`/videos/${videoId}`);
     return response.data;
   }
 
   async createChallenge(data: any) {
-    const response = await this.axiosInstance.post('/admin/challenges', data);
+    const response = await this.axiosInstance.post('/admin/create-challenge', data);
     return response.data;
   }
 
