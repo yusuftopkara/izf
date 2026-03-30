@@ -49,13 +49,14 @@
     "plugins": [
       "expo-router",
       [
-        "expo-splash-screen",
-        {
-          "image": "./assets/images/splash-icon.png",
-          "resizeMode": "cover",
-          "backgroundColor": "#1a0a2e"
-        }
-      ],
+  "expo-splash-screen",
+  {
+    "image": "./assets/images/splash-icon.png",
+    "imageWidth": 1242,
+    "resizeMode": "cover",
+    "backgroundColor": "#2d0a4e"
+  }
+],
       [
         "expo-splash-screen",
   {

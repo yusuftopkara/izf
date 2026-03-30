@@ -49,7 +49,7 @@ const isYoutubeUrl = (url: string): boolean => {
 export default function SocialScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -252,8 +252,9 @@ export default function SocialScreen() {
                       { text: 'İptal', style: 'cancel' },
                       {
                         text: 'Sil', style: 'destructive', onPress: async () => {
-                          try {
-                            await api.deletePost(post.id);
+  			try {
+    			if (token) api.setAuthToken(token);
+    			await api.deletePost(post.id);
                             fetchPosts();
                           } catch (error) {
                             Alert.alert('Hata', 'Post silinemedi');
