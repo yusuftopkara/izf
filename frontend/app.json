@@ -57,12 +57,12 @@
         }
       ],
       [
-        "expo-notifications",
-        {
-          "icon": "./assets/images/notification-icon.png",
-          "color": "#E91E8C",
-          "sounds": []
-        }
+        "expo-splash-screen",
+  {
+    "image": "./assets/images/splash-icon.png",
+    "resizeMode": "cover",
+    "backgroundColor": "#2d0a4e"
+  }
       ],
       [
         "expo-camera",

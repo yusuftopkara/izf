@@ -1650,6 +1650,13 @@ async def root():
 async def health_check():
     return {"status": "healthy"}
 
+@api_router.delete("/admin/posts/{post_id}")
+async def delete_post(post_id: str, user: dict = Depends(require_admin)):
+    result = await db.posts.delete_one({"id": post_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Post not found")
+    return {"message": "Post deleted successfully"}
+
 # Include the router in the main app
 app.include_router(api_router)
 

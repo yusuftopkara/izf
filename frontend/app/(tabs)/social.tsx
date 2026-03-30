@@ -242,10 +242,32 @@ export default function SocialScreen() {
                   <Text style={styles.avatarText}>{post.user_name.charAt(0).toUpperCase()}</Text>
                 </View>
                 <View style={styles.postUserInfo}>
-                  <Text style={styles.userName}>{post.user_name}</Text>
-                  <Text style={styles.postDate}>{formatDate(post.created_at)}</Text>
-                </View>
+                <Text style={styles.userName}>{post.user_name}</Text>
+                <Text style={styles.postDate}>{formatDate(post.created_at)}</Text>
               </View>
+              {user?.role === 'admin' && (
+                <TouchableOpacity
+                  onPress={() => {
+                    Alert.alert('Postu Sil', 'Bu paylaşımı silmek istediğinize emin misiniz?', [
+                      { text: 'İptal', style: 'cancel' },
+                      {
+                        text: 'Sil', style: 'destructive', onPress: async () => {
+                          try {
+                            await api.deletePost(post.id);
+                            fetchPosts();
+                          } catch (error) {
+                            Alert.alert('Hata', 'Post silinemedi');
+                          }
+                        }
+                      },
+                    ]);
+                  }}
+                  style={{ marginLeft: 'auto', padding: 8 }}
+                >
+                  <Ionicons name="trash-outline" size={22} color="#E91E8C" />
+                </TouchableOpacity>
+              )}
+            </View>
 
               {renderMedia(post.media_url)}
 
