@@ -52,7 +52,7 @@ interface Challenge {
   points: number;
 }
 
-type TabType = 'stats' | 'users' | 'events' | 'videos' | 'challenges' | 'notifications' | 'settings';
+type TabType = 'stats' | 'users' | 'events' | 'videos' | 'challenges' | 'posts' | 'notifications' | 'settings';
 
 interface SettingsData {
   iyzico: {
@@ -95,6 +95,7 @@ export default function AdminPanel() {
   const [events, setEvents] = useState<Event[]>([]);
   const [videos, setVideos] = useState<Video[]>([]);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
+  const [adminPosts, setAdminPosts] = useState<any[]>([]);
   const [settings, setSettings] = useState<SettingsData | null>(null);
   
   // Modals
@@ -167,20 +168,22 @@ export default function AdminPanel() {
     setIsLoading(true);
     setFetchError(null);
     try {
-      const [statsData, usersData, eventsData, videosData, challengesData, settingsData] = await Promise.all([
-        api.getAdminStats(),
-        api.getAllUsers(),
-        api.getEvents(),
-        api.getVideos(),
-        api.getChallenges(),
-        api.getSettings(),
-      ]);
-      setStats(statsData);
-      setUsers(usersData);
-      setEvents(eventsData);
-      setVideos(videosData);
-      setChallenges(challengesData);
-      setSettings(settingsData);
+      const [statsData, usersData, eventsData, videosData, challengesData, settingsData, postsData] = await Promise.all([
+  api.getAdminStats(),
+  api.getAllUsers(),
+  api.getEvents(),
+  api.getVideos(),
+  api.getChallenges(),
+  api.getSettings(),
+  api.getAdminPosts(),
+]);
+setStats(statsData);
+setUsers(usersData);
+setEvents(eventsData);
+setVideos(videosData);
+setChallenges(challengesData);
+setSettings(settingsData);
+setAdminPosts(postsData);
     } catch (error: any) {
       console.error('Error fetching admin data:', error);
       setFetchError(error.response?.data?.detail || 'Veriler yüklenemedi');
@@ -431,14 +434,15 @@ try {
   };
 
   const tabs: { id: TabType; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-    { id: 'stats', label: 'İstatistik', icon: 'stats-chart' },
-    { id: 'users', label: 'Kullanıcı', icon: 'people' },
-    { id: 'events', label: 'Etkinlik', icon: 'calendar' },
-    { id: 'videos', label: 'Video', icon: 'videocam' },
-    { id: 'challenges', label: 'Challenge', icon: 'flash' },
-    { id: 'notifications', label: 'Bildirim', icon: 'notifications' },
-    { id: 'settings', label: 'Ayarlar', icon: 'settings' },
-  ];
+  { id: 'stats', label: 'İstatistik', icon: 'stats-chart' },
+  { id: 'users', label: 'Kullanıcı', icon: 'people' },
+  { id: 'events', label: 'Etkinlik', icon: 'calendar' },
+  { id: 'videos', label: 'Video', icon: 'videocam' },
+  { id: 'challenges', label: 'Challenge', icon: 'flash' },
+  { id: 'posts', label: 'Sosyal', icon: 'images' },
+  { id: 'notifications', label: 'Bildirim', icon: 'notifications' },
+  { id: 'settings', label: 'Ayarlar', icon: 'settings' },
+];
 
   const renderStats = () => (
     <View style={styles.section}>
@@ -474,7 +478,38 @@ try {
       )}
     </View>
   );
-
+const renderPosts = () => (
+  <View style={styles.section}>
+    <Text style={styles.sectionTitle}>Sosyal Paylaşımlar ({adminPosts.length})</Text>
+    {adminPosts.map((post) => (
+      <View key={post.id} style={styles.listItem}>
+        <View style={styles.listItemInfo}>
+          <Text style={styles.listItemTitle}>{post.user_name}</Text>
+          <Text style={styles.listItemSubtitle}>{post.caption}</Text>
+          <Text style={styles.listItemSubtitle}>{post.media_url}</Text>
+        </View>
+        <View style={styles.listItemActions}>
+          <TouchableOpacity
+            style={[styles.actionBtn, { backgroundColor: 'rgba(255,50,50,0.2)' }]}
+            onPress={() => {
+              confirmAction('Postu Sil', 'Bu paylaşımı silmek istediğinize emin misiniz?', async () => {
+                try {
+                  if (token) api.setAuthToken(token);
+                  await api.deletePost(post.id);
+                  fetchData();
+                } catch (error) {
+                  showAlert('Hata', 'Post silinemedi');
+                }
+              });
+            }}
+          >
+            <Ionicons name="trash" size={16} color="#FF6B6B" />
+          </TouchableOpacity>
+        </View>
+      </View>
+    ))}
+  </View>
+);
   const renderUsers = () => (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
@@ -1097,6 +1132,7 @@ try {
             {activeTab === 'events' && renderEvents()}
             {activeTab === 'videos' && renderVideos()}
             {activeTab === 'challenges' && renderChallenges()}
+	    {activeTab === 'posts' && renderPosts()}
             {activeTab === 'notifications' && renderNotifications()}
             {activeTab === 'settings' && renderSettings()}
           </>

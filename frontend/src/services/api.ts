@@ -208,6 +208,11 @@ async createEvent(data: any) {
     return response.data;
   }
 
+async getAdminPosts() {
+    const response = await this.axiosInstance.get('/admin/posts');
+    return response.data;
+  }
+
   async deletePost(postId: string) {
     const response = await this.axiosInstance.delete(`/admin/posts/${postId}`);
     return response.data;

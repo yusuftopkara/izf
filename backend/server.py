@@ -1650,6 +1650,13 @@ async def root():
 async def health_check():
     return {"status": "healthy"}
 
+@api_router.get("/admin/posts")
+async def get_all_posts(user: dict = Depends(require_admin)):
+    posts = await db.posts.find().sort("created_at", -1).to_list(100)
+    for post in posts:
+        post["_id"] = str(post["_id"])
+    return posts
+
 @api_router.delete("/admin/posts/{post_id}")
 async def delete_post(post_id: str, user: dict = Depends(require_admin)):
     result = await db.posts.delete_one({"id": post_id})
