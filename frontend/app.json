@@ -1,4 +1,4 @@
-{
+﻿{
   "expo": {
     "name": "IZF Zumba",
     "slug": "izf-zumba",
@@ -14,9 +14,7 @@
       "infoPlist": {
         "NSCameraUsageDescription": "QR kod taramak için kamera erişimi gerekli",
         "NSPhotoLibraryUsageDescription": "Profil fotoğrafı ve paylaşımlar için galeri erişimi",
-        "UIBackgroundModes": [
-          "remote-notification"
-        ]
+        "UIBackgroundModes": ["remote-notification"]
       }
     },
     "android": {
@@ -48,29 +46,14 @@
     },
     "plugins": [
       "expo-router",
-      [
-  "expo-splash-screen",
-  {
-    "image": "./assets/images/splash-icon.png",
-    "imageWidth": 800,
-    "resizeMode": "contain",
-    "backgroundColor": "#2d0a4e"
-  }
-],
-      [
-        "expo-splash-screen",
-  {
-    "image": "./assets/images/splash-icon.png",
-    "resizeMode": "cover",
-    "backgroundColor": "#2d0a4e"
-  }
-      ],
-      [
-        "expo-camera",
-        {
-          "cameraPermission": "QR kod taramak için kamera erişimi gerekli"
-        }
-      ]
+      ["expo-splash-screen", {
+        "image": "./assets/images/splash-icon.png",
+        "resizeMode": "cover",
+        "backgroundColor": "#2d0a4e"
+      }],
+      ["expo-camera", {
+        "cameraPermission": "QR kod taramak için kamera erişimi gerekli"
+      }]
     ],
     "experiments": {
       "typedRoutes": true
