@@ -48,6 +48,7 @@
       "expo-router",
       ["expo-splash-screen", {
         "image": "./assets/images/splash-icon.png",
+        "imageWidth": 1080,
         "resizeMode": "cover",
         "backgroundColor": "#2d0a4e"
       }],
