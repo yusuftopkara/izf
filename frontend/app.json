@@ -46,11 +46,15 @@
     },
     "plugins": [
       "expo-router",
-      ["expo-splash-screen", {
-        "backgroundColor": "#2d0a4e",
-        "image": "./assets/images/splash-icon.png",
-        "resizeMode": "nativeResize"
-      }],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 800,
+          "resizeMode": "contain",
+          "backgroundColor": "#2d0a4e"
+        }
+      ],
       ["expo-camera", {
         "cameraPermission": "QR kod taramak için kamera erişimi gerekli"
       }]
