@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, Depends, HTTPException, status
+from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, Request
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -1853,49 +1853,123 @@ class PaymentCallbackRequest(BaseModel):
     eventId: Optional[str] = None
 
 @api_router.post("/payment/callback")
-async def payment_callback(data: PaymentCallbackRequest):
-    """Handle iyzico payment callback/webhook."""
+async def payment_callback(request: Request):
+    """Handle iyzico payment callback/webhook.
+    
+    Accepts both:
+    1. iyzico's native webhook format (token, iyziEventType, etc.)
+    2. Our custom JSON format (paymentId, status, buyerEmail, etc.)
+    """
     try:
-        # Log the callback for debugging
-        print(f"Payment callback received: {data.paymentId}, status: {data.status}, email: {data.buyerEmail}")
+        # Try to parse as JSON first
+        content_type = request.headers.get("content-type", "")
+        raw_body = await request.body()
+        print(f"Payment callback raw body: {raw_body.decode('utf-8', errors='replace')}")
+        print(f"Payment callback content-type: {content_type}")
         
-        # Check if payment was successful
-        if data.status != "SUCCESS":
-            print(f"Payment failed or pending: {data.status}")
-            return {"success": False, "message": f"Payment status: {data.status}"}
+        # Try JSON
+        if "json" in content_type:
+            data = await request.json()
+        else:
+            # Try form data (iyzico sometimes sends as form)
+            try:
+                form = await request.form()
+                data = dict(form)
+            except:
+                # Try parsing body as JSON anyway
+                import json as json_module
+                try:
+                    data = json_module.loads(raw_body)
+                except:
+                    data = {}
+        
+        print(f"Payment callback parsed data: {data}")
+        
+        # Store raw webhook data for debugging
+        webhook_log = {
+            "id": str(uuid.uuid4()),
+            "received_at": datetime.utcnow(),
+            "content_type": content_type,
+            "data": data,
+            "raw_body": raw_body.decode('utf-8', errors='replace')
+        }
+        await db.webhook_logs.insert_one(webhook_log)
+        
+        # Check if this is iyzico's native format (has 'token' or 'iyziEventType')
+        if "token" in data or "iyziEventType" in data:
+            # iyzico native webhook - extract what we can
+            iyzico_token = data.get("token", "")
+            iyzico_status = data.get("status", data.get("paymentStatus", ""))
+            payment_id = data.get("paymentId", data.get("paymentConversationId", iyzico_token))
+            buyer_email = data.get("buyerEmail", data.get("email", ""))
+            buyer_name = data.get("buyerName", data.get("contactName", ""))
+            buyer_phone = data.get("buyerPhone", data.get("gsmNumber", ""))
+            paid_price = float(data.get("paidPrice", data.get("price", 0)))
+            currency = data.get("currency", "EUR")
+            
+            # If status indicates failure
+            if iyzico_status and iyzico_status not in ("SUCCESS", "success", "1"):
+                print(f"iyzico payment failed/pending: {iyzico_status}")
+                return {"success": False, "message": f"Payment status: {iyzico_status}"}
+            
+            # If we don't have email, we can't create a ticket
+            if not buyer_email:
+                print(f"No buyer email in webhook data, storing for manual review")
+                return {"success": True, "message": "Webhook received, no email to process"}
+                
+        elif "paymentId" in data and "buyerEmail" in data:
+            # Our custom format
+            payment_id = data["paymentId"]
+            iyzico_status = data.get("status", "SUCCESS")
+            buyer_email = data["buyerEmail"]
+            buyer_name = data.get("buyerName", "")
+            buyer_phone = data.get("buyerPhone", "")
+            paid_price = float(data.get("paidPrice", 0))
+            currency = data.get("currency", "EUR")
+            
+            if iyzico_status != "SUCCESS":
+                print(f"Payment failed or pending: {iyzico_status}")
+                return {"success": False, "message": f"Payment status: {iyzico_status}"}
+        else:
+            # Unknown format - log and accept
+            print(f"Unknown webhook format, data keys: {list(data.keys()) if isinstance(data, dict) else 'not dict'}")
+            return {"success": True, "message": "Webhook received, unknown format logged"}
+        
+        print(f"Processing payment: {payment_id}, email: {buyer_email}")
         
         # Find or create user by email
-        user = await db.users.find_one({"email": data.buyerEmail.lower()})
+        user = await db.users.find_one({"email": buyer_email.lower()})
         
         if not user:
             # Create new user from iyzico data
-            print(f"Creating new user for: {data.buyerEmail}")
+            print(f"Creating new user for: {buyer_email}")
             user_id = str(uuid.uuid4())
             
             # Parse name from buyerName or use email prefix
-            name_parts = data.buyerName.split() if data.buyerName else ["Misafir"]
+            name_parts = buyer_name.split() if buyer_name else ["Misafir"]
             first_name = name_parts[0] if name_parts else "Misafir"
             last_name = " ".join(name_parts[1:]) if len(name_parts) > 1 else "Kullanıcı"
             
             user = {
                 "id": user_id,
-                "email": data.buyerEmail.lower(),
-                "name": data.buyerName or f"{first_name} {last_name}",
+                "email": buyer_email.lower(),
+                "name": buyer_name or f"{first_name} {last_name}",
                 "first_name": first_name,
                 "last_name": last_name,
-                "phone": data.buyerPhone or "",
+                "phone": buyer_phone or "",
                 "role": "user",
                 "created_at": datetime.utcnow(),
                 "is_guest": True  # Mark as guest user initially
             }
             
             await db.users.insert_one(user)
-            print(f"New user created: {user_id} - {data.buyerEmail}")
+            print(f"New user created: {user_id} - {buyer_email}")
         
         # Get event info - try to find from eventId or use default event
         event = None
-        if data.eventId:
-            event = await db.events.find_one({"id": data.eventId})
+        event_id = data.get("eventId") if isinstance(data, dict) else None
+        if event_id:
+            event = await db.events.find_one({"id": event_id})
         
         # If no specific event found, use the first active event
         if not event:
@@ -1906,9 +1980,9 @@ async def payment_callback(data: PaymentCallbackRequest):
             return {"success": False, "message": "No event found"}
         
         # Check if ticket already exists for this payment
-        existing_ticket = await db.tickets.find_one({"payment_id": data.paymentId})
+        existing_ticket = await db.tickets.find_one({"payment_id": payment_id})
         if existing_ticket:
-            print(f"Ticket already exists for payment: {data.paymentId}")
+            print(f"Ticket already exists for payment: {payment_id}")
             return {"success": True, "message": "Ticket already exists", "ticket_id": existing_ticket["id"]}
         
         # Create new ticket
@@ -1920,12 +1994,12 @@ async def payment_callback(data: PaymentCallbackRequest):
             "user_id": user["id"],
             "event_id": event["id"],
             "event_title": event.get("title", "Zumba Festival"),
-            "payment_id": data.paymentId,
+            "payment_id": payment_id,
             "qr_token": qr_token,
             "status": "active",
             "created_at": datetime.utcnow(),
-            "paid_price": data.paidPrice,
-            "currency": data.currency
+            "paid_price": paid_price,
+            "currency": currency
         }
         
         await db.tickets.insert_one(ticket)
@@ -1936,13 +2010,13 @@ async def payment_callback(data: PaymentCallbackRequest):
             if sendgrid_client:
                 message = Mail(
                     from_email='info@istanbulzumbafestival.com',
-                    to_emails=data.buyerEmail,
+                    to_emails=buyer_email,
                     subject='Biletiniz Hazır - Istanbul Zumba Festival',
                     html_content=f"""
                     <h2>Merhaba {user.get('name', '')},</h2>
                     <p>Ödemeniz başarıyla alındı! Biletiniz oluşturuldu.</p>
                     <p><strong>Etkinlik:</strong> {event.get('title', 'Zumba Festival')}</p>
-                    <p><strong>Tutar:</strong> {data.paidPrice} {data.currency}</p>
+                    <p><strong>Tutar:</strong> {paid_price} {currency}</p>
                     <p>QR kodunuzu görüntülemek için profil sayfanıza gidin:</p>
                     <a href="https://istanbulzumbafestival.com/profile" style="background: #E91E8C; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px;">Profilime Git</a>
                     <p style="margin-top: 20px;">Giriş yapmak için bu email adresi ile kayıt olabilirsiniz.</p>
@@ -1950,7 +2024,7 @@ async def payment_callback(data: PaymentCallbackRequest):
                     """
                 )
                 sendgrid_client.send(message)
-                print(f"Email sent to: {data.buyerEmail}")
+                print(f"Email sent to: {buyer_email}")
         except Exception as e:
             print(f"Email sending failed: {e}")
         
