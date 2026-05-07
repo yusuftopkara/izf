@@ -60,6 +60,7 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str
     name: str
+    phone: str
 
 class UserLogin(BaseModel):
     email: EmailStr
@@ -469,6 +470,7 @@ async def register(user_data: UserCreate):
         "email": user_data.email,
         "password_hash": get_password_hash(user_data.password),
         "name": user_data.name,
+        "phone": user_data.phone,
         "role": "user",
         "streak": 0,
         "last_challenge_date": None,
