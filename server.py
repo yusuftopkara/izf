@@ -869,27 +869,48 @@ async def admin_delete_discount(discount_id: str, admin: dict = Depends(require_
     return {"success": True, "message": "Kupon silindi"}
 
 @api_router.get("/tickets/by-email")
-async def get_tickets_by_email(email: str):
-    """Get tickets by buyer email (no auth required - for guest users)."""
+async def get_tickets_by_email(email: str, phone_last4: str = ""):
+    """Get tickets by buyer email + phone last 4 digits verification."""
     email = email.lower().strip()
+    
+    if not phone_last4 or len(phone_last4) != 4:
+        raise HTTPException(status_code=400, detail="Telefon numaranızın son 4 hanesini girin.")
     
     # Find user by email
     user = await db.users.find_one({"email": email})
     user_id = user["id"] if user else None
+    
+    # Verify phone last 4 digits from pending_payments or user record
+    phone_verified = False
+    
+    # Check pending_payments for this email
+    pending_payments = await db.pending_payments.find({"buyer_email": email}).to_list(100)
+    for pp in pending_payments:
+        buyer_phone = pp.get("buyer_phone", "")
+        if buyer_phone and buyer_phone.replace(" ", "").replace("-", "")[-4:] == phone_last4:
+            phone_verified = True
+            break
+    
+    # Also check user record phone
+    if not phone_verified and user and user.get("phone"):
+        user_phone = user["phone"].replace(" ", "").replace("-", "")
+        if user_phone[-4:] == phone_last4:
+            phone_verified = True
+    
+    if not phone_verified:
+        raise HTTPException(status_code=403, detail="Telefon numarası eşleşmiyor.")
     
     # Find tickets by user_id OR by pending_payment buyer_email
     query = {"$or": []}
     if user_id:
         query["$or"].append({"user_id": user_id})
     
-    # Also find tickets created from pending_payments with this email
-    pending_payments = await db.pending_payments.find({"buyer_email": email}).to_list(100)
     pending_ids = [p["id"] for p in pending_payments if p.get("ticket_id")]
     if pending_ids:
         query["$or"].append({"payment_id": {"$in": pending_ids}})
     
     if not query["$or"]:
-        return []
+        return {"tickets": []}
     
     tickets = await db.tickets.find(query).sort("created_at", -1).to_list(100)
     
@@ -907,7 +928,7 @@ async def get_tickets_by_email(email: str):
                 "created_at": ticket["created_at"]
             })
     
-    return result
+    return {"tickets": result}
 
 
 @api_router.get("/my-tickets", response_model=List[TicketResponse])
