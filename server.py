@@ -1245,6 +1245,8 @@ async def get_admin_tickets(user: dict = Depends(require_admin)):
     for ticket in tickets:
         event = await db.events.find_one({"id": ticket.get("event_id")})
         buyer = await db.users.find_one({"id": ticket.get("user_id")})
+        raw_status = ticket.get("status", "VALID")
+        status = "VALID" if raw_status == "active" else raw_status
         result.append({
             "id": ticket.get("id"),
             "ticket_id": ticket.get("id"),
@@ -1252,7 +1254,7 @@ async def get_admin_tickets(user: dict = Depends(require_admin)):
             "buyer_name": buyer.get("name") if buyer else ticket.get("buyer_name", "Misafir"),
             "buyer_email": buyer.get("email") if buyer else ticket.get("buyer_email", ""),
             "quantity": ticket.get("quantity", 1),
-            "status": ticket.get("status", "VALID"),
+            "status": status,
             "qr_token": ticket.get("qr_token", ""),
             "created_at": ticket.get("created_at", "").isoformat() if ticket.get("created_at") else "",
         })
@@ -1263,7 +1265,7 @@ async def get_admin_stats(user: dict = Depends(require_admin)):
     total_users = await db.users.count_documents({})
     total_events = await db.events.count_documents({})
     total_tickets = await db.tickets.count_documents({})
-    tickets_used = await db.tickets.count_documents({"status": "USED"})
+    tickets_used = await db.tickets.count_documents({"status": {"$in": ["USED", "used"]}})
     total_posts = await db.posts.count_documents({})
 
     # Revenue stats from payments collection
@@ -2107,7 +2109,7 @@ async def payment_callback(request: Request):
                     "event_title": event.get("title", "Zumba Festival"),
                     "payment_id": pending["id"],
                     "qr_token": qr_token,
-                    "status": "active",
+                    "status": "VALID",
                     "created_at": datetime.utcnow(),
                     "paid_price": pending.get("paid_price", pending.get("price", 0)),
                     "currency": pending.get("currency", "EUR")
@@ -2333,7 +2335,7 @@ async def payment_complete(pending_id: str):
                 "event_title": event.get("title", "Zumba Festival"),
                 "payment_id": pending_id,
                 "qr_token": qr_token,
-                "status": "active",
+                "status": "VALID",
                 "created_at": datetime.utcnow(),
                 "paid_price": pending.get("paid_price", pending.get("price", 0)),
                 "currency": pending.get("currency", "EUR")
