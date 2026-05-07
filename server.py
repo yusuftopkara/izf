@@ -630,14 +630,18 @@ async def admin_create_user(request: AdminCreateUserRequest, admin: dict = Depen
         }
     }
 
+class UpdateRoleRequest(BaseModel):
+    role: str
+
 @api_router.put("/admin/users/{user_id}/role")
-async def admin_update_user_role(user_id: str, role: str, admin: dict = Depends(require_admin)):
+async def admin_update_user_role(user_id: str, request: UpdateRoleRequest, admin: dict = Depends(require_admin)):
     """Admin updates a user's role"""
+    role = request.role
     if role not in ["user", "staff", "admin"]:
         raise HTTPException(status_code=400, detail="Geçersiz rol")
     
     result = await db.users.update_one({"id": user_id}, {"$set": {"role": role}})
-    if result.modified_count == 0:
+    if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
     
     return {"success": True, "message": f"Kullanıcı rolü {role} olarak güncellendi"}
@@ -1232,6 +1236,27 @@ async def mark_notification_read(notification_id: str, user: dict = Depends(get_
     return {"success": True}
 
 # ==================== ADMIN ROUTES ====================
+
+@api_router.get("/admin/tickets")
+async def get_admin_tickets(user: dict = Depends(require_admin)):
+    """Get all tickets for admin panel."""
+    tickets = await db.tickets.find().sort("created_at", -1).to_list(10000)
+    result = []
+    for ticket in tickets:
+        event = await db.events.find_one({"id": ticket.get("event_id")})
+        buyer = await db.users.find_one({"id": ticket.get("user_id")})
+        result.append({
+            "id": ticket.get("id"),
+            "ticket_id": ticket.get("id"),
+            "event_title": event.get("title") if event else "Bilinmeyen",
+            "buyer_name": buyer.get("name") if buyer else ticket.get("buyer_name", "Misafir"),
+            "buyer_email": buyer.get("email") if buyer else ticket.get("buyer_email", ""),
+            "quantity": ticket.get("quantity", 1),
+            "status": ticket.get("status", "VALID"),
+            "qr_token": ticket.get("qr_token", ""),
+            "created_at": ticket.get("created_at", "").isoformat() if ticket.get("created_at") else "",
+        })
+    return result
 
 @api_router.get("/admin/stats")
 async def get_admin_stats(user: dict = Depends(require_admin)):
