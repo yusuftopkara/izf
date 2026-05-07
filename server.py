@@ -14,6 +14,7 @@ from passlib.context import CryptContext
 import secrets
 import hashlib
 import json
+import urllib.parse
 
 # SendGrid
 from sendgrid import SendGridAPIClient
@@ -451,6 +452,7 @@ async def send_ticket_email(email: str, name: str, event: dict, tickets: list):
     except Exception as e:
         logger.warning(f"Ticket email send failed: {str(e)}")
 
+
 # ==================== AUTH ROUTES ====================
 
 @api_router.post("/register", response_model=TokenResponse)
@@ -865,6 +867,48 @@ async def admin_delete_discount(discount_id: str, admin: dict = Depends(require_
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Kupon bulunamadı")
     return {"success": True, "message": "Kupon silindi"}
+
+@api_router.get("/tickets/by-email")
+async def get_tickets_by_email(email: str):
+    """Get tickets by buyer email (no auth required - for guest users)."""
+    email = email.lower().strip()
+    
+    # Find user by email
+    user = await db.users.find_one({"email": email})
+    user_id = user["id"] if user else None
+    
+    # Find tickets by user_id OR by pending_payment buyer_email
+    query = {"$or": []}
+    if user_id:
+        query["$or"].append({"user_id": user_id})
+    
+    # Also find tickets created from pending_payments with this email
+    pending_payments = await db.pending_payments.find({"buyer_email": email}).to_list(100)
+    pending_ids = [p["id"] for p in pending_payments if p.get("ticket_id")]
+    if pending_ids:
+        query["$or"].append({"payment_id": {"$in": pending_ids}})
+    
+    if not query["$or"]:
+        return []
+    
+    tickets = await db.tickets.find(query).sort("created_at", -1).to_list(100)
+    
+    result = []
+    for ticket in tickets:
+        event = await db.events.find_one({"id": ticket["event_id"]})
+        if event:
+            result.append({
+                "id": ticket["id"],
+                "event_title": event["title"],
+                "event_date": event["date"],
+                "event_location": event["location"],
+                "qr_token": ticket["qr_token"],
+                "status": ticket["status"],
+                "created_at": ticket["created_at"]
+            })
+    
+    return result
+
 
 @api_router.get("/my-tickets", response_model=List[TicketResponse])
 async def get_my_tickets(user: dict = Depends(get_user_from_header)):
@@ -1855,36 +1899,34 @@ class PaymentCallbackRequest(BaseModel):
 @api_router.post("/payment/callback")
 async def payment_callback(request: Request):
     """Handle iyzico payment callback/webhook.
-    
+
     Accepts both:
     1. iyzico's native webhook format (token, iyziEventType, etc.)
     2. Our custom JSON format (paymentId, status, buyerEmail, etc.)
+    
+    When payment is successful, automatically creates tickets.
     """
     try:
-        # Try to parse as JSON first
         content_type = request.headers.get("content-type", "")
         raw_body = await request.body()
-        print(f"Payment callback raw body: {raw_body.decode('utf-8', errors='replace')}")
-        print(f"Payment callback content-type: {content_type}")
-        
-        # Try JSON
+        logger.info(f"Payment callback raw body: {raw_body.decode('utf-8', errors='replace')}")
+        logger.info(f"Payment callback content-type: {content_type}")
+
+        # Parse body
         if "json" in content_type:
-            data = await request.json()
+            data = json.loads(raw_body)
         else:
-            # Try form data (iyzico sometimes sends as form)
             try:
                 form = await request.form()
                 data = dict(form)
-            except:
-                # Try parsing body as JSON anyway
-                import json as json_module
+            except Exception:
                 try:
-                    data = json_module.loads(raw_body)
-                except:
+                    data = json.loads(raw_body)
+                except Exception:
                     data = {}
-        
-        print(f"Payment callback parsed data: {data}")
-        
+
+        logger.info(f"Payment callback parsed data: {data}")
+
         # Store raw webhook data for debugging
         webhook_log = {
             "id": str(uuid.uuid4()),
@@ -1894,149 +1936,458 @@ async def payment_callback(request: Request):
             "raw_body": raw_body.decode('utf-8', errors='replace')
         }
         await db.webhook_logs.insert_one(webhook_log)
-        
-        # Check if this is iyzico's native format (has 'token' or 'iyziEventType')
+
+        # Determine webhook format and extract identifiers
+        iyzico_token = ""
+        payment_id = ""
+        iyzico_status = ""
+
         if "token" in data or "iyziEventType" in data:
-            # iyzico native webhook - extract what we can
-            iyzico_token = data.get("token", "")
+            iyzico_token = str(data.get("token", ""))
             iyzico_status = data.get("status", data.get("paymentStatus", ""))
-            payment_id = data.get("paymentId", data.get("paymentConversationId", iyzico_token))
-            buyer_email = data.get("buyerEmail", data.get("email", ""))
-            buyer_name = data.get("buyerName", data.get("contactName", ""))
-            buyer_phone = data.get("buyerPhone", data.get("gsmNumber", ""))
-            paid_price = float(data.get("paidPrice", data.get("price", 0)))
-            currency = data.get("currency", "EUR")
-            
-            # If status indicates failure
-            if iyzico_status and iyzico_status not in ("SUCCESS", "success", "1"):
-                print(f"iyzico payment failed/pending: {iyzico_status}")
-                return {"success": False, "message": f"Payment status: {iyzico_status}"}
-            
-            # If we don't have email, we can't create a ticket
-            if not buyer_email:
-                print(f"No buyer email in webhook data, storing for manual review")
-                return {"success": True, "message": "Webhook received, no email to process"}
-                
-        elif "paymentId" in data and "buyerEmail" in data:
-            # Our custom format
-            payment_id = data["paymentId"]
+            payment_id = str(data.get("paymentId", data.get("paymentConversationId", iyzico_token)))
+        elif "paymentId" in data:
+            payment_id = str(data["paymentId"])
             iyzico_status = data.get("status", "SUCCESS")
-            buyer_email = data["buyerEmail"]
-            buyer_name = data.get("buyerName", "")
-            buyer_phone = data.get("buyerPhone", "")
-            paid_price = float(data.get("paidPrice", 0))
-            currency = data.get("currency", "EUR")
-            
-            if iyzico_status != "SUCCESS":
-                print(f"Payment failed or pending: {iyzico_status}")
-                return {"success": False, "message": f"Payment status: {iyzico_status}"}
         else:
-            # Unknown format - log and accept
-            print(f"Unknown webhook format, data keys: {list(data.keys()) if isinstance(data, dict) else 'not dict'}")
+            logger.warning(f"Unknown webhook format, keys: {list(data.keys()) if isinstance(data, dict) else 'not dict'}")
             return {"success": True, "message": "Webhook received, unknown format logged"}
+
+        # Look up pending payment by payment_id OR iyzico_token
+        pending = None
+        if payment_id:
+            pending = await db.pending_payments.find_one({"payment_id": payment_id})
+        if not pending and payment_id:
+            pending = await db.pending_payments.find_one({"id": payment_id})
+        if not pending and iyzico_token:
+            pending = await db.pending_payments.find_one({"iyzico_token": iyzico_token})
+
+        # Fallback: if still not found and status is SUCCESS, use most recent pending payment
+        # (works because there is only one event)
+        logger.info(f"Webhook fallback check: pending={pending is not None}, iyzico_status='{iyzico_status}', payment_id='{payment_id}', token='{iyzico_token}'")
+        if not pending and iyzico_status in ("SUCCESS", "success", "1"):
+            pending = await db.pending_payments.find_one(
+                {"status": "pending"},
+                sort=[("created_at", -1)]
+            )
+            if pending:
+                logger.info(f"Webhook fallback: using most recent pending payment {pending.get('id')}")
+            else:
+                logger.warning(f"Webhook fallback: no pending payment found with status='pending'")
+        elif not pending:
+            logger.warning(f"Webhook fallback skipped: iyzico_status='{iyzico_status}' not SUCCESS")
+
+        if not pending:
+            logger.warning(f"No pending_payment found for payment_id={payment_id}, token={iyzico_token}. Storing for manual review.")
+            return {"success": True, "message": "Webhook received, no matching pending payment for manual review"}
+
+        # Normalize status
+        new_status = "completed" if iyzico_status in ("SUCCESS", "success", "1") else iyzico_status.lower()
         
-        print(f"Processing payment: {payment_id}, email: {buyer_email}")
+        # If already completed, return idempotent response
+        if pending.get("status") == "completed":
+            logger.info(f"Webhook: pending_payment {pending.get('id')} already completed (idempotent)")
+            return {"success": True, "message": "Payment already completed, skipped"}
+
+        # If not success, just update status and return
+        if new_status != "completed":
+            await db.pending_payments.update_one(
+                {"_id": pending["_id"]},
+                {"$set": {"status": new_status, "updated_at": datetime.utcnow()}}
+            )
+            logger.info(f"Webhook: pending_payment {pending.get('id')} updated to status: {new_status}")
+            return {"success": True, "message": f"Webhook processed, status updated to {new_status}"}
+
+        # SUCCESS: Create tickets automatically
+        logger.info(f"Webhook: Creating tickets for pending_payment {pending.get('id')}")
         
+        try:
+            event = await db.events.find_one({"id": pending["event_id"]})
+            if not event:
+                logger.error(f"Event not found: {pending['event_id']}")
+                await db.pending_payments.update_one(
+                    {"_id": pending["_id"]},
+                    {"$set": {"status": "completed", "updated_at": datetime.utcnow()}}
+                )
+                return {"success": True, "message": "Event not found"}
+
+            # Check capacity
+            tickets_sold = await db.tickets.count_documents({"event_id": pending["event_id"]})
+            quantity = max(1, pending.get("quantity", 1))
+            if tickets_sold + quantity > event["capacity"]:
+                logger.error(f"Not enough tickets for pending_payment {pending.get('id')}")
+                await db.pending_payments.update_one(
+                    {"_id": pending["_id"]},
+                    {"$set": {"status": "completed", "updated_at": datetime.utcnow()}}
+                )
+                return {"success": True, "message": "Not enough tickets available"}
+
+            # Find or create user
+            buyer_email = pending["buyer_email"]
+            buyer_name = pending.get("buyer_name", "")
+            buyer_phone = pending.get("buyer_phone", "")
+
+            user = await db.users.find_one({"email": buyer_email})
+            if not user:
+                user_id = str(uuid.uuid4())
+                name_parts = buyer_name.split() if buyer_name else ["Misafir"]
+                first_name = name_parts[0] if name_parts else "Misafir"
+                last_name = " ".join(name_parts[1:]) if len(name_parts) > 1 else "Kullanici"
+                user = {
+                    "id": user_id,
+                    "email": buyer_email,
+                    "name": buyer_name or f"{first_name} {last_name}",
+                    "first_name": first_name,
+                    "last_name": last_name,
+                    "phone": buyer_phone or "",
+                    "role": "user",
+                    "created_at": datetime.utcnow(),
+                    "is_guest": True
+                }
+                await db.users.insert_one(user)
+                logger.info(f"Webhook: New user created {user_id} - {buyer_email}")
+
+            # Create tickets
+            tickets = []
+            for _ in range(quantity):
+                ticket_id = str(uuid.uuid4())
+                qr_token = secrets.token_urlsafe(32)
+                ticket = {
+                    "id": ticket_id,
+                    "user_id": user["id"],
+                    "event_id": event["id"],
+                    "event_title": event.get("title", "Zumba Festival"),
+                    "payment_id": pending["id"],
+                    "qr_token": qr_token,
+                    "status": "active",
+                    "created_at": datetime.utcnow(),
+                    "paid_price": pending.get("paid_price", pending.get("price", 0)),
+                    "currency": pending.get("currency", "EUR")
+                }
+                await db.tickets.insert_one(ticket)
+                tickets.append(ticket)
+                logger.info(f"Webhook: Ticket created {ticket_id} for user {user['email']}")
+
+            # Record payment in payments collection
+            payment_record = {
+                "id": str(uuid.uuid4()),
+                "payment_id": pending["id"],
+                "user_id": user["id"],
+                "event_id": event["id"],
+                "amount": pending.get("paid_price", pending.get("price", 0)),
+                "currency": pending.get("currency", "EUR"),
+                "status": "SUCCESS",
+                "discount_id": pending.get("discount_id"),
+                "discount_amount": pending.get("discount_amount", 0.0),
+                "buyer_email": buyer_email,
+                "created_at": datetime.utcnow()
+            }
+            await db.payments.insert_one(payment_record)
+
+            # Increment discount used_count
+            discount_id = pending.get("discount_id")
+            if discount_id:
+                await db.discounts.update_one({"id": discount_id}, {"$inc": {"used_count": 1}})
+                logger.info(f"Webhook: Discount {discount_id} used_count incremented")
+
+            # Update pending payment status
+            await db.pending_payments.update_one(
+                {"_id": pending["_id"]},
+                {"$set": {
+                    "status": "completed",
+                    "ticket_id": tickets[0]["id"] if tickets else None,
+                    "completed_at": datetime.utcnow()
+                }}
+            )
+
+            # Send confirmation email
+            try:
+                await send_ticket_email(buyer_email, user.get("name", ""), event, tickets)
+                logger.info(f"Webhook: Confirmation email sent to {buyer_email}")
+            except Exception as e:
+                logger.warning(f"Webhook: Ticket email failed: {e}")
+
+            logger.info(f"Webhook: Successfully created {len(tickets)} tickets for pending_payment {pending.get('id')}")
+            return {"success": True, "message": f"Tickets created: {len(tickets)}"}
+
+        except Exception as e:
+            logger.exception(f"Webhook: Error creating tickets for pending_payment {pending.get('id')}")
+            # Still mark as completed even if ticket creation fails, to prevent re-processing
+            await db.pending_payments.update_one(
+                {"_id": pending["_id"]},
+                {"$set": {"status": "completed", "updated_at": datetime.utcnow()}}
+            )
+            return {"success": True, "message": f"Webhook processed but ticket creation failed: {str(e)}"}
+
+    except Exception as e:
+        logger.exception("Payment callback error")
+        return {"success": False, "message": str(e)}
+
+
+# ==================== IYZICO PWI INITIALIZE ====================
+
+class IyzicoPWIRequest(BaseModel):
+    event_id: str
+    buyer_email: str
+    buyer_name: str
+    buyer_phone: Optional[str] = None
+    discount_code: Optional[str] = None
+    quantity: int = 1
+
+class IyzicoPWIResponse(BaseModel):
+    pending_id: str
+    payment_url: str
+
+@api_router.post("/payment/iyzico-init", response_model=IyzicoPWIResponse)
+async def iyzico_pwi_initialize(data: IyzicoPWIRequest):
+    """Initialize payment by creating a pending_payment record.
+    Returns a static PWI link; actual payment happens externally.
+    """
+    try:
+        # Get event details
+        event = await db.events.find_one({"id": data.event_id})
+        if not event:
+            raise HTTPException(status_code=404, detail="Event not found")
+
+        event_price = float(event.get("price", 0))
+        quantity = max(1, data.quantity)
+        original_price = round(event_price * quantity, 2)
+        final_price = original_price
+        discount_id = None
+        discount_amount = 0.0
+
+        # Validate discount code if provided
+        if data.discount_code:
+            discount_result = await validate_discount_code(
+                data.discount_code, data.event_id, quantity, event_price
+            )
+            if discount_result["valid"]:
+                final_price = discount_result["discounted_price"]
+                discount_id = discount_result["discount_id"]
+                discount_amount = discount_result["discount_amount"]
+            else:
+                raise HTTPException(status_code=400, detail=discount_result["message"])
+
+        pending_id = str(uuid.uuid4())
+        buyer_email = data.buyer_email.lower().strip()
+
+        # Store pending payment
+        await db.pending_payments.insert_one({
+            "id": pending_id,
+            "payment_id": pending_id,
+            "event_id": data.event_id,
+            "buyer_email": buyer_email,
+            "buyer_name": data.buyer_name,
+            "buyer_phone": data.buyer_phone or "",
+            "price": original_price,
+            "paid_price": final_price,
+            "currency": "EUR",
+            "discount_code": data.discount_code.upper().strip() if data.discount_code else None,
+            "discount_id": discount_id,
+            "discount_amount": discount_amount,
+            "quantity": quantity,
+            "status": "pending",
+            "ticket_id": None,
+            "created_at": datetime.utcnow(),
+            "completed_at": None
+        })
+
+        return IyzicoPWIResponse(
+            pending_id=pending_id,
+            payment_url="https://iyzi.link/AKkMUg"
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("iyzico_pwi_initialize failed")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==================== PAYMENT COMPLETE ====================
+
+class PaymentCompleteResponse(BaseModel):
+    success: bool
+    ticket_id: Optional[str] = None
+    event_title: Optional[str] = None
+    quantity: int = 0
+    status: str
+
+@api_router.post("/payment/complete/{pending_id}", response_model=PaymentCompleteResponse)
+async def payment_complete(pending_id: str):
+    """Complete payment and create ticket(s) after user returns from payment page.
+    Idempotent: if already completed, returns existing ticket info.
+    """
+    try:
+        pending = await db.pending_payments.find_one({"id": pending_id})
+        if not pending:
+            raise HTTPException(status_code=404, detail="Pending payment not found")
+
+        # If already completed, return existing info
+        if pending.get("status") == "completed" and pending.get("ticket_id"):
+            event = await db.events.find_one({"id": pending["event_id"]})
+            return PaymentCompleteResponse(
+                success=True,
+                ticket_id=pending["ticket_id"],
+                event_title=event.get("title") if event else None,
+                quantity=pending.get("quantity", 1),
+                status="completed"
+            )
+
+        # If failed, return error
+        if pending.get("status") == "failed":
+            return PaymentCompleteResponse(success=False, status="failed")
+
+        event = await db.events.find_one({"id": pending["event_id"]})
+        if not event:
+            raise HTTPException(status_code=404, detail="Event not found")
+
+        # Check capacity
+        tickets_sold = await db.tickets.count_documents({"event_id": pending["event_id"]})
+        quantity = max(1, pending.get("quantity", 1))
+        if tickets_sold + quantity > event["capacity"]:
+            raise HTTPException(status_code=400, detail="Not enough tickets available")
+
         # Find or create user by email
-        user = await db.users.find_one({"email": buyer_email.lower()})
-        
+        buyer_email = pending["buyer_email"]
+        buyer_name = pending.get("buyer_name", "")
+        buyer_phone = pending.get("buyer_phone", "")
+
+        user = await db.users.find_one({"email": buyer_email})
         if not user:
-            # Create new user from iyzico data
-            print(f"Creating new user for: {buyer_email}")
             user_id = str(uuid.uuid4())
-            
-            # Parse name from buyerName or use email prefix
             name_parts = buyer_name.split() if buyer_name else ["Misafir"]
             first_name = name_parts[0] if name_parts else "Misafir"
-            last_name = " ".join(name_parts[1:]) if len(name_parts) > 1 else "Kullanıcı"
-            
+            last_name = " ".join(name_parts[1:]) if len(name_parts) > 1 else "Kullanici"
             user = {
                 "id": user_id,
-                "email": buyer_email.lower(),
+                "email": buyer_email,
                 "name": buyer_name or f"{first_name} {last_name}",
                 "first_name": first_name,
                 "last_name": last_name,
                 "phone": buyer_phone or "",
                 "role": "user",
                 "created_at": datetime.utcnow(),
-                "is_guest": True  # Mark as guest user initially
+                "is_guest": True
             }
-            
             await db.users.insert_one(user)
-            print(f"New user created: {user_id} - {buyer_email}")
-        
-        # Get event info - try to find from eventId or use default event
-        event = None
-        event_id = data.get("eventId") if isinstance(data, dict) else None
-        if event_id:
-            event = await db.events.find_one({"id": event_id})
-        
-        # If no specific event found, use the first active event
-        if not event:
-            event = await db.events.find_one({})
-        
-        if not event:
-            print("No event found")
-            return {"success": False, "message": "No event found"}
-        
-        # Check if ticket already exists for this payment
-        existing_ticket = await db.tickets.find_one({"payment_id": payment_id})
-        if existing_ticket:
-            print(f"Ticket already exists for payment: {payment_id}")
-            return {"success": True, "message": "Ticket already exists", "ticket_id": existing_ticket["id"]}
-        
-        # Create new ticket
-        ticket_id = str(uuid.uuid4())
-        qr_token = secrets.token_urlsafe(32)
-        
-        ticket = {
-            "id": ticket_id,
+            logger.info(f"New user created: {user_id} - {buyer_email}")
+
+        # Create tickets
+        tickets = []
+        for _ in range(quantity):
+            ticket_id = str(uuid.uuid4())
+            qr_token = secrets.token_urlsafe(32)
+            ticket = {
+                "id": ticket_id,
+                "user_id": user["id"],
+                "event_id": event["id"],
+                "event_title": event.get("title", "Zumba Festival"),
+                "payment_id": pending_id,
+                "qr_token": qr_token,
+                "status": "active",
+                "created_at": datetime.utcnow(),
+                "paid_price": pending.get("paid_price", pending.get("price", 0)),
+                "currency": pending.get("currency", "EUR")
+            }
+            await db.tickets.insert_one(ticket)
+            tickets.append(ticket)
+            logger.info(f"Ticket created: {ticket_id} for user: {user['email']}")
+
+        # Record payment in payments collection (revenue tracking)
+        payment_record = {
+            "id": str(uuid.uuid4()),
+            "payment_id": pending_id,
             "user_id": user["id"],
             "event_id": event["id"],
-            "event_title": event.get("title", "Zumba Festival"),
-            "payment_id": payment_id,
-            "qr_token": qr_token,
-            "status": "active",
-            "created_at": datetime.utcnow(),
-            "paid_price": paid_price,
-            "currency": currency
+            "amount": pending.get("paid_price", pending.get("price", 0)),
+            "currency": pending.get("currency", "EUR"),
+            "status": "SUCCESS",
+            "discount_id": pending.get("discount_id"),
+            "discount_amount": pending.get("discount_amount", 0.0),
+            "buyer_email": buyer_email,
+            "created_at": datetime.utcnow()
         }
-        
-        await db.tickets.insert_one(ticket)
-        print(f"Ticket created: {ticket_id} for user: {user['email']}")
-        
-        # Send email notification
+        await db.payments.insert_one(payment_record)
+
+        # Increment discount used_count
+        discount_id = pending.get("discount_id")
+        if discount_id:
+            await db.discounts.update_one({"id": discount_id}, {"$inc": {"used_count": 1}})
+
+        # Update pending payment status
+        await db.pending_payments.update_one(
+            {"id": pending_id},
+            {"$set": {
+                "status": "completed",
+                "ticket_id": tickets[0]["id"] if tickets else None,
+                "completed_at": datetime.utcnow()
+            }}
+        )
+
+        # Send confirmation email
         try:
-            if sendgrid_client:
-                message = Mail(
-                    from_email='info@istanbulzumbafestival.com',
-                    to_emails=buyer_email,
-                    subject='Biletiniz Hazır - Istanbul Zumba Festival',
-                    html_content=f"""
-                    <h2>Merhaba {user.get('name', '')},</h2>
-                    <p>Ödemeniz başarıyla alındı! Biletiniz oluşturuldu.</p>
-                    <p><strong>Etkinlik:</strong> {event.get('title', 'Zumba Festival')}</p>
-                    <p><strong>Tutar:</strong> {paid_price} {currency}</p>
-                    <p>QR kodunuzu görüntülemek için profil sayfanıza gidin:</p>
-                    <a href="https://istanbulzumbafestival.com/profile" style="background: #E91E8C; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px;">Profilime Git</a>
-                    <p style="margin-top: 20px;">Giriş yapmak için bu email adresi ile kayıt olabilirsiniz.</p>
-                    <p style="margin-top: 20px;">İyi eğlenceler!<br>Istanbul Zumba Festival Ekibi</p>
-                    """
-                )
-                sendgrid_client.send(message)
-                print(f"Email sent to: {buyer_email}")
+            await send_ticket_email(buyer_email, user.get("name", ""), event, tickets)
         except Exception as e:
-            print(f"Email sending failed: {e}")
-        
-        return {
-            "success": True,
-            "message": "Ticket created successfully",
-            "ticket_id": ticket_id
-        }
-        
+            logger.warning(f"Ticket email failed in complete: {e}")
+
+        return PaymentCompleteResponse(
+            success=True,
+            ticket_id=tickets[0]["id"] if tickets else None,
+            event_title=event.get("title", "Zumba Festival"),
+            quantity=quantity,
+            status="completed"
+        )
+
+    except HTTPException:
+        raise
     except Exception as e:
-        print(f"Payment callback error: {e}")
-        return {"success": False, "message": str(e)}
+        logger.exception("payment_complete failed")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==================== PAYMENT STATUS ====================
+
+class PaymentStatusResponse(BaseModel):
+    success: bool
+    status: str
+    ticket_id: Optional[str] = None
+    event_title: Optional[str] = None
+    quantity: int = 0
+    qr_token: Optional[str] = None
+
+@api_router.get("/payment/status/{pending_id}", response_model=PaymentStatusResponse)
+async def payment_status(pending_id: str):
+    """Return pending payment status. Does NOT create tickets.
+    
+    Response:
+    - status 'completed' with ticket_id: payment successful, tickets created
+    - status 'pending': payment awaiting webhook confirmation
+    - status 'failed': payment failed
+    """
+    pending = await db.pending_payments.find_one({"id": pending_id})
+    if not pending:
+        return PaymentStatusResponse(
+            success=False,
+            status="not_found",
+            quantity=0
+        )
+
+    event = await db.events.find_one({"id": pending.get("event_id")})
+    quantity = pending.get("quantity", 1)
+
+    ticket = None
+    if pending.get("ticket_id"):
+        ticket = await db.tickets.find_one({"id": pending["ticket_id"]})
+
+    return PaymentStatusResponse(
+        success=True,
+        status=pending.get("status", "pending"),
+        ticket_id=pending.get("ticket_id"),
+        event_title=event.get("title") if event else None,
+        quantity=quantity,
+        qr_token=ticket["qr_token"] if ticket else None
+    )
 
 
 @api_router.get("/payment/verify")
@@ -2054,57 +2405,6 @@ async def verify_payment(paymentId: str):
         return {"success": False, "message": "Ticket not found"}
     except Exception as e:
         return {"success": False, "message": str(e)}
-
-
-# ==================== IYZICO PWI INITIALIZE ====================
-
-class IyzicoPWIRequest(BaseModel):
-    event_id: str
-    buyer_email: str
-    buyer_name: str
-    price: float
-    callback_url: str
-
-class IyzicoPWIResponse(BaseModel):
-    token: str
-    payment_page_url: str
-
-@api_router.post("/payment/iyzico-init", response_model=IyzicoPWIResponse)
-async def iyzico_pwi_initialize(data: IyzicoPWIRequest):
-    """Initialize iyzico Pay with iyzico (PWI) payment."""
-    try:
-        # Get event details
-        event = await db.events.find_one({"id": data.event_id})
-        if not event:
-            raise HTTPException(status_code=404, detail="Event not found")
-        
-        # Generate unique payment ID
-        payment_id = str(uuid.uuid4())
-        
-        # Store pending payment
-        await db.pending_payments.insert_one({
-            "payment_id": payment_id,
-            "event_id": data.event_id,
-            "buyer_email": data.buyer_email.lower(),
-            "buyer_name": data.buyer_name,
-            "price": data.price,
-            "callback_url": data.callback_url,
-            "status": "pending",
-            "created_at": datetime.utcnow()
-        })
-        
-        # Return mock response (in production, call iyzico API here)
-        # For now, return the static link with payment_id parameter
-        import urllib.parse
-        return IyzicoPWIResponse(
-            token=payment_id,
-            payment_page_url=f"https://iyzi.link/AKkMUg?paymentId={payment_id}&callback={urllib.parse.quote(data.callback_url, safe='')}" 
-        )
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 # Include the router in the main app
