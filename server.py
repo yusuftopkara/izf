@@ -60,7 +60,7 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str
     name: str
-    phone: str
+    phone: str = ""
 
 class UserLogin(BaseModel):
     email: EmailStr
