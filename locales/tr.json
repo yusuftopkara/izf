@@ -1,0 +1,109 @@
+{
+  "nav": {
+    "home": "Ana Sayfa",
+    "events": "Etkinlikler",
+    "tickets": "Biletlerim",
+    "profile": "Profil",
+    "admin": "Yönetim",
+    "login": "Giriş Yap",
+    "register": "Kayıt Ol",
+    "logout": "Çıkış Yap",
+    "ticketLookup": "Bilet Sorgula"
+  },
+  "hero": {
+    "title": "9. Istanbul International",
+    "subtitle": "Zumba Festival",
+    "date": "17-18 Ekim 2026",
+    "location": "Green Park Hotel Pendik, Istanbul",
+    "cta": "Biletini Al",
+    "scroll": "Keşfet"
+  },
+  "ticket": {
+    "buy": "Biletini Al",
+    "price": "200 €",
+    "perPerson": "kişi başı",
+    "capacity": "1000 kapasite",
+    "sold": "bilet satıldı",
+    "remaining": "kalan",
+    "selectOption": "Nasıl devam etmek istersiniz?",
+    "whatsappInfo": "Türkiye'den katılmayı düşünen misafirlerimiz sürpriz fiyatlar için WhatsApp ile iletişime geçebilirler.",
+    "whatsappBtn": "WhatsApp ile Satın Al",
+    "whatsappSub": "Hızlı destek ve bilgi al",
+    "memberBtn": "Kayıtlı Kullanıcı",
+    "memberSub": "Hesabınıza giriş yapın",
+    "guestBtn": "Misafir Olarak Devam Et",
+    "guestSub": "Hızlı bilet satın alın",
+    "form": {
+      "title": "Bilet Bilgileri",
+      "name": "Ad Soyad",
+      "email": "E-posta",
+      "phone": "Telefon",
+      "quantity": "Bilet Adedi",
+      "coupon": "Kupon Kodu",
+      "apply": "Uygula",
+      "pay": "Ödemeye Geç",
+      "waiting": "Ödeme bekleniyor...",
+      "success": "Ödemeniz alındı! Biletiniz oluşturuldu.",
+      "qrLabel": "Giriş QR Kodunuz",
+      "ticketId": "Bilet No",
+      "event": "Etkinlik",
+      "total": "Toplam",
+      "kvkk": "KVKK Aydınlatma Metni'ni ve Gizlilik Politikası'nı okudum, kabul ediyorum."
+    }
+  },
+  "ticketLookup": {
+    "title": "Bilet Sorgula",
+    "subtitle": "E-posta ve telefon numaranızın son 4 hanesiyle biletlerinizi görüntüleyin",
+    "email": "E-posta adresiniz",
+    "phoneLast4": "Tel. son 4 hane (ör: 3456)",
+    "phoneHint": "Bilet alırken girdiğiniz telefon numarasının son 4 hanesi",
+    "search": "Biletlerimi Göster",
+    "searching": "Sorgulanıyor...",
+    "noResult": "Bu bilgilerle eşleşen bilet bulunamadı.",
+    "event": "Etkinlik",
+    "date": "Tarih",
+    "location": "Yer",
+    "status": "Durum",
+    "active": "Aktif",
+    "used": "Kullanılmış",
+    "qrLabel": "Giriş QR Kodunuz"
+  },
+  "auth": {
+    "loginTitle": "Giriş Yap",
+    "registerTitle": "Kayıt Ol",
+    "email": "E-posta",
+    "password": "Şifre",
+    "name": "Ad Soyad",
+    "phone": "Telefon",
+    "confirmPassword": "Şifre Tekrar",
+    "loginBtn": "Giriş Yap",
+    "registerBtn": "Kayıt Ol",
+    "noAccount": "Hesabınız yok mu?",
+    "hasAccount": "Zaten hesabınız var mı?",
+    "registerLink": "Kayıt Ol",
+    "loginLink": "Giriş Yap",
+    "kvkk": "KVKK Aydınlatma Metni'ni ve Gizlilik Politikası'nı okudum, kabul ediyorum."
+  },
+  "footer": {
+    "copyright": "© {year} Istanbul International Zumba Festival. Tüm hakları saklıdır.",
+    "trademark": "ZUMBA® is a registered trademark of Zumba Fitness, LLC.",
+    "kvkk": "KVKK Aydınlatma Metni",
+    "privacy": "Gizlilik Politikası",
+    "cookies": "Çerez Politikası",
+    "credit": "Tasarım ve Kodlama"
+  },
+  "admin": {
+    "overview": "Genel Bakış",
+    "tickets": "Biletler",
+    "users": "Kullanıcılar",
+    "events": "Etkinlikler",
+    "discounts": "İndirimler",
+    "stats": {
+      "users": "Kullanıcı",
+      "tickets": "Bilet",
+      "used": "Kullanılan",
+      "events": "Etkinlik",
+      "revenue": "Gelir"
+    }
+  }
+}

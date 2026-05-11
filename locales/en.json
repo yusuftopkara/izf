@@ -1,0 +1,109 @@
+{
+  "nav": {
+    "home": "Home",
+    "events": "Events",
+    "tickets": "My Tickets",
+    "profile": "Profile",
+    "admin": "Admin",
+    "login": "Login",
+    "register": "Register",
+    "logout": "Logout",
+    "ticketLookup": "Ticket Lookup"
+  },
+  "hero": {
+    "title": "9th Istanbul International",
+    "subtitle": "Zumba Festival",
+    "date": "October 17-18, 2026",
+    "location": "Green Park Hotel Pendik, Istanbul",
+    "cta": "Get Your Ticket",
+    "scroll": "Explore"
+  },
+  "ticket": {
+    "buy": "Get Your Ticket",
+    "price": "200 €",
+    "perPerson": "per person",
+    "capacity": "1000 capacity",
+    "sold": "tickets sold",
+    "remaining": "remaining",
+    "selectOption": "How would you like to continue?",
+    "whatsappInfo": "Guests considering attending from Turkey can contact us via WhatsApp for surprise prices.",
+    "whatsappBtn": "Buy via WhatsApp",
+    "whatsappSub": "Quick support and info",
+    "memberBtn": "Registered User",
+    "memberSub": "Log in to your account",
+    "guestBtn": "Continue as Guest",
+    "guestSub": "Quick ticket purchase",
+    "form": {
+      "title": "Ticket Information",
+      "name": "Full Name",
+      "email": "Email",
+      "phone": "Phone",
+      "quantity": "Ticket Quantity",
+      "coupon": "Coupon Code",
+      "apply": "Apply",
+      "pay": "Proceed to Payment",
+      "waiting": "Waiting for payment...",
+      "success": "Payment received! Your ticket has been created.",
+      "qrLabel": "Entry QR Code",
+      "ticketId": "Ticket No",
+      "event": "Event",
+      "total": "Total",
+      "kvkk": "I have read and accept the KVKK Disclosure Text and Privacy Policy."
+    }
+  },
+  "ticketLookup": {
+    "title": "Ticket Lookup",
+    "subtitle": "View your tickets with your email and last 4 digits of your phone number",
+    "email": "Your email address",
+    "phoneLast4": "Phone last 4 digits (e.g. 3456)",
+    "phoneHint": "Last 4 digits of the phone number you entered when buying the ticket",
+    "search": "Show My Tickets",
+    "searching": "Searching...",
+    "noResult": "No tickets found matching these details.",
+    "event": "Event",
+    "date": "Date",
+    "location": "Location",
+    "status": "Status",
+    "active": "Active",
+    "used": "Used",
+    "qrLabel": "Entry QR Code"
+  },
+  "auth": {
+    "loginTitle": "Login",
+    "registerTitle": "Register",
+    "email": "Email",
+    "password": "Password",
+    "name": "Full Name",
+    "phone": "Phone",
+    "confirmPassword": "Confirm Password",
+    "loginBtn": "Login",
+    "registerBtn": "Register",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "registerLink": "Register",
+    "loginLink": "Login",
+    "kvkk": "I have read and accept the KVKK Disclosure Text and Privacy Policy."
+  },
+  "footer": {
+    "copyright": "© {year} Istanbul International Zumba Festival. All rights reserved.",
+    "trademark": "ZUMBA® is a registered trademark of Zumba Fitness, LLC.",
+    "kvkk": "KVKK Disclosure",
+    "privacy": "Privacy Policy",
+    "cookies": "Cookie Policy",
+    "credit": "Design & Development"
+  },
+  "admin": {
+    "overview": "Overview",
+    "tickets": "Tickets",
+    "users": "Users",
+    "events": "Events",
+    "discounts": "Discounts",
+    "stats": {
+      "users": "Users",
+      "tickets": "Tickets",
+      "used": "Used",
+      "events": "Events",
+      "revenue": "Revenue"
+    }
+  }
+}

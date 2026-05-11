@@ -5,8 +5,10 @@ import Link from 'next/link'
 import { useEffect, useState, useCallback } from 'react'
 import AuthModal from './AuthModal'
 import { getAuthToken, removeAuthToken, getAuthUser } from './AuthModal'
+import { useLocale } from '../context/LocaleContext'
 
 export default function Navbar() {
+  const { locale, setLocale, t } = useLocale()
   const [scrolled, setScrolled] = useState(false)
   const [authModal, setAuthModal] = useState<{ open: boolean; mode: 'login' | 'register' }>({
     open: false,
@@ -80,17 +82,32 @@ export default function Navbar() {
             <Image
               src="/images/festival-logo.png"
               alt="Istanbul Zumba Festival"
-              width={96}
-              height={96}
+              width={48}
+              height={48}
               className="rounded-full"
             />
-            <span className="hidden sm:block text-2xl font-bold text-white">
+            <span className="hidden md:block text-lg font-bold text-white">
               Istanbul <span className="text-orange-400">Zumba</span> Festival
             </span>
           </Link>
 
           {/* Right: Auth buttons or user menu */}
           <div className="flex items-center gap-2">
+            {/* Language Switcher */}
+            <button
+              onClick={() => setLocale(locale === 'tr' ? 'en' : 'tr')}
+              className="rounded-full bg-white/10 px-3 py-2 text-sm font-bold text-white transition hover:bg-white/20"
+              title={locale === 'tr' ? 'Switch to English' : 'Türkçe\'ye geç'}
+            >
+              {locale === 'tr' ? 'EN' : 'TR'}
+            </button>
+
+            <Link
+              href="/bilet-sorgula"
+              className="hidden sm:inline-flex rounded-full border border-orange-400/50 px-4 py-2 text-sm font-semibold text-orange-300 transition hover:bg-orange-500/10 hover:border-orange-400"
+            >
+              {t('nav.ticketLookup')}
+            </Link>
             {user ? (
               /* Logged in state */
               <div className="relative">
@@ -128,7 +145,7 @@ export default function Navbar() {
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4 text-orange-400">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                         </svg>
-                        Admin Panel
+                        {t('nav.admin')}
                       </Link>
                     )}
                     <button
@@ -138,7 +155,7 @@ export default function Navbar() {
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                       </svg>
-                      Çıkış Yap
+                      {t('nav.logout')}
                     </button>
                   </div>
                 )}
@@ -150,13 +167,13 @@ export default function Navbar() {
                   onClick={() => openAuth('login')}
                   className="rounded-full border border-white/30 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10 hover:border-white/50"
                 >
-                  Giriş Yap
+                  {t('nav.login')}
                 </button>
                 <button
                   onClick={() => openAuth('register')}
                   className="rounded-full bg-orange-500 px-4 py-2 text-sm font-bold text-white transition hover:bg-orange-400 shadow-lg shadow-orange-500/30"
                 >
-                  Kayıt Ol
+                  {t('nav.register')}
                 </button>
               </>
             )}
