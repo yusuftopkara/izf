@@ -25,7 +25,7 @@ function CloseBtn({ onClick }: { onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="absolute top-4 right-4 z-[60] flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-orange-500"
+      className="sticky top-3 float-right mr-3 mt-3 z-[60] flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-orange-500"
       aria-label="Kapat"
     >
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
@@ -52,6 +52,7 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
   const [phone, setPhone] = useState('')
   const [discountCode, setDiscountCode] = useState('')
   const [quantity, setQuantity] = useState(1)
+  const [kvkkAccepted, setKvkkAccepted] = useState(false)
 
   // Submit state
   const [submitting, setSubmitting] = useState(false)
@@ -85,6 +86,7 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
       setPhone('')
       setDiscountCode('')
       setQuantity(1)
+      setKvkkAccepted(false)
       setError('')
       setSubmitting(false)
       setAuthModalOpen(false)
@@ -101,6 +103,10 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
     e.preventDefault()
     if (!event) {
       setError('Etkinlik bilgisi yüklenemedi. Lütfen tekrar deneyin.')
+      return
+    }
+    if (!kvkkAccepted) {
+      setError('KVKK Aydınlatma Metni\'ni onaylamanız gerekmektedir.')
       return
     }
     setError('')
@@ -155,6 +161,7 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
         ticket_id: result.ticket_id,
         event_title: result.event_title,
         quantity: result.quantity,
+        qr_token: result.qr_token,
       })
       setStep(4) // Go to result screen
     } catch (err: unknown) {
@@ -195,6 +202,7 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
             ticket_id: status.ticket_id,
             event_title: status.event_title,
             quantity: status.quantity,
+            qr_token: status.qr_token,
           })
           setStep(4)
         }
@@ -225,8 +233,8 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
         <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={handleClose} />
 
         <div className="relative z-10 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl bg-[#1a1a2e] border border-white/10 shadow-2xl max-h-[95vh] overflow-y-auto">
-          <div className="p-6">
-            <CloseBtn onClick={handleClose} />
+          <CloseBtn onClick={handleClose} />
+          <div className="p-6 pt-2">
 
             {/* Header */}
             <div className="text-center mb-6">
@@ -237,10 +245,10 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
               </p>
               {event?.price !== undefined && (
                 <p className="mt-1 text-orange-400 font-bold text-lg">
-                  {event.price.toLocaleString('tr-TR')} ₺
+                  €{event.price.toLocaleString('tr-TR')}
                   {quantity > 1 && (
                     <span className="text-white/60 text-sm font-normal ml-1">
-                      × {quantity} = {(event.price * quantity).toLocaleString('tr-TR')} ₺
+                      × {quantity} = €{(event.price * quantity).toLocaleString('tr-TR')}
                     </span>
                   )}
                 </p>
@@ -256,6 +264,17 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
             ) : step === 1 ? (
               // ─── Step 1: Selection Screen ──────────────────────────────────
               <div className="flex flex-col gap-3">
+                {/* WhatsApp Info Banner */}
+                <div className="rounded-xl bg-white/5 border border-white/10 p-3 mb-1">
+                  <p className="text-xs text-white/70 text-center leading-relaxed">
+                    🇹🇷 Türkiye'den katılmayı düşünen misafirlerimiz sürpriz fiyatlar için{' '}
+                    <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="text-green-400 underline hover:text-green-300">
+                      WhatsApp
+                    </a>{' '}
+                    ile iletişime geçebilirler.
+                  </p>
+                </div>
+
                 {/* WhatsApp Option */}
                 <a
                   href={WHATSAPP_URL}
@@ -399,6 +418,22 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
                 </div>
 
                 {/* Error */}
+                {/* KVKK */}
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={kvkkAccepted}
+                    onChange={(e) => setKvkkAccepted(e.target.checked)}
+                    className="mt-1 h-4 w-4 rounded border-white/30 bg-white/10 text-orange-500 focus:ring-orange-500"
+                  />
+                  <span className="text-xs text-white/60">
+                    <a href="/kvkk" target="_blank" className="text-orange-400 hover:underline">KVKK Aydınlatma Metni</a>
+                    {`'ni ve `}
+                    <a href="/gizlilik" target="_blank" className="text-orange-400 hover:underline">Gizlilik Politikası</a>
+                    {`'nı okudum, kabul ediyorum.`}
+                  </span>
+                </label>
+
                 {error && (
                   <div className="rounded-xl bg-red-500/20 px-4 py-3 text-sm text-red-300">{error}</div>
                 )}
