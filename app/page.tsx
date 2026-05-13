@@ -6,6 +6,7 @@ import Countdown from './components/Countdown'
 import VideoHero from './components/VideoHero'
 import Gallery from './components/Gallery'
 import FestivalVideos from './components/FestivalVideos'
+import { useLocale } from './context/LocaleContext'
 import { TicketButton, LiveTicketAvailability } from './components/TicketClient'
 import { api, type SiteContent } from './lib/api'
 
@@ -36,6 +37,7 @@ const DEFAULT_CONTENT: SiteContent = {
 // ─── Hero ─────────────────────────────────────────────────────────────────────
 
 function Hero({ content }: { content: SiteContent }) {
+  const { t } = useLocale()
   const heroVideo = content.hero_video || DEFAULT_CONTENT.hero_video
 
   return (
@@ -51,11 +53,11 @@ function Hero({ content }: { content: SiteContent }) {
           className="drop-shadow-2xl"
         />
         <h1 className="max-w-3xl text-4xl font-extrabold leading-tight tracking-tight text-white drop-shadow-lg sm:text-6xl lg:text-7xl">
-          9th Istanbul International<br />
-          <span className="text-orange-400">Zumba Festival</span>
+          {t('hero.title')}<br />
+          <span className="text-orange-400">{t('hero.subtitle')}</span>
         </h1>
         <p className="text-xl font-semibold text-yellow-300 drop-shadow-md sm:text-2xl">
-          17–18 October 2026 &nbsp;·&nbsp; Istanbul
+          {t('hero.date')} &nbsp;·&nbsp; {t('hero.location')}
         </p>
         <TicketButton />
       </div>
@@ -66,16 +68,17 @@ function Hero({ content }: { content: SiteContent }) {
 // ─── Countdown ────────────────────────────────────────────────────────────────
 
 function CountdownSection({ content }: { content: SiteContent }) {
+  const { t } = useLocale()
   const targetDate = content.countdown_target || DEFAULT_CONTENT.countdown_target
 
   return (
     <section className="bg-[#0d0d1a] py-16 px-4">
       <div className="mx-auto max-w-4xl text-center">
         <h2 className="mb-3 text-sm font-bold uppercase tracking-[0.3em] text-orange-400">
-          Festivale Kalan Süre
+          {t('countdown.title')}
         </h2>
         <p className="mb-10 text-2xl font-extrabold text-white sm:text-3xl">
-          17 Ekim 2026 saat 16:00
+          {t('countdown.date')}
         </p>
         <Countdown targetDate={targetDate} />
       </div>
@@ -86,9 +89,16 @@ function CountdownSection({ content }: { content: SiteContent }) {
 // ─── Beto Perez ───────────────────────────────────────────────────────────────
 
 function BetoPerez({ content }: { content: SiteContent }) {
+  const { t, locale } = useLocale()
   const beto = content.beto_perez || DEFAULT_CONTENT.beto_perez
 
   if (!beto?.enabled) return null
+
+  // EN: CMS'de _en varsa → onu, yoksa locale fallback. TR: CMS değerini olduğu gibi.
+  const title = locale === 'en' ? (beto.title_en || t('beto.defaultTitle')) : beto.title
+  const subtitle = locale === 'en' ? (beto.subtitle_en || t('beto.defaultSubtitle')) : beto.subtitle
+  const description = locale === 'en' ? (beto.description_en || t('beto.defaultDescription')) : beto.description
+  const buttonText = locale === 'en' ? (beto.button_text_en || t('beto.defaultButtonText')) : beto.button_text
 
   return (
     <section className="bg-[#0d0d1a] py-16 px-4">
@@ -98,7 +108,7 @@ function BetoPerez({ content }: { content: SiteContent }) {
           <div className="relative w-full max-w-xs flex-shrink-0 overflow-hidden rounded-3xl shadow-2xl lg:max-w-sm">
             <Image
               src={beto.image_url || '/images/story-poster.png'}
-              alt={beto.title || 'Beto Perez'}
+              alt={title || 'Beto Perez'}
               width={540}
               height={960}
               className="w-full object-cover"
@@ -112,19 +122,19 @@ function BetoPerez({ content }: { content: SiteContent }) {
           {/* Text */}
           <div className="flex flex-col justify-center gap-6 text-center lg:text-left">
             <p className="text-sm font-bold uppercase tracking-[0.3em] text-orange-400">
-              Özel Konuk
+              {t('beto.specialGuest')}
             </p>
             <h2 className="text-4xl font-extrabold text-white sm:text-5xl">
-              {beto.title}
+              {title}
             </h2>
             <h3 className="text-2xl font-bold text-yellow-300">
-              {beto.subtitle}
+              {subtitle}
             </h3>
             <p className="max-w-lg text-white/70 leading-relaxed">
-              {beto.description}
+              {description}
             </p>
             <div className="self-center lg:self-start">
-              <TicketButton label={beto.button_text} />
+              <TicketButton label={buttonText} />
             </div>
           </div>
         </div>
@@ -143,21 +153,31 @@ const hotelImages = [
 ]
 
 function Venue({ content }: { content: SiteContent }) {
+  const { t, locale } = useLocale()
   const venue = content.venue || DEFAULT_CONTENT.venue
+
+  // EN modunda: CMS'deki _en alanı varsa onu kullan, yoksa locale dosyasındaki fallback
+  // TR modunda: CMS değerini olduğu gibi kullan
+  const venueDescription = locale === 'en'
+    ? (venue?.description_en || t('venue.defaultDescription'))
+    : venue?.description
+  const venueAddress = locale === 'en'
+    ? (venue?.address_en || t('venue.defaultAddress'))
+    : venue?.address
 
   return (
     <section className="bg-[#1a1a2e] py-16 px-4">
       <div className="mx-auto max-w-6xl">
         <div className="mb-10 text-center">
           <p className="mb-2 text-sm font-bold uppercase tracking-[0.3em] text-orange-400">
-            Etkinlik Yeri
+            {t('venue.title')}
           </p>
           <h2 className="text-3xl font-extrabold text-white sm:text-4xl">
             {venue?.name}<br />
-            <span className="text-yellow-300 text-2xl font-semibold">{venue?.description}</span>
+            <span className="text-yellow-300 text-2xl font-semibold">{venueDescription}</span>
           </h2>
           <p className="mt-4 text-white/60">
-            {venue?.address}
+            {venueAddress}
           </p>
         </div>
 
@@ -185,7 +205,7 @@ function Venue({ content }: { content: SiteContent }) {
             allowFullScreen
             loading="lazy"
             referrerPolicy="no-referrer-when-downgrade"
-            title="Etkinlik Yeri Haritası"
+            title={locale === 'tr' ? 'Etkinlik Yeri Haritası' : 'Event Venue Map'}
           />
         </div>
       </div>
@@ -196,14 +216,15 @@ function Venue({ content }: { content: SiteContent }) {
 // ─── Contact ──────────────────────────────────────────────────────────────────
 
 function Contact() {
+  const { t } = useLocale()
   return (
     <section className="bg-[#1a1a2e] py-16 px-4">
       <div className="mx-auto max-w-xl text-center">
         <p className="mb-2 text-sm font-bold uppercase tracking-[0.3em] text-orange-400">
-          İletişim
+          {t('contact.title')}
         </p>
         <h2 className="mb-8 text-3xl font-extrabold text-white sm:text-4xl">
-          Bize Ulaşın
+          {t('contact.subtitle')}
         </h2>
 
         <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
@@ -259,6 +280,7 @@ function FloatingWhatsApp() {
 // ─── Footer ───────────────────────────────────────────────────────────────────
 
 function Footer() {
+  const { t } = useLocale()
   return (
     <footer className="bg-[#0d0d1a] py-10 px-4 border-t border-white/10">
       <div className="mx-auto max-w-4xl flex flex-col items-center gap-6 text-center">
@@ -269,14 +291,25 @@ function Footer() {
           height={100}
           className="opacity-80"
         />
+        <div className="flex flex-wrap justify-center gap-4 text-sm">
+          <a href="/kvkk" className="text-white/50 hover:text-orange-400 transition">{t('footer.kvkk')}</a>
+          <a href="/gizlilik" className="text-white/50 hover:text-orange-400 transition">{t('footer.privacy')}</a>
+          <a href="/cerez-politikasi" className="text-white/50 hover:text-orange-400 transition">{t('footer.cookies')}</a>
+        </div>
         <div className="space-y-1 text-white/50 text-sm">
-          <p>© {new Date().getFullYear()} Istanbul International Zumba Festival. Tüm hakları saklıdır.</p>
+          <p>{t('footer.copyright', { year: new Date().getFullYear() })}</p>
           <p>
             ZUMBA® is a registered trademark of Zumba Fitness, LLC.
           </p>
           <p>
             <a href="https://www.istanbulzumbafestival.com" className="hover:text-orange-400 transition">
               www.istanbulzumbafestival.com
+            </a>
+          </p>
+          <p className="mt-3 text-white/30 text-xs">
+            {t('footer.credit')}:{' '}
+            <a href="https://topqara.dev" target="_blank" rel="noopener noreferrer" className="text-white/50 hover:text-orange-400 transition">
+              topqara
             </a>
           </p>
         </div>
@@ -288,11 +321,12 @@ function Footer() {
 // ─── Loading State ────────────────────────────────────────────────────────────
 
 function LoadingState() {
+  const { t } = useLocale()
   return (
     <div className="min-h-screen bg-[#1a1a2e] flex items-center justify-center">
       <div className="text-center">
         <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-orange-500 mx-auto mb-4"></div>
-        <p className="text-white/60">Yükleniyor...</p>
+        <p className="text-white/60">{t('auth.loading')}</p>
       </div>
     </div>
   )

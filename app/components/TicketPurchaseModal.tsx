@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
+import { useLocale } from '../context/LocaleContext'
 import { api, type Event } from '../lib/api'
 import AuthModal from './AuthModal'
 
@@ -37,6 +38,7 @@ function CloseBtn({ onClick }: { onClick: () => void }) {
 
 // ─── Main Modal ───────────────────────────────────────────────────────────────
 export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseModalProps) {
+  const { t, locale } = useLocale()
   const [event, setEvent] = useState<Event | null>(null)
   const [loadingEvent, setLoadingEvent] = useState(false)
 
@@ -102,11 +104,11 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!event) {
-      setError('Etkinlik bilgisi yüklenemedi. Lütfen tekrar deneyin.')
+      setError(t('ticket.form.eventLoadError'))
       return
     }
     if (!kvkkAccepted) {
-      setError('KVKK Aydınlatma Metni\'ni onaylamanız gerekmektedir.')
+      setError(t('ticket.form.kvkkRequired'))
       return
     }
     setError('')
@@ -134,10 +136,10 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
         // Open payment URL in new tab
         window.open(res.payment_url, '_blank')
       } else {
-        setError('Ödeme bağlantısı alınamadı.')
+        setError(t('ticket.form.paymentNotFetched'))
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Bir hata oluştu')
+      setError(err instanceof Error ? err.message : t('ticket.form.genericError'))
     } finally {
       setSubmitting(false)
     }
@@ -145,7 +147,7 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
 
   async function handleCompletePayment() {
     if (!pendingId) {
-      setError('Ödeme referansı bulunamadı.')
+      setError(t('ticket.form.paymentRefNotFound'))
       return
     }
 
@@ -156,8 +158,8 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
       setPaymentResult({
         success: result.success,
         message: result.success
-          ? 'Ödemeniz alındı! Biletiniz oluşturuldu.'
-          : 'Ödeme henüz tamamlanmamış olabilir. Birkaç dakika bekleyip tekrar deneyin.',
+          ? t('ticket.form.success')
+          : t('ticket.form.waitingRetry'),
         ticket_id: result.ticket_id,
         event_title: result.event_title,
         quantity: result.quantity,
@@ -165,7 +167,7 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
       })
       setStep(4) // Go to result screen
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Ödeme tamamlaması başarısız oldu.')
+      setError(err instanceof Error ? err.message : t('ticket.form.completeFailed'))
     } finally {
       setCompletingPayment(false)
     }
@@ -187,7 +189,7 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
           clearInterval(interval)
           setPollingTimeout(true)
           setError(
-            'Ödeme doğrulanamadı. Lütfen birkaç dakika bekleyip sayfayı yenileyin veya bizimle iletişime geçin.'
+            t('ticket.form.paymentNotConfirmed')
           )
           return
         }
@@ -198,7 +200,7 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
           clearInterval(interval)
           setPaymentResult({
             success: true,
-            message: 'Ödemeniz alındı! Biletiniz oluşturuldu.',
+            message: t('ticket.form.success'),
             ticket_id: status.ticket_id,
             event_title: status.event_title,
             quantity: status.quantity,
@@ -218,14 +220,14 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
   if (!isOpen) return null
 
   const eventDate = event?.date
-    ? new Date(event.date).toLocaleDateString('tr-TR', {
+    ? new Date(event.date).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', {
         day: 'numeric',
         month: 'long',
         year: 'numeric',
       })
-    : '17 Ekim 2026'
+    : t('hero.date')
 
-  const WHATSAPP_URL = `https://wa.me/905337743572?text=Bilet almak istiyorum`
+  const WHATSAPP_URL = `https://wa.me/905337743572?text=${encodeURIComponent(locale === 'tr' ? 'Bilet almak istiyorum' : 'I would like to buy a ticket')}`
 
   return (
     <>
@@ -239,16 +241,16 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
             {/* Header */}
             <div className="text-center mb-6">
               <div className="mb-2 text-4xl">🎉</div>
-              <h2 className="text-2xl font-extrabold text-white mb-1">Biletini Al</h2>
+              <h2 className="text-2xl font-extrabold text-white mb-1">{t('ticket.buy')}</h2>
               <p className="text-white/60 text-sm">
                 {event?.title ?? 'Istanbul Zumba Festival'}
               </p>
               {event?.price !== undefined && (
                 <p className="mt-1 text-orange-400 font-bold text-lg">
-                  €{event.price.toLocaleString('tr-TR')}
+                  €{event.price.toLocaleString(locale === 'tr' ? 'tr-TR' : 'en-US')}
                   {quantity > 1 && (
                     <span className="text-white/60 text-sm font-normal ml-1">
-                      × {quantity} = €{(event.price * quantity).toLocaleString('tr-TR')}
+                      × {quantity} = €{(event.price * quantity).toLocaleString(locale === 'tr' ? 'tr-TR' : 'en-US')}
                     </span>
                   )}
                 </p>
@@ -259,7 +261,7 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
             {loadingEvent ? (
               <div className="py-10 text-center">
                 <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-4 border-purple-400/30 border-t-purple-400" />
-                <p className="text-white/50 text-sm">Etkinlik bilgileri yükleniyor...</p>
+                <p className="text-white/50 text-sm">{t('ticket.loadingEvent')}</p>
               </div>
             ) : step === 1 ? (
               // ─── Step 1: Selection Screen ──────────────────────────────────
@@ -267,11 +269,8 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
                 {/* WhatsApp Info Banner */}
                 <div className="rounded-xl bg-white/5 border border-white/10 p-3 mb-1">
                   <p className="text-xs text-white/70 text-center leading-relaxed">
-                    🇹🇷 Türkiye'den katılmayı düşünen misafirlerimiz sürpriz fiyatlar için{' '}
-                    <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="text-green-400 underline hover:text-green-300">
-                      WhatsApp
-                    </a>{' '}
-                    ile iletişime geçebilirler.
+                    <span className="mr-1 text-base align-middle">{locale === 'tr' ? '🇹🇷' : '🌍'}</span>
+                    {t('ticket.whatsappInfo')}
                   </p>
                 </div>
 
@@ -282,15 +281,23 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
                   rel="noopener noreferrer"
                   className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-green-500 to-green-600 p-4 transition hover:shadow-lg hover:shadow-green-500/30 active:scale-[0.98]"
                 >
+                  {locale === 'en' && (
+                    <div className="absolute top-2 right-2 z-10 rounded-full bg-yellow-400 px-2 py-0.5 text-[10px] font-extrabold text-black shadow-md">
+                      INTERNATIONAL
+                    </div>
+                  )}
                   <div className="flex items-center gap-4">
-                    <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-white/10">
+                    <div className="relative flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-white/10">
                       <svg viewBox="0 0 24 24" className="h-6 w-6 fill-white" aria-hidden="true">
                         <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
                       </svg>
+                      <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs shadow ring-2 ring-green-600" aria-hidden="true">
+                        {locale === 'tr' ? '🇹🇷' : '🌍'}
+                      </span>
                     </div>
                     <div className="flex-1">
-                      <p className="font-bold text-white">WhatsApp ile Satın Al</p>
-                      <p className="text-xs text-white/80">Hızlı destek ve bilgi al</p>
+                      <p className="font-bold text-white">{t('ticket.whatsappBtn')}</p>
+                      <p className="text-xs text-white/80">{t('ticket.whatsappSub')}</p>
                     </div>
                     <svg className="h-5 w-5 text-white/60 transition group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -311,8 +318,8 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
                       </svg>
                     </div>
                     <div className="flex-1">
-                      <p className="font-bold text-white">Kayıtlı Kullanıcı</p>
-                      <p className="text-xs text-white/80">Hesabınıza giriş yapın</p>
+                      <p className="font-bold text-white">{t('ticket.memberBtn')}</p>
+                      <p className="text-xs text-white/80">{t('ticket.memberSub')}</p>
                     </div>
                     <svg className="h-5 w-5 text-white/60 transition group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -332,8 +339,8 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
                       </svg>
                     </div>
                     <div className="flex-1">
-                      <p className="font-bold text-white">Misafir Olarak Devam Et</p>
-                      <p className="text-xs text-white/80">Hızlı bilet satın alın</p>
+                      <p className="font-bold text-white">{t('ticket.guestBtn')}</p>
+                      <p className="text-xs text-white/80">{t('ticket.guestSub')}</p>
                     </div>
                     <svg className="h-5 w-5 text-white/60 transition group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -346,46 +353,45 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
               <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                 {/* Email */}
                 <div>
-                  <label className="mb-1 block text-xs font-semibold text-white/60">E-posta</label>
+                  <label className="mb-1 block text-xs font-semibold text-white/60">{t('ticket.form.email')}</label>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    placeholder="ornek@email.com"
+                    placeholder={t('ticket.form.emailPlaceholder') || 'ornek@email.com'}
                     className="w-full rounded-xl bg-white/10 px-4 py-3 text-white placeholder-white/30 outline-none focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
 
-                {/* Ad Soyad */}
+                {/* Name */}
                 <div>
-                  <label className="mb-1 block text-xs font-semibold text-white/60">Ad Soyad</label>
+                  <label className="mb-1 block text-xs font-semibold text-white/60">{t('ticket.form.name')}</label>
                   <input
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required
-                    placeholder="Adınız Soyadınız"
+                    placeholder={t('ticket.form.namePlaceholder')}
                     className="w-full rounded-xl bg-white/10 px-4 py-3 text-white placeholder-white/30 outline-none focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
 
-                {/* Telefon */}
+                {/* Phone */}
                 <div>
-                  <label className="mb-1 block text-xs font-semibold text-white/60">Telefon</label>
+                  <label className="mb-1 block text-xs font-semibold text-white/60">{t('ticket.form.phone')} <span className="text-white/30">({t('ticket.form.optional') || 'Opsiyonel'})</span></label>
                   <input
                     type="tel"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    required
-                    placeholder="05XX XXX XX XX"
+                    placeholder={t('ticket.form.phonePlaceholder')}
                     className="w-full rounded-xl bg-white/10 px-4 py-3 text-white placeholder-white/30 outline-none focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
 
                 {/* Adet */}
                 <div>
-                  <label className="mb-1 block text-xs font-semibold text-white/60">Bilet Adedi</label>
+                  <label className="mb-1 block text-xs font-semibold text-white/60">{t('ticket.form.quantity')}</label>
                   <div className="flex items-center gap-3">
                     <button
                       type="button"
@@ -405,14 +411,14 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
                   </div>
                 </div>
 
-                {/* Kupon */}
+                {/* Coupon */}
                 <div>
-                  <label className="mb-1 block text-xs font-semibold text-white/60">Kupon Kodu (opsiyonel)</label>
+                  <label className="mb-1 block text-xs font-semibold text-white/60">{t('ticket.form.coupon')} ({t('ticket.form.optional')})</label>
                   <input
                     type="text"
                     value={discountCode}
                     onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
-                    placeholder="KUPON KODUNUZU GİRİN"
+                    placeholder={t('ticket.form.couponPlaceholder')}
                     className="w-full rounded-xl bg-white/10 px-4 py-3 text-white placeholder-white/30 outline-none focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
@@ -427,10 +433,22 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
                     className="mt-1 h-4 w-4 rounded border-white/30 bg-white/10 text-orange-500 focus:ring-orange-500"
                   />
                   <span className="text-xs text-white/60">
-                    <a href="/kvkk" target="_blank" className="text-orange-400 hover:underline">KVKK Aydınlatma Metni</a>
-                    {`'ni ve `}
-                    <a href="/gizlilik" target="_blank" className="text-orange-400 hover:underline">Gizlilik Politikası</a>
-                    {`'nı okudum, kabul ediyorum.`}
+                    {locale === 'tr' ? (
+                      <>
+                        <a href="/kvkk" target="_blank" className="text-orange-400 hover:underline">{t('footer.kvkk')}</a>
+                        {`'ni ve `}
+                        <a href="/gizlilik" target="_blank" className="text-orange-400 hover:underline">{t('footer.privacy')}</a>
+                        {t('ticket.form.kvkkSuffix')}
+                      </>
+                    ) : (
+                      <>
+                        I have read and accept the{' '}
+                        <a href="/kvkk" target="_blank" className="text-orange-400 hover:underline">{t('footer.kvkk')}</a>
+                        {' and '}
+                        <a href="/gizlilik" target="_blank" className="text-orange-400 hover:underline">{t('footer.privacy')}</a>
+                        .
+                      </>
+                    )}
                   </span>
                 </label>
 
@@ -444,7 +462,7 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
                   disabled={submitting || !event}
                   className="mt-2 w-full rounded-xl bg-orange-500 py-3.5 font-bold text-white transition hover:bg-orange-400 disabled:opacity-60 active:scale-[0.98]"
                 >
-                  {submitting ? 'Yönlendiriliyor...' : 'Ödemeye Geç'}
+                  {submitting ? t('ticket.form.redirecting') : t('ticket.form.pay')}
                 </button>
 
                 {/* Back button */}
@@ -453,11 +471,11 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
                   onClick={() => setStep(1)}
                   className="w-full rounded-xl bg-white/10 py-3.5 font-bold text-white transition hover:bg-white/20"
                 >
-                  Geri Dön
+                  {t('ticket.form.goBack')}
                 </button>
 
                 <p className="text-xs text-white/30 text-center">
-                  Ödemeniz iyzico güvencesiyle işlenmektedir
+                  {t('ticket.form.iyzicoNote')}
                 </p>
               </form>
             ) : step === 3 ? (
@@ -469,10 +487,10 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
                   </div>
                 </div>
 
-                <h3 className="text-xl font-bold text-white text-center">Ödemeniz Bekleniyor...</h3>
+                <h3 className="text-xl font-bold text-white text-center">{t('ticket.payment.waitingTitle')}</h3>
                 
                 <p className="text-center text-white/70 text-sm">
-                  İyzico'da ödemeyi tamamladıktan sonra biletiniz otomatik olarak oluşturulacak
+                  {t('ticket.payment.waitingDesc')}
                 </p>
 
                 {error && (
@@ -486,7 +504,7 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
                           rel="noopener noreferrer"
                           className="text-red-200 underline hover:text-red-100"
                         >
-                          WhatsApp ile Destek
+                          {t('ticket.payment.whatsappSupport')}
                         </a>
                       </div>
                     )}
@@ -498,7 +516,7 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
                     onClick={() => paymentUrl && window.open(paymentUrl, '_blank')}
                     className="text-sm text-orange-400 hover:text-orange-300 underline mt-2"
                   >
-                    Ödeme Sayfasını Tekrar Aç
+                    {t('ticket.payment.reopenLink')}
                   </button>
                 )}
               </div>
@@ -515,24 +533,24 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
                       </div>
                     </div>
 
-                    <h3 className="text-2xl font-bold text-white text-center">Ödeme Başarılı!</h3>
+                    <h3 className="text-2xl font-bold text-white text-center">{t('ticket.payment.successTitle')}</h3>
                     
                     {paymentResult.event_title && (
                       <div className="mt-4 w-full rounded-xl border border-white/10 bg-white/5 p-4 text-left">
-                        <p className="text-xs text-white/50 mb-1">Etkinlik</p>
+                        <p className="text-xs text-white/50 mb-1">{t('ticket.payment.eventLabel')}</p>
                         <p className="text-sm font-semibold text-white mb-3">{paymentResult.event_title}</p>
                         
                         {paymentResult.quantity && (
-                          <p className="text-xs text-white/50 mb-1">Bilet Sayısı: <span className="text-white font-semibold">{paymentResult.quantity} adet</span></p>
+                          <p className="text-xs text-white/50 mb-1">{t('ticket.payment.ticketCount')}: <span className="text-white font-semibold">{paymentResult.quantity} {t('ticket.payment.unit')}</span></p>
                         )}
                         
                         {paymentResult.ticket_id && (
-                          <p className="text-xs text-white/50">Bilet No: <span className="text-green-300 font-mono">{paymentResult.ticket_id}</span></p>
+                          <p className="text-xs text-white/50">{t('ticket.form.ticketId')}: <span className="text-green-300 font-mono">{paymentResult.ticket_id}</span></p>
                         )}
                         
                         {paymentResult.qr_token && (
                           <div className="mt-3 flex flex-col items-center">
-                            <p className="text-xs text-white/50 mb-2">Giriş QR Kodunuz</p>
+                            <p className="text-xs text-white/50 mb-2">{t('ticket.form.qrLabel')}</p>
                             <div className="bg-white p-2 rounded-lg">
                               <QRCodeSVG value={paymentResult.qr_token} size={160} level="M" />
                             </div>
@@ -543,14 +561,14 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
                     )}
 
                     <p className="text-center text-white/70 text-sm mt-4">
-                      Biletiniz e-posta adresine gönderildi. Etkinlikte göstermek üzere kaydedin.
+                      {t('ticket.payment.emailSent')}
                     </p>
 
                     <button
                       onClick={handleClose}
                       className="mt-4 w-full rounded-xl bg-gradient-to-r from-purple-500 to-purple-600 py-3.5 font-bold text-white transition hover:from-purple-400 hover:to-purple-500 active:scale-[0.98]"
                     >
-                      Kapat
+                      {t('ticket.payment.close')}
                     </button>
                   </>
                 ) : (
@@ -563,10 +581,10 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
                       </div>
                     </div>
 
-                    <h3 className="text-xl font-bold text-white text-center">Ödeme Tamamlanamadı</h3>
+                    <h3 className="text-xl font-bold text-white text-center">{t('ticket.payment.failedTitle')}</h3>
                     
                     <p className="text-center text-white/70 text-sm">
-                      {paymentResult?.message || 'Ödeme henüz tamamlanmamış olabilir. Birkaç dakika bekleyip tekrar deneyin.'}
+                      {paymentResult?.message || t('ticket.form.waitingRetry')}
                     </p>
 
                     <div className="mt-4 w-full space-y-2">
@@ -574,21 +592,21 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
                         onClick={handleCompletePayment}
                         className="w-full rounded-xl bg-orange-500 py-3 font-bold text-white transition hover:bg-orange-400 active:scale-[0.98]"
                       >
-                        Tekrar Kontrol Et
+                        {t('ticket.payment.retryCheck')}
                       </button>
 
                       <button
                         onClick={() => { setStep(3); setError(''); }}
                         className="w-full rounded-xl bg-white/10 py-3 font-semibold text-white transition hover:bg-white/20 active:scale-[0.98]"
                       >
-                        Ödeme Sayfasına Dön
+                        {t('ticket.payment.backToPayment')}
                       </button>
 
                       <button
                         onClick={handleClose}
                         className="w-full rounded-xl border border-white/20 py-3 font-semibold text-white/70 transition hover:text-white hover:bg-white/5 active:scale-[0.98]"
                       >
-                        Kapat
+                        {t('ticket.payment.close')}
                       </button>
                     </div>
                   </>

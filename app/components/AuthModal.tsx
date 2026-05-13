@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useLocale } from '../context/LocaleContext'
 import { api } from '../lib/api'
 
 // ─── Token helpers (same as TicketPurchaseModal) ──────────────────────────────
@@ -63,10 +64,13 @@ interface AuthModalProps {
 }
 
 export default function AuthModal({ isOpen, initialMode = 'login', onClose, onSuccess }: AuthModalProps) {
+  const { t, locale } = useLocale()
   const [mode, setMode] = useState<'login' | 'register'>(initialMode)
   const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [kvkkAccepted, setKvkkAccepted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -76,30 +80,38 @@ export default function AuthModal({ isOpen, initialMode = 'login', onClose, onSu
       setMode(initialMode)
       setError('')
       setName('')
+      setPhone('')
       setEmail('')
       setPassword('')
+      setKvkkAccepted(false)
     }
   }, [isOpen, initialMode])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
+    if (mode === 'register' && !kvkkAccepted) {
+      setError(t('auth.kvkkRequired'))
+      return
+    }
     setLoading(true)
     try {
       if (mode === 'login') {
         const res = await api.login(email, password)
         saveAuthToken(res.access_token)
+        window.dispatchEvent(new Event('izf_auth_change'))
         onSuccess()
         onClose()
       } else {
-        await api.register(name, email, password)
+        await api.register(name, email, password, phone)
         const res = await api.login(email, password)
         saveAuthToken(res.access_token)
+        window.dispatchEvent(new Event('izf_auth_change'))
         onSuccess()
         onClose()
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Bir hata oluştu')
+      setError(err instanceof Error ? err.message : t('auth.genericError'))
     } finally {
       setLoading(false)
     }
@@ -116,28 +128,40 @@ export default function AuthModal({ isOpen, initialMode = 'login', onClose, onSu
           <CloseBtn onClick={onClose} />
 
           <h2 className="mb-1 text-center text-xl font-extrabold text-white">
-            {mode === 'login' ? 'Giriş Yap' : 'Hesap Oluştur'}
+            {mode === 'login' ? t('auth.loginTitle') : t('auth.registerTitle')}
           </h2>
           <p className="mb-6 text-center text-sm text-white/50">
-            {mode === 'login' ? 'Hoş geldiniz! Hesabınıza giriş yapın.' : 'Ücretsiz hesap oluşturun'}
+            {mode === 'login' ? t('auth.loginDesc') : t('auth.registerDesc')}
           </p>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-3">
             {mode === 'register' && (
               <div>
-                <label className="mb-1 block text-xs font-semibold text-white/60">Ad Soyad</label>
+                <label className="mb-1 block text-xs font-semibold text-white/60">{t('auth.name')}</label>
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
-                  placeholder="Adınız Soyadınız"
+                  placeholder={t('auth.namePlaceholder')}
+                  className="w-full rounded-xl bg-white/10 px-4 py-3 text-white placeholder-white/30 outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
+            )}
+            {mode === 'register' && (
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-white/60">{t('auth.phone')} <span className="text-white/30">({t('ticket.form.optional') || 'Opsiyonel'})</span></label>
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder={t('auth.phonePlaceholder')}
                   className="w-full rounded-xl bg-white/10 px-4 py-3 text-white placeholder-white/30 outline-none focus:ring-2 focus:ring-orange-500"
                 />
               </div>
             )}
             <div>
-              <label className="mb-1 block text-xs font-semibold text-white/60">E-posta</label>
+              <label className="mb-1 block text-xs font-semibold text-white/60">{t('auth.email')}</label>
               <input
                 type="email"
                 value={email}
@@ -148,7 +172,7 @@ export default function AuthModal({ isOpen, initialMode = 'login', onClose, onSu
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-semibold text-white/60">Şifre</label>
+              <label className="mb-1 block text-xs font-semibold text-white/60">{t('auth.password')}</label>
               <input
                 type="password"
                 value={password}
@@ -159,6 +183,36 @@ export default function AuthModal({ isOpen, initialMode = 'login', onClose, onSu
               />
             </div>
 
+            {mode === 'register' && (
+              <label className="flex items-start gap-2 cursor-pointer mt-1">
+                <input
+                  type="checkbox"
+                  checked={kvkkAccepted}
+                  onChange={(e) => setKvkkAccepted(e.target.checked)}
+                  className="mt-1 h-4 w-4 rounded border-white/30 bg-white/10 text-orange-500 focus:ring-orange-500"
+                />
+                <span className="text-xs text-white/60">
+                  {locale === 'tr' ? (
+                    <>
+                      <a href="/kvkk" target="_blank" className="text-orange-400 hover:underline">{t('footer.kvkk')}</a>
+                      {' ve '}
+                      <a href="/gizlilik" target="_blank" className="text-orange-400 hover:underline">{t('footer.privacy')}</a>
+                      {' '}
+                      {t('auth.kvkk')}
+                    </>
+                  ) : (
+                    <>
+                      I have read and accept the{' '}
+                      <a href="/kvkk" target="_blank" className="text-orange-400 hover:underline">{t('footer.kvkk')}</a>
+                      {' and '}
+                      <a href="/gizlilik" target="_blank" className="text-orange-400 hover:underline">{t('footer.privacy')}</a>
+                      .
+                    </>
+                  )}
+                </span>
+              </label>
+            )}
+
             {error && (
               <div className="rounded-xl bg-red-500/20 px-4 py-3 text-sm text-red-300">{error}</div>
             )}
@@ -168,23 +222,23 @@ export default function AuthModal({ isOpen, initialMode = 'login', onClose, onSu
               disabled={loading}
               className="mt-2 w-full rounded-xl bg-orange-500 py-3 font-bold text-white transition hover:bg-orange-400 disabled:opacity-60"
             >
-              {loading ? 'Yükleniyor...' : mode === 'login' ? 'Giriş Yap' : 'Hesap Oluştur'}
+              {loading ? t('auth.loading') : mode === 'login' ? t('auth.loginBtn') : t('auth.registerBtn')}
             </button>
           </form>
 
           <div className="mt-4 text-center text-sm text-white/50">
             {mode === 'login' ? (
               <>
-                Hesabın yok mu?{' '}
+                {t('auth.noAccount')}{' '}
                 <button onClick={() => { setMode('register'); setError('') }} className="font-semibold text-orange-400 hover:underline">
-                  Kayıt Ol
+                  {t('auth.registerLink')}
                 </button>
               </>
             ) : (
               <>
-                Zaten hesabın var mı?{' '}
+                {t('auth.hasAccount')}{' '}
                 <button onClick={() => { setMode('login'); setError('') }} className="font-semibold text-orange-400 hover:underline">
-                  Giriş Yap
+                  {t('auth.loginLink')}
                 </button>
               </>
             )}

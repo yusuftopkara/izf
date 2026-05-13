@@ -27,6 +27,13 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
+  // Keep <html lang="..."> in sync with current locale
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.lang = locale
+    }
+  }, [locale])
+
   const setLocale = (newLocale: Locale) => {
     setLocaleState(newLocale)
     localStorage.setItem('izf-locale', newLocale)

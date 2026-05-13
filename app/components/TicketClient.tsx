@@ -3,15 +3,17 @@
 import { useState, useEffect, useCallback } from 'react'
 import TicketPurchaseModal from './TicketPurchaseModal'
 import { api, type Event } from '../lib/api'
+import { useLocale } from '../context/LocaleContext'
 
 // ─── Biletini Al Butonu (modal açar) ─────────────────────────────────────────
 export function TicketButton({
-  label = 'Biletini Al',
+  label,
   className,
 }: {
   label?: string
   className?: string
 }) {
+  const { t } = useLocale()
   const [open, setOpen] = useState(false)
   return (
     <>
@@ -22,7 +24,7 @@ export function TicketButton({
           'mt-4 inline-block rounded-full bg-orange-500 px-10 py-4 text-lg font-bold text-white shadow-lg transition hover:bg-orange-400 hover:scale-105 active:scale-95'
         }
       >
-        {label}
+        {label || t('ticket.buy')}
       </button>
       <TicketPurchaseModal isOpen={open} onClose={() => setOpen(false)} />
     </>
@@ -31,6 +33,7 @@ export function TicketButton({
 
 // ─── Kalan Bilet Göstergesi (API'den) ────────────────────────────────────────
 export function LiveTicketAvailability() {
+  const { t, locale } = useLocale()
   const [event, setEvent] = useState<Event | null>(null)
   const [open, setOpen] = useState(false)
 
@@ -55,13 +58,13 @@ export function LiveTicketAvailability() {
     <section className="bg-[#1a1a2e] py-14 px-4">
       <div className="mx-auto max-w-2xl text-center">
         <p className="mb-2 text-sm font-bold uppercase tracking-[0.3em] text-orange-400">
-          Bilet Durumu
+          {t('ticketStatus.title')}
         </p>
         <h2 className="mb-1 text-3xl font-extrabold text-white sm:text-4xl">
-          {total.toLocaleString('tr-TR')} Bilet
+          {total.toLocaleString(locale === 'tr' ? 'tr-TR' : 'en-US')} {t('ticket.capacity')}
         </h2>
         <p className="mb-6 text-lg text-yellow-300 font-semibold">
-          ⚠ Sınırlı Sayıda — Yerini Şimdi Güvence Altına Al!
+          ⚠ {t('ticketStatus.limited')} — {t('ticketStatus.secureNow')}
         </p>
 
         {/* Progress bar */}
@@ -72,15 +75,15 @@ export function LiveTicketAvailability() {
           />
         </div>
         <div className="mt-3 flex justify-between text-sm text-white/60">
-          <span>{sold.toLocaleString('tr-TR')} bilet satıldı</span>
-          <span className="text-orange-300 font-semibold">{remaining.toLocaleString('tr-TR')} bilet kaldı</span>
+          <span>{sold.toLocaleString(locale === 'tr' ? 'tr-TR' : 'en-US')} {t('ticket.sold')}</span>
+          <span className="text-orange-300 font-semibold">{remaining.toLocaleString(locale === 'tr' ? 'tr-TR' : 'en-US')} {t('ticket.remaining')}</span>
         </div>
 
         <button
           onClick={() => setOpen(true)}
           className="mt-8 inline-block rounded-full bg-orange-500 px-8 py-3 font-bold text-white shadow transition hover:bg-orange-400"
         >
-          Hemen Satın Al
+          {t('ticketStatus.buyNow')}
         </button>
       </div>
 

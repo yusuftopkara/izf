@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useLocale } from '../context/LocaleContext'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export interface FestivalVideo {
@@ -62,6 +63,7 @@ function isMp4(url: string) {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function FestivalVideos() {
+  const { t } = useLocale()
   const [videos, setVideos] = useState<FestivalVideo[]>([])
 
   useEffect(() => {
@@ -82,10 +84,10 @@ export default function FestivalVideos() {
       <div className="mx-auto max-w-6xl">
         <div className="mb-10 text-center">
           <p className="mb-2 text-sm font-bold uppercase tracking-[0.3em] text-orange-400">
-            Festival Videoları
+            {t('videos.subtitle')}
           </p>
           <h2 className="text-3xl font-extrabold text-white sm:text-4xl">
-            Festivali İzle
+            {t('videos.title')}
           </h2>
         </div>
 
@@ -117,7 +119,7 @@ export default function FestivalVideos() {
                   </div>
                 ) : (
                   <div className="flex aspect-video items-center justify-center bg-gray-900 text-gray-500 text-sm">
-                    Geçersiz video URL
+                    {t('videos.invalidUrl')}
                   </div>
                 )}
                 {video.title && (

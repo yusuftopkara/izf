@@ -3,10 +3,11 @@
 import Image from 'next/image'
 import { useState, useEffect } from 'react'
 import Lightbox from './Lightbox'
+import { useLocale } from '../context/LocaleContext'
 import { loadGalleryImages, getDeletedDefaults, type GalleryImage } from './GalleryStorage'
 
 const DEFAULT_IMAGES: { src: string; alt: string }[] = [
-  { src: '/images/past-festivals.jpeg', alt: 'Geçmiş Festivaller Kolajı' },
+  { src: '/images/past-festivals.jpeg', alt: 'Past Festivals Collage' },
   { src: '/images/festival-2.jpeg', alt: 'Festival 2' },
   { src: '/images/festival-3.jpeg', alt: 'Festival 3' },
   { src: '/images/festival-4.jpeg', alt: 'Festival 4' },
@@ -45,6 +46,7 @@ function buildImages(): { src: string; alt: string }[] {
 }
 
 export default function Gallery() {
+  const { t } = useLocale()
   const [galleryImages, setGalleryImages] = useState<{ src: string; alt: string }[]>(DEFAULT_IMAGES)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
 
@@ -74,10 +76,10 @@ export default function Gallery() {
       <div className="mx-auto max-w-6xl">
         <div className="mb-10 text-center">
           <p className="mb-2 text-sm font-bold uppercase tracking-[0.3em] text-orange-400">
-            Anılar
+            {t('gallery.subtitle')}
           </p>
           <h2 className="text-3xl font-extrabold text-white sm:text-4xl">
-            Önceki Festivallerden Görüntüler
+            {t('gallery.title')}
           </h2>
         </div>
 
@@ -86,7 +88,7 @@ export default function Gallery() {
             <button
               key={img.src}
               onClick={() => setLightboxIndex(i)}
-              aria-label={`Büyüt: ${img.alt}`}
+              aria-label={`${t('gallery.zoom')}: ${img.alt}`}
               className={`relative overflow-hidden rounded-xl group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 ${
                 i === 0
                   ? 'col-span-2 row-span-2 aspect-square sm:col-span-2 sm:row-span-2'

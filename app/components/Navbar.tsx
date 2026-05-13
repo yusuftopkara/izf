@@ -6,6 +6,7 @@ import { useEffect, useState, useCallback } from 'react'
 import AuthModal from './AuthModal'
 import { getAuthToken, removeAuthToken, getAuthUser } from './AuthModal'
 import { useLocale } from '../context/LocaleContext'
+import { api } from '../lib/api'
 
 export default function Navbar() {
   const { locale, setLocale, t } = useLocale()
@@ -18,12 +19,36 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false)
 
   // Check auth on mount + listen for storage changes
-  const refreshUser = useCallback(() => {
+  // Important: We fetch the LIVE role from /api/me so admin changes take effect
+  // immediately on next page load (no need for the user to log out/in again).
+  const refreshUser = useCallback(async () => {
     const token = getAuthToken()
-    if (token) {
-      setUser(getAuthUser())
-    } else {
+    if (!token) {
       setUser(null)
+      return
+    }
+    // Show cached info from JWT immediately to avoid flash
+    const cached = getAuthUser()
+    if (cached) setUser(cached)
+    // Then fetch the up-to-date role from the server
+    try {
+      const me = await api.getMe(token)
+      setUser({ name: me.name, email: me.email, role: me.role })
+    } catch (err: unknown) {
+      // Sadece 401 Unauthorized durumunda token'ı sil; network/CORS hatalarında kullanıcıyı atma
+      const isUnauthorized =
+        err instanceof Error &&
+        (err.message.includes('401') ||
+          err.message.includes('Unauthorized') ||
+          err.message.includes('Yetkisiz') ||
+          err.message.includes('Invalid token') ||
+          err.message.includes('Token has expired'))
+
+      if (isUnauthorized) {
+        removeAuthToken()
+        setUser(null)
+      }
+      // Network/CORS/timeout hatalarında token'ı koru, kullanıcıyı atma
     }
   }, [])
 
@@ -65,7 +90,7 @@ export default function Navbar() {
     window.dispatchEvent(new Event('izf_auth_change'))
   }
 
-  const displayName = user?.name || user?.email?.split('@')[0] || 'Kullanıcı'
+  const displayName = user?.name || user?.email?.split('@')[0] || t('nav.userFallback')
 
   return (
     <>
@@ -94,19 +119,34 @@ export default function Navbar() {
           {/* Right: Auth buttons or user menu */}
           <div className="flex items-center gap-2">
             {/* Language Switcher */}
-            <button
-              onClick={() => setLocale(locale === 'tr' ? 'en' : 'tr')}
-              className="rounded-full bg-white/10 px-3 py-2 text-sm font-bold text-white transition hover:bg-white/20"
-              title={locale === 'tr' ? 'Switch to English' : 'Türkçe\'ye geç'}
-            >
-              {locale === 'tr' ? 'EN' : 'TR'}
-            </button>
+            <div className="flex items-center rounded-full bg-white/10 overflow-hidden">
+              <button
+                onClick={() => setLocale('tr')}
+                className={`px-3 py-2 text-sm font-bold transition ${locale === 'tr' ? 'bg-orange-500 text-white' : 'text-white/60 hover:text-white'}`}
+              >
+                TR
+              </button>
+              <button
+                onClick={() => setLocale('en')}
+                className={`px-3 py-2 text-sm font-bold transition ${locale === 'en' ? 'bg-orange-500 text-white' : 'text-white/60 hover:text-white'}`}
+              >
+                EN
+              </button>
+            </div>
 
             <Link
               href="/bilet-sorgula"
-              className="hidden sm:inline-flex rounded-full border border-orange-400/50 px-4 py-2 text-sm font-semibold text-orange-300 transition hover:bg-orange-500/10 hover:border-orange-400"
+              aria-label={t('nav.ticketLookup')}
+              className="inline-flex items-center gap-1.5 rounded-full border border-orange-400/50 px-3 py-2 text-sm font-semibold text-orange-300 transition hover:bg-orange-500/10 hover:border-orange-400 sm:px-4"
             >
-              {t('nav.ticketLookup')}
+              {/* Ticket + search icon (mobile-only) */}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4 sm:hidden" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+              </svg>
+              {/* Short label on mobile */}
+              <span className="text-xs sm:hidden">{t('nav.ticketLookupShort')}</span>
+              {/* Full label on desktop */}
+              <span className="hidden sm:inline">{t('nav.ticketLookup')}</span>
             </Link>
             {user ? (
               /* Logged in state */
@@ -134,7 +174,7 @@ export default function Navbar() {
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4 text-orange-400">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                       </svg>
-                      Profilim
+                      {t('nav.myProfile')}
                     </Link>
                     {user?.role === 'admin' && (
                       <Link

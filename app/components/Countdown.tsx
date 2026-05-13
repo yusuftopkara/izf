@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useLocale } from '../context/LocaleContext'
 
 interface TimeLeft {
   months: number
@@ -40,6 +41,7 @@ function Pad({ n }: { n: number }) {
 const PLACEHOLDER: TimeLeft = { months: 0, days: 0, hours: 0, minutes: 0, seconds: 0 }
 
 export default function Countdown({ targetDate }: CountdownProps) {
+  const { t } = useLocale()
   const [mounted, setMounted] = useState(false)
   const [timeLeft, setTimeLeft] = useState<TimeLeft>(PLACEHOLDER)
 
@@ -53,11 +55,11 @@ export default function Countdown({ targetDate }: CountdownProps) {
   const display = mounted ? timeLeft : PLACEHOLDER
 
   const units = [
-    { label: 'Ay', value: display.months },
-    { label: 'Gün', value: display.days },
-    { label: 'Saat', value: display.hours },
-    { label: 'Dakika', value: display.minutes },
-    { label: 'Saniye', value: display.seconds },
+    { label: t('countdown.months'), value: display.months },
+    { label: t('countdown.days'), value: display.days },
+    { label: t('countdown.hours'), value: display.hours },
+    { label: t('countdown.minutes'), value: display.minutes },
+    { label: t('countdown.seconds'), value: display.seconds },
   ]
 
   return (

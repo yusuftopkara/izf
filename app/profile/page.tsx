@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import Link from 'next/link'
 import { api, type Ticket } from '../lib/api'
+import { useLocale } from '../context/LocaleContext'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface User {
@@ -40,6 +41,7 @@ function clearToken() {
 
 // ─── Login ────────────────────────────────────────────────────────────────────
 function ProfileLogin({ onSuccess }: { onSuccess: () => void }) {
+  const { t } = useLocale()
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -55,15 +57,17 @@ function ProfileLogin({ onSuccess }: { onSuccess: () => void }) {
       if (mode === 'login') {
         const res = await api.login(email, password)
         saveToken(res.access_token)
+        window.dispatchEvent(new Event('izf_auth_change'))
         onSuccess()
       } else {
         await api.register(name, email, password)
         const res = await api.login(email, password)
         saveToken(res.access_token)
+        window.dispatchEvent(new Event('izf_auth_change'))
         onSuccess()
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Bir hata oluştu')
+      setError(err instanceof Error ? err.message : t('auth.genericError'))
     } finally {
       setLoading(false)
     }
@@ -74,41 +78,41 @@ function ProfileLogin({ onSuccess }: { onSuccess: () => void }) {
       <div className="w-full max-w-sm rounded-3xl bg-[#1a1a2e]/80 border border-white/10 p-8 shadow-2xl backdrop-blur-sm">
         <div className="mb-6 text-center">
           <div className="mb-3 text-4xl">👤</div>
-          <h1 className="text-2xl font-extrabold text-white">
-            {mode === 'login' ? 'Giriş Yap' : 'Hesap Oluştur'}
+          <h1 className="text-2xl font-extrabold text-white" data-testid="profile-login-title">
+            {mode === 'login' ? t('auth.loginTitle') : t('auth.profileCreateTitle')}
           </h1>
           <p className="mt-1 text-sm text-white/50">
-            {mode === 'login' ? 'Biletlerini görüntüle' : 'Festival ailesine katıl'}
+            {mode === 'login' ? t('auth.profileLoginDesc') : t('auth.profileRegisterDesc')}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {mode === 'register' && (
             <div>
-              <label className="mb-1 block text-xs font-semibold text-white/60">Ad Soyad</label>
+              <label className="mb-1 block text-xs font-semibold text-white/60">{t('auth.name')}</label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                placeholder="Adınız Soyadınız"
+                placeholder={t('auth.namePlaceholder')}
                 className="w-full rounded-xl bg-white/10 px-4 py-3 text-white placeholder-white/30 outline-none focus:ring-2 focus:ring-orange-500"
               />
             </div>
           )}
           <div>
-            <label className="mb-1 block text-xs font-semibold text-white/60">E-posta</label>
+            <label className="mb-1 block text-xs font-semibold text-white/60">{t('auth.email')}</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              placeholder="ornek@email.com"
+              placeholder={t('auth.emailPlaceholder')}
               className="w-full rounded-xl bg-white/10 px-4 py-3 text-white placeholder-white/30 outline-none focus:ring-2 focus:ring-orange-500"
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold text-white/60">Şifre</label>
+            <label className="mb-1 block text-xs font-semibold text-white/60">{t('auth.password')}</label>
             <input
               type="password"
               value={password}
@@ -126,25 +130,26 @@ function ProfileLogin({ onSuccess }: { onSuccess: () => void }) {
           <button
             type="submit"
             disabled={loading}
+            data-testid="profile-login-submit"
             className="w-full rounded-xl bg-orange-500 py-3 font-bold text-white transition hover:bg-orange-400 disabled:opacity-60"
           >
-            {loading ? 'Yükleniyor...' : mode === 'login' ? 'Giriş Yap' : 'Hesap Oluştur'}
+            {loading ? t('auth.loading') : mode === 'login' ? t('auth.loginBtn') : t('auth.profileCreateTitle')}
           </button>
         </form>
 
         <div className="mt-4 text-center text-sm text-white/50">
           {mode === 'login' ? (
             <>
-              Hesabın yok mu?{' '}
+              {t('auth.noAccountShort')}{' '}
               <button onClick={() => setMode('register')} className="font-semibold text-orange-400 hover:underline">
-                Kayıt Ol
+                {t('auth.registerLink')}
               </button>
             </>
           ) : (
             <>
-              Zaten hesabın var mı?{' '}
+              {t('auth.hasAccountShort')}{' '}
               <button onClick={() => setMode('login')} className="font-semibold text-orange-400 hover:underline">
-                Giriş Yap
+                {t('auth.loginLink')}
               </button>
             </>
           )}
@@ -180,6 +185,7 @@ function downloadQR(token: string, id: string) {
 
 // ─── Ticket Card ──────────────────────────────────────────────────────────────
 function TicketCard({ ticket }: { ticket: Ticket }) {
+  const { t, locale } = useLocale()
   const [showQR, setShowQR] = useState(false)
   const isUsed = ticket.status === 'used'
 
@@ -190,12 +196,12 @@ function TicketCard({ ticket }: { ticket: Ticket }) {
           <p className="font-bold text-white">{ticket.event_title}</p>
           {ticket.created_at && (
             <p className="mt-0.5 text-xs text-white/40">
-              {new Date(ticket.created_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
+              {new Date(ticket.created_at).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
             </p>
           )}
         </div>
         <span className={`rounded-full px-3 py-1 text-xs font-bold ${isUsed ? 'bg-gray-500/20 text-gray-400' : 'bg-green-500/20 text-green-400'}`}>
-          {isUsed ? 'Kullanılmış' : 'Aktif'}
+          {isUsed ? t('profileDash.statusUsed') : t('profileDash.statusActive')}
         </span>
       </div>
 
@@ -204,7 +210,7 @@ function TicketCard({ ticket }: { ticket: Ticket }) {
           onClick={() => setShowQR(!showQR)}
           className="mb-3 flex w-full items-center justify-between rounded-xl bg-white/5 px-4 py-2.5 text-sm font-semibold text-white/70 transition hover:bg-white/10"
         >
-          <span>QR Kodu Göster</span>
+          <span>{t('profileDash.qrShow')}</span>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={`h-4 w-4 transition ${showQR ? 'rotate-180' : ''}`}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
           </svg>
@@ -224,7 +230,7 @@ function TicketCard({ ticket }: { ticket: Ticket }) {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
-            QR Kodu İndir
+            {t('profileDash.qrDownload')}
           </button>
         </div>
       )}
@@ -234,7 +240,7 @@ function TicketCard({ ticket }: { ticket: Ticket }) {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          Bu bilet kullanılmıştır
+          {t('profileDash.ticketUsed')}
         </div>
       )}
     </div>
@@ -243,6 +249,7 @@ function TicketCard({ ticket }: { ticket: Ticket }) {
 
 // ─── Profile Dashboard ────────────────────────────────────────────────────────
 function ProfileDashboard({ authToken, onLogout }: { authToken: string; onLogout: () => void }) {
+  const { t } = useLocale()
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'active' | 'used'>('all')
@@ -250,7 +257,6 @@ function ProfileDashboard({ authToken, onLogout }: { authToken: string; onLogout
 
   const load = useCallback(() => {
     setLoading(true)
-    // Load user from token
     setUser(getUser())
     api.getMyTickets(authToken)
       .then(setTickets)
@@ -260,17 +266,17 @@ function ProfileDashboard({ authToken, onLogout }: { authToken: string; onLogout
 
   useEffect(() => { load() }, [load])
 
-  const filtered = tickets.filter((t) => {
+  const filtered = tickets.filter((tk) => {
     if (filter === 'all') return true
-    if (filter === 'active') return t.status !== 'used'
-    return t.status === 'used'
+    if (filter === 'active') return tk.status !== 'used'
+    return tk.status === 'used'
   })
 
-  const activeCount = tickets.filter((t) => t.status !== 'used').length
-  const usedCount = tickets.filter((t) => t.status === 'used').length
+  const activeCount = tickets.filter((tk) => tk.status !== 'used').length
+  const usedCount = tickets.filter((tk) => tk.status === 'used').length
 
   const isAdmin = user?.role === 'admin'
-  const displayName = user?.name || user?.email?.split('@')[0] || 'Kullanıcı'
+  const displayName = user?.name || user?.email?.split('@')[0] || t('nav.userFallback')
   const userInitial = displayName.charAt(0).toUpperCase()
 
   return (
@@ -288,7 +294,7 @@ function ProfileDashboard({ authToken, onLogout }: { authToken: string; onLogout
               <span className={`inline-block mt-1 rounded-full px-2 py-0.5 text-xs font-semibold ${
                 isAdmin ? 'bg-orange-500/20 text-orange-400' : 'bg-white/10 text-white/60'
               }`}>
-                {isAdmin ? 'Yönetici' : 'Kullanıcı'}
+                {isAdmin ? t('profileDash.roleAdmin') : t('profileDash.roleUser')}
               </span>
             </div>
           </div>
@@ -305,7 +311,7 @@ function ProfileDashboard({ authToken, onLogout }: { authToken: string; onLogout
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
             </div>
-            <span className="font-semibold text-white">Profil Ayarları</span>
+            <span className="font-semibold text-white">{t('profileDash.profileSettings')}</span>
           </Link>
 
           {isAdmin && (
@@ -319,7 +325,7 @@ function ProfileDashboard({ authToken, onLogout }: { authToken: string; onLogout
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
               </div>
-              <span className="font-semibold text-white">Admin Panel</span>
+              <span className="font-semibold text-white">{t('profileDash.adminPanel')}</span>
             </Link>
           )}
 
@@ -332,16 +338,16 @@ function ProfileDashboard({ authToken, onLogout }: { authToken: string; onLogout
                 <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
               </svg>
             </div>
-            <span className="font-semibold text-red-400">Çıkış Yap</span>
+            <span className="font-semibold text-red-400">{t('profileDash.logout')}</span>
           </button>
         </div>
 
         {/* Tickets Section */}
         <div className="mb-6">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-bold text-white">Biletlerim</h2>
+            <h2 className="text-lg font-bold text-white">{t('profileDash.myTickets')}</h2>
             <Link href="/" className="text-sm font-semibold text-orange-400 hover:underline">
-              Bilet Al
+              {t('profileDash.buyTicket')}
             </Link>
           </div>
 
@@ -349,15 +355,15 @@ function ProfileDashboard({ authToken, onLogout }: { authToken: string; onLogout
           <div className="mb-6 grid grid-cols-3 gap-3">
             <div className="rounded-2xl bg-white/5 p-4 text-center">
               <p className="text-2xl font-extrabold text-white">{tickets.length}</p>
-              <p className="text-xs text-white/50 mt-0.5">Toplam</p>
+              <p className="text-xs text-white/50 mt-0.5">{t('profileDash.total')}</p>
             </div>
             <div className="rounded-2xl bg-green-500/10 p-4 text-center">
               <p className="text-2xl font-extrabold text-green-400">{activeCount}</p>
-              <p className="text-xs text-white/50 mt-0.5">Aktif</p>
+              <p className="text-xs text-white/50 mt-0.5">{t('profileDash.active')}</p>
             </div>
             <div className="rounded-2xl bg-white/5 p-4 text-center">
               <p className="text-2xl font-extrabold text-white/40">{usedCount}</p>
-              <p className="text-xs text-white/50 mt-0.5">Kullanılmış</p>
+              <p className="text-xs text-white/50 mt-0.5">{t('profileDash.used')}</p>
             </div>
           </div>
 
@@ -369,26 +375,26 @@ function ProfileDashboard({ authToken, onLogout }: { authToken: string; onLogout
                 onClick={() => setFilter(f)}
                 className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${filter === f ? 'bg-orange-500 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
               >
-                {f === 'all' ? 'Tümü' : f === 'active' ? 'Aktif' : 'Kullanılmış'}
+                {f === 'all' ? t('profileDash.filterAll') : f === 'active' ? t('profileDash.filterActive') : t('profileDash.filterUsed')}
               </button>
             ))}
           </div>
 
           {/* Tickets */}
           {loading ? (
-            <div className="py-16 text-center text-white/40">Biletler yükleniyor...</div>
+            <div className="py-16 text-center text-white/40">{t('profileDash.loading')}</div>
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center gap-4 py-16 text-center">
               <div className="text-5xl opacity-30">🎫</div>
               <p className="text-white/40">
-                {filter === 'all' ? 'Henüz biletiniz yok' : filter === 'active' ? 'Aktif biletiniz yok' : 'Kullanılmış biletiniz yok'}
+                {filter === 'all' ? t('profileDash.noTicketsAll') : filter === 'active' ? t('profileDash.noTicketsActive') : t('profileDash.noTicketsUsed')}
               </p>
               {filter === 'all' && (
                 <a
                   href="/"
                   className="rounded-xl bg-orange-500 px-6 py-2.5 text-sm font-bold text-white transition hover:bg-orange-400"
                 >
-                  Bilet Al
+                  {t('profileDash.buyTicket')}
                 </a>
               )}
             </div>
@@ -404,8 +410,8 @@ function ProfileDashboard({ authToken, onLogout }: { authToken: string; onLogout
         {/* Festival info */}
         <div className="mt-10 rounded-2xl bg-orange-500/10 border border-orange-500/20 px-5 py-4">
           <p className="text-sm font-bold text-orange-400 mb-1">9th Istanbul International Zumba Festival</p>
-          <p className="text-xs text-white/50">17–18 Ekim 2026 · Green Park Hotel Pendik Convention Center</p>
-          <p className="mt-2 text-xs text-white/40">Girişte QR kodunuzu görevlilere okutunuz.</p>
+          <p className="text-xs text-white/50">{t('profileDash.festivalDates')}</p>
+          <p className="mt-2 text-xs text-white/40">{t('profileDash.qrHint')}</p>
         </div>
       </div>
     </div>

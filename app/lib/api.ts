@@ -78,6 +78,7 @@ export interface CompletePaymentResponse {
   event_title?: string
   quantity?: number
   status?: string
+  qr_token?: string
 }
 
 export interface PaymentStatusResponse {
@@ -120,7 +121,7 @@ export interface DiscountValidateResponse {
 export interface AdminStats {
   total_users: number
   total_tickets: number
-  used_tickets: number
+  tickets_used: number
   total_events: number
   total_revenue?: number
 }
@@ -157,11 +158,24 @@ export interface AdminUser {
 
 export interface AdminTicket {
   id: string
+  ticket_id?: string
+  event_id?: string
+  event_title: string
+  event_date?: string
+  event_location?: string
+  user_id?: string | null
   user_name?: string
   user_email?: string
-  event_title: string
+  buyer_name?: string
+  buyer_email?: string
+  buyer_phone?: string
+  source?: 'user' | 'guest' | 'offline'
+  is_offline?: boolean
+  is_assigned?: boolean
+  note?: string
   qr_token: string
-  status: 'active' | 'used'
+  quantity?: number
+  status: 'VALID' | 'USED'
   created_at?: string
   guest_email?: string
 }
@@ -181,12 +195,18 @@ export interface SiteContent {
     image_url?: string
     button_text?: string
     button_link?: string
+    title_en?: string
+    subtitle_en?: string
+    description_en?: string
+    button_text_en?: string
   }
   venue?: {
     name?: string
     address?: string
     map_embed_url?: string
     description?: string
+    address_en?: string
+    description_en?: string
   }
 }
 
@@ -198,10 +218,10 @@ export const api = {
     })
   },
 
-  async register(name: string, email: string, password: string): Promise<RegisterResponse> {
+  async register(name: string, email: string, password: string, phone?: string): Promise<RegisterResponse> {
     return apiFetch<RegisterResponse>('/api/register', {
       method: 'POST',
-      body: JSON.stringify({ name, email, password }),
+      body: JSON.stringify({ name, email, password, phone: phone || '' }),
     })
   },
 
@@ -267,6 +287,35 @@ export const api = {
 
   async getAdminTickets(token: string): Promise<AdminTicket[]> {
     return apiFetch<AdminTicket[]>('/api/admin/tickets', {}, token)
+  },
+
+  async bulkCreateTickets(
+    eventId: string,
+    quantity: number,
+    note: string,
+    token: string
+  ): Promise<{ count: number; tickets: { id: string; qr_token: string; event_id: string; event_title: string }[] }> {
+    return apiFetch(
+      '/api/admin/tickets/bulk-create',
+      { method: 'POST', body: JSON.stringify({ event_id: eventId, quantity, note }) },
+      token
+    )
+  },
+
+  async assignTicket(
+    ticketId: string,
+    data: { buyer_name: string; buyer_email?: string; buyer_phone?: string; note?: string },
+    token: string
+  ): Promise<{ success: boolean }> {
+    return apiFetch(
+      `/api/admin/tickets/${ticketId}/assign`,
+      { method: 'POST', body: JSON.stringify(data) },
+      token
+    )
+  },
+
+  async deleteTicket(ticketId: string, token: string): Promise<{ success: boolean }> {
+    return apiFetch(`/api/admin/tickets/${ticketId}`, { method: 'DELETE' }, token)
   },
 
   async verifyQR(qrToken: string, token: string): Promise<{ success: boolean; message: string; ticket?: AdminTicket }> {
