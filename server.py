@@ -129,6 +129,17 @@ class AdminCreateTicketRequest(BaseModel):
     user_email: str
     quantity: int = 1
 
+class AdminBulkCreateTicketRequest(BaseModel):
+    event_id: str
+    quantity: int = 1
+    note: Optional[str] = None  # e.g. "Elden satış - kasa 1"
+
+class AssignTicketRequest(BaseModel):
+    buyer_name: str
+    buyer_email: Optional[str] = ""
+    buyer_phone: Optional[str] = ""
+    note: Optional[str] = ""
+
 class BuyTicketRequest(BaseModel):
     event_id: str
     quantity: int = 1
@@ -267,12 +278,20 @@ class BetoPerezContent(BaseModel):
     image_url: str = "/images/beto-perez.jpg"
     button_text: str = "Bilet Al"
     button_link: str = "/tickets"
+    # English translations (optional, falls back to TR if empty)
+    title_en: str = ""
+    subtitle_en: str = ""
+    description_en: str = ""
+    button_text_en: str = ""
 
 class VenueContent(BaseModel):
     name: str = "Green Park Hotel"
     address: str = "Pendik, İstanbul"
     map_embed_url: str = "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3011.595166434!2d29.287!3d40.879!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zNDDCsDUyJzQ0LjQiTiAyOcKwMTcnMTMuMiJF!5e0!3m2!1str!2str!4v1609459200000!5m2!1str!2str"
     description: str = "İstanbul'un en prestijli otellerinden biri olan Green Park Hotel'de gerçekleşecek olan bu özel etkinlikte, profesyonel dans salonları ve konforlu ortam ile unutulmaz bir deneyim sizi bekliyor."
+    # English translations (optional)
+    address_en: str = ""
+    description_en: str = ""
 
 class SiteContent(BaseModel):
     hero_video_url: str = "/videos/zumbaarkaplan.mp4"
@@ -875,36 +894,37 @@ async def admin_delete_discount(discount_id: str, admin: dict = Depends(require_
     return {"success": True, "message": "Kupon silindi"}
 
 @api_router.get("/tickets/by-email")
-async def get_tickets_by_email(email: str, phone_last4: str = ""):
-    """Get tickets by buyer email + phone last 4 digits verification."""
+async def get_tickets_by_email(email: str, phone_last4: str = "", buyer_name: str = ""):
+    """Get tickets by buyer email + name verification."""
     email = email.lower().strip()
+    buyer_name = buyer_name.strip().lower()
     
-    if not phone_last4 or len(phone_last4) != 4:
-        raise HTTPException(status_code=400, detail="Telefon numaranızın son 4 hanesini girin.")
+    if not buyer_name:
+        raise HTTPException(status_code=400, detail="Ad soyad bilgisi gereklidir.")
     
     # Find user by email
     user = await db.users.find_one({"email": email})
     user_id = user["id"] if user else None
     
-    # Verify phone last 4 digits from pending_payments or user record
-    phone_verified = False
+    # Verify name from user record or pending_payments
+    name_verified = False
+    
+    # Check user record name
+    if user and user.get("name"):
+        if user["name"].strip().lower() == buyer_name:
+            name_verified = True
     
     # Check pending_payments for this email
     pending_payments = await db.pending_payments.find({"buyer_email": email}).to_list(100)
-    for pp in pending_payments:
-        buyer_phone = pp.get("buyer_phone", "")
-        if buyer_phone and buyer_phone.replace(" ", "").replace("-", "")[-4:] == phone_last4:
-            phone_verified = True
-            break
+    if not name_verified:
+        for pp in pending_payments:
+            pp_name = pp.get("buyer_name", "").strip().lower()
+            if pp_name and pp_name == buyer_name:
+                name_verified = True
+                break
     
-    # Also check user record phone
-    if not phone_verified and user and user.get("phone"):
-        user_phone = user["phone"].replace(" ", "").replace("-", "")
-        if user_phone[-4:] == phone_last4:
-            phone_verified = True
-    
-    if not phone_verified:
-        raise HTTPException(status_code=403, detail="Telefon numarası eşleşmiyor.")
+    if not name_verified:
+        raise HTTPException(status_code=403, detail="Ad soyad bilgisi eşleşmiyor.")
     
     # Find tickets by user_id OR by pending_payment buyer_email
     query = {"$or": []}
@@ -1239,26 +1259,163 @@ async def mark_notification_read(notification_id: str, user: dict = Depends(get_
 
 @api_router.get("/admin/tickets")
 async def get_admin_tickets(user: dict = Depends(require_admin)):
-    """Get all tickets for admin panel."""
+    """Get all tickets for admin panel with full buyer information."""
     tickets = await db.tickets.find().sort("created_at", -1).to_list(10000)
     result = []
     for ticket in tickets:
         event = await db.events.find_one({"id": ticket.get("event_id")})
-        buyer = await db.users.find_one({"id": ticket.get("user_id")})
+        buyer = None
+        if ticket.get("user_id"):
+            buyer = await db.users.find_one({"id": ticket.get("user_id")})
+
         raw_status = ticket.get("status", "VALID")
         status = "VALID" if raw_status == "active" else raw_status
+
+        # Determine buyer info priority:
+        # 1. Registered user (user_id)
+        # 2. Offline ticket explicit fields (buyer_name/email/phone on ticket itself)
+        # 3. Guest checkout: look up pending_payment by ticket id
+        buyer_name = ""
+        buyer_email = ""
+        buyer_phone = ""
+        source = "online"
+
+        if buyer:
+            buyer_name = buyer.get("name", "")
+            buyer_email = buyer.get("email", "")
+            buyer_phone = buyer.get("phone", "")
+            source = "user"
+        elif ticket.get("buyer_name") or ticket.get("buyer_email"):
+            # Offline tickets that were directly assigned
+            buyer_name = ticket.get("buyer_name", "")
+            buyer_email = ticket.get("buyer_email", "")
+            buyer_phone = ticket.get("buyer_phone", "")
+            source = "offline" if ticket.get("is_offline") else "guest"
+        else:
+            # Try to find a successful pending_payment with this ticket id
+            pp = await db.pending_payments.find_one(
+                {"ticket_ids": ticket.get("id")},
+                sort=[("created_at", -1)]
+            )
+            if not pp:
+                pp = await db.pending_payments.find_one(
+                    {"ticket_id": ticket.get("id")},
+                    sort=[("created_at", -1)]
+                )
+            if pp:
+                buyer_name = pp.get("buyer_name", "")
+                buyer_email = pp.get("buyer_email", "")
+                buyer_phone = pp.get("buyer_phone", "")
+                source = "guest"
+
         result.append({
             "id": ticket.get("id"),
             "ticket_id": ticket.get("id"),
+            "event_id": ticket.get("event_id"),
             "event_title": event.get("title") if event else "Bilinmeyen",
-            "buyer_name": buyer.get("name") if buyer else ticket.get("buyer_name", "Misafir"),
-            "buyer_email": buyer.get("email") if buyer else ticket.get("buyer_email", ""),
+            "event_date": event.get("date").isoformat() if event and event.get("date") else "",
+            "event_location": event.get("location") if event else "",
+            "user_id": ticket.get("user_id"),
+            "user_name": buyer_name if source == "user" else "",
+            "user_email": buyer_email if source == "user" else "",
+            "buyer_name": buyer_name,
+            "buyer_email": buyer_email,
+            "buyer_phone": buyer_phone,
+            "source": source,  # 'user' | 'guest' | 'offline'
+            "is_offline": bool(ticket.get("is_offline", False)),
+            "is_assigned": bool(buyer_name or buyer_email),
+            "note": ticket.get("note", ""),
             "quantity": ticket.get("quantity", 1),
             "status": status,
             "qr_token": ticket.get("qr_token", ""),
             "created_at": ticket.get("created_at", "").isoformat() if ticket.get("created_at") else "",
         })
     return result
+
+
+@api_router.post("/admin/tickets/bulk-create")
+async def admin_bulk_create_tickets(request: AdminBulkCreateTicketRequest, admin: dict = Depends(require_admin)):
+    """Admin creates N offline (unassigned) tickets in bulk for hand-sales (elden satış)."""
+    event = await db.events.find_one({"id": request.event_id})
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    if request.quantity <= 0 or request.quantity > 1000:
+        raise HTTPException(status_code=400, detail="Quantity must be 1..1000")
+
+    # Capacity check
+    tickets_sold = await db.tickets.count_documents({"event_id": request.event_id})
+    if tickets_sold + request.quantity > event["capacity"]:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Not enough capacity. {event['capacity'] - tickets_sold} tickets remaining."
+        )
+
+    created = []
+    now = datetime.utcnow()
+    for _ in range(request.quantity):
+        ticket_id = str(uuid.uuid4())
+        qr_token = generate_qr_token()
+        ticket = {
+            "id": ticket_id,
+            "user_id": None,
+            "event_id": request.event_id,
+            "qr_token": qr_token,
+            "status": "VALID",
+            "is_offline": True,
+            "buyer_name": "",
+            "buyer_email": "",
+            "buyer_phone": "",
+            "note": request.note or "",
+            "created_by_admin": admin["id"],
+            "created_at": now
+        }
+        await db.tickets.insert_one(ticket)
+        created.append({
+            "id": ticket_id,
+            "qr_token": qr_token,
+            "event_id": request.event_id,
+            "event_title": event["title"],
+        })
+
+    return {"count": len(created), "tickets": created}
+
+
+@api_router.post("/admin/tickets/{ticket_id}/assign")
+async def admin_assign_ticket(ticket_id: str, request: AssignTicketRequest, admin: dict = Depends(require_admin)):
+    """Admin assigns an offline ticket to a customer (name/email/phone)."""
+    ticket = await db.tickets.find_one({"id": ticket_id})
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+
+    update_data = {
+        "buyer_name": request.buyer_name.strip(),
+        "buyer_email": (request.buyer_email or "").strip().lower(),
+        "buyer_phone": (request.buyer_phone or "").strip(),
+        "assigned_at": datetime.utcnow(),
+        "assigned_by": admin["id"],
+    }
+    if request.note:
+        update_data["note"] = request.note.strip()
+
+    await db.tickets.update_one({"id": ticket_id}, {"$set": update_data})
+    return {"success": True, "ticket_id": ticket_id, **update_data}
+
+
+@api_router.delete("/admin/tickets/{ticket_id}")
+async def admin_delete_ticket(ticket_id: str, admin: dict = Depends(require_admin)):
+    """Admin deletes a ticket (offline/unsold only)."""
+    ticket = await db.tickets.find_one({"id": ticket_id})
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    # Only allow deletion of offline (admin-created) tickets, never paid ones
+    if not ticket.get("is_offline"):
+        raise HTTPException(status_code=400, detail="Only offline tickets can be deleted")
+    if ticket.get("status") == "USED":
+        raise HTTPException(status_code=400, detail="Cannot delete a used ticket")
+    await db.tickets.delete_one({"id": ticket_id})
+    return {"success": True}
+
 
 @api_router.get("/admin/stats")
 async def get_admin_stats(user: dict = Depends(require_admin)):
