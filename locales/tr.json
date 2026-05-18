@@ -221,7 +221,14 @@
     "statusUsed": "Kullanılmış",
     "statusActive": "Aktif",
     "festivalDates": "17–18 Ekim 2026 · Green Park Hotel Pendik Convention Center",
-    "qrHint": "Girişte QR kodunuzu görevlilere okutunuz."
+    "qrHint": "Girişte QR kodunuzu görevlilere okutunuz.",
+    "deleteAccount": "Hesabımı Sil",
+    "deleteConfirmTitle": "Hesabı Sil",
+    "deleteConfirmText": "Hesabınızı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.",
+    "cancel": "İptal",
+    "confirmDelete": "Sil",
+    "deleting": "Siliniyor...",
+    "deleteError": "Hesap silinirken bir hata oluştu."
   },
   "profileSettings": {
     "title": "Profil Ayarları",

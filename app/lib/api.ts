@@ -406,4 +406,8 @@ export const api = {
   async resetUserPassword(userId: string, newPassword: string, token: string): Promise<void> {
     return apiFetch<void>(`/api/admin/users/${userId}/reset-password`, { method: 'POST', body: JSON.stringify({ new_password: newPassword }) }, token)
   },
+
+  async deleteMe(token: string): Promise<void> {
+    return apiFetch<void>('/api/me', { method: 'DELETE' }, token)
+  },
 }

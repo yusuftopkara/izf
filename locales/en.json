@@ -31,9 +31,9 @@
     "remaining": "remaining",
     "selectOption": "How would you like to continue?",
     "loadingEvent": "Loading event information...",
-    "whatsappInfo": "International visitors: Get personalized assistance and special travel-bundle rates via WhatsApp.",
+    "whatsappInfo": "Have questions? Reach us directly on WhatsApp for quick assistance.",
     "whatsappBtn": "Chat with us on WhatsApp",
-    "whatsappSub": "English-friendly support · Special intl. rates",
+    "whatsappSub": "Quick response · English-friendly support",
     "memberBtn": "Registered User",
     "memberSub": "Log in to your account",
     "guestBtn": "Continue as Guest",
@@ -221,7 +221,14 @@
     "statusUsed": "Used",
     "statusActive": "Active",
     "festivalDates": "October 17–18, 2026 · Green Park Hotel Pendik Convention Center",
-    "qrHint": "Show your QR code at the entrance."
+    "qrHint": "Show your QR code at the entrance.",
+    "deleteAccount": "Delete My Account",
+    "deleteConfirmTitle": "Delete Account",
+    "deleteConfirmText": "Are you sure you want to delete your account? This action cannot be undone.",
+    "cancel": "Cancel",
+    "confirmDelete": "Delete",
+    "deleting": "Deleting...",
+    "deleteError": "Account could not be deleted"
   },
   "profileSettings": {
     "title": "Profile Settings",

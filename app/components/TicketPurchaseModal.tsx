@@ -281,11 +281,6 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
                   rel="noopener noreferrer"
                   className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-green-500 to-green-600 p-4 transition hover:shadow-lg hover:shadow-green-500/30 active:scale-[0.98]"
                 >
-                  {locale === 'en' && (
-                    <div className="absolute top-2 right-2 z-10 rounded-full bg-yellow-400 px-2 py-0.5 text-[10px] font-extrabold text-black shadow-md">
-                      INTERNATIONAL
-                    </div>
-                  )}
                   <div className="flex items-center gap-4">
                     <div className="relative flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-white/10">
                       <svg viewBox="0 0 24 24" className="h-6 w-6 fill-white" aria-hidden="true">
