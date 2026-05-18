@@ -602,6 +602,22 @@ async def get_profile(user: dict = Depends(get_user_from_header)):
         "created_at": user["created_at"]
     }
 
+# ==================== DELETE ACCOUNT ====================
+
+@api_router.delete("/me")
+async def delete_my_account(user: dict = Depends(get_user_from_header)):
+    """Delete current user's account and all related data (keeps payments and comments)."""
+    user_id = user["id"]
+    
+    # Delete from all user-related collections
+    await db.users.delete_one({"id": user_id})
+    await db.tickets.delete_many({"user_id": user_id})
+    await db.pending_payments.delete_many({"buyer_email": user.get("email", "").lower()})
+    await db.user_challenges.delete_many({"user_id": user_id})
+    await db.notifications.delete_many({"user_id": user_id})
+    
+    return {"success": True, "message": "Hesabiniz basariyla silindi"}
+
 # ==================== ADMIN USER MANAGEMENT ====================
 
 class AdminCreateUserRequest(BaseModel):
