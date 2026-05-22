@@ -74,4 +74,7 @@ Thumbs.db
 
 # Sensitive files (auto-detected)
 node_modules
+__pycache__/
+*.py[cod]
+*$py.class
 
