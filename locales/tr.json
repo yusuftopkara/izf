@@ -269,5 +269,9 @@
   },
   "common": {
     "close": "Kapat"
+  },
+  "closed": {
+    "title": "Site Geçici Olarak Kapalı",
+    "message": "Istanbul Zumba Festival sitesi şu anda bakım çalışması nedeniyle geçici olarak kapalıdır. Daha sonra tekrar ziyaret ediniz."
   }
 }

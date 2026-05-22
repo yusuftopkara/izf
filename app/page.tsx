@@ -334,6 +334,31 @@ function LoadingState() {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+// SİTE KAPALI - BU DEĞİŞKENİ TRUE YAPARAK SİTEYİ KAPATABİLİRSİNİZ
+const SITE_KAPALI = true
+
+function SiteKapali() {
+  const { t } = useLocale()
+  return (
+    <div className="min-h-screen bg-[#0d0d1a] flex flex-col items-center justify-center px-4 text-center">
+      <Image
+        src="/images/festival-logo.png"
+        alt="Istanbul Zumba Festival Logo"
+        width={150}
+        height={150}
+        priority
+        className="drop-shadow-2xl mb-8 opacity-60"
+      />
+      <h1 className="text-4xl md:text-6xl font-extrabold text-white mb-6">
+        {t('closed.title')}
+      </h1>
+      <p className="text-xl text-white/70 max-w-xl">
+        {t('closed.message')}
+      </p>
+    </div>
+  )
+}
+
 export default function Page() {
   const [content, setContent] = useState<SiteContent | null>(null)
   const [loading, setLoading] = useState(true)
@@ -354,6 +379,11 @@ export default function Page() {
   }, [])
 
   if (loading) return <LoadingState />
+
+  // Site kapalıysa sadece kapalı mesajını göster
+  if (SITE_KAPALI) {
+    return <SiteKapali />
+  }
 
   return (
     <div className="min-h-full bg-[#1a1a2e] text-white">

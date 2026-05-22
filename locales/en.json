@@ -269,5 +269,9 @@
   },
   "common": {
     "close": "Close"
+  },
+  "closed": {
+    "title": "Site Temporarily Closed",
+    "message": "The Istanbul Zumba Festival website is temporarily closed for maintenance. Please visit again later."
   }
 }
