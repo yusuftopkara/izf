@@ -1,8 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: 'export',
-  distDir: 'dist',
+  // Railway'de server modda çalışması için output: 'export' kullanmıyoruz
 };
 
 export default nextConfig;
