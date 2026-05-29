@@ -68,6 +68,24 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
   const [pollingAttempts, setPollingAttempts] = useState(0)
   const [pollingTimeout, setPollingTimeout] = useState(false)
 
+  // ─── Auto-skip to step 2 if already logged in ────────────────────────────────
+  useEffect(() => {
+    if (!isOpen) return
+    const token = localStorage.getItem('izf_token')
+    if (!token) return
+    api.getMe(token)
+      .then((me) => {
+        setEmail(me.email)
+        setName(me.name)
+        setPhone((me as { phone?: string }).phone ?? '')
+        setStep(2)
+      })
+      .catch(() => {
+        // Invalid token — stay on step 1
+        localStorage.removeItem('izf_token')
+      })
+  }, [isOpen])
+
   useEffect(() => {
     if (!isOpen) return
     setLoadingEvent(true)
@@ -302,23 +320,7 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
 
                 {/* Registered User Option */}
                 <button
-                  onClick={async () => {
-                    const token = localStorage.getItem('izf_token')
-                    if (token) {
-                      try {
-                        const me = await api.getMe(token)
-                        setEmail(me.email)
-                        setName(me.name)
-                        setPhone((me as { phone?: string }).phone ?? '')
-                        setStep(2)
-                      } catch {
-                        localStorage.removeItem('izf_token')
-                        setAuthModalOpen(true)
-                      }
-                    } else {
-                      setAuthModalOpen(true)
-                    }
-                  }}
+                  onClick={() => setAuthModalOpen(true)}
                   className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 p-4 transition hover:shadow-lg hover:shadow-blue-500/30 active:scale-[0.98] text-left"
                 >
                   <div className="flex items-center gap-4">
