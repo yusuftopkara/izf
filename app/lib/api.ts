@@ -285,8 +285,13 @@ export const api = {
     )
   },
 
-  async getAdminTickets(token: string): Promise<AdminTicket[]> {
-    return apiFetch<AdminTicket[]>('/api/admin/tickets', {}, token)
+  async getAdminTickets(token: string, params?: { page?: number; page_size?: number; search?: string }): Promise<{ tickets: AdminTicket[]; total: number; page: number; page_size: number }> {
+    const qs = new URLSearchParams()
+    if (params?.page) qs.set('skip', String((params.page - 1) * (params.page_size || 50)))
+    if (params?.page_size) qs.set('limit', String(params.page_size))
+    if (params?.search) qs.set('search', params.search)
+    const query = qs.toString() ? `?${qs.toString()}` : ''
+    return apiFetch<{ tickets: AdminTicket[]; total: number; page: number; page_size: number }>(`/api/admin/tickets${query}`, {}, token)
   },
 
   async bulkCreateTickets(

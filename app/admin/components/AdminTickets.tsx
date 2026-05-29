@@ -1,18 +1,23 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import { api, type AdminTicket, type AdminEvent } from '../../lib/api'
+
+const PAGE_SIZE = 50
 
 export default function AdminTickets({ token }: { token: string }) {
   const [tickets, setTickets] = useState<AdminTicket[]>([])
   const [events, setEvents] = useState<AdminEvent[]>([])
   const [loading, setLoading] = useState(true)
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
   const [qrInput, setQrInput] = useState('')
   const [verifyResult, setVerifyResult] = useState<{ success: boolean; message: string } | null>(null)
   const [verifying, setVerifying] = useState(false)
   const [filter, setFilter] = useState<'all' | 'VALID' | 'USED' | 'unassigned'>('all')
   const [search, setSearch] = useState('')
+  const [searchInput, setSearchInput] = useState('')
 
   // Bulk create modal
   const [showBulk, setShowBulk] = useState(false)
@@ -29,15 +34,34 @@ export default function AdminTickets({ token }: { token: string }) {
   const [assignPhone, setAssignPhone] = useState('')
   const [assignLoading, setAssignLoading] = useState(false)
 
-  const reload = () => {
+  const totalPages = Math.ceil(total / PAGE_SIZE)
+
+  const doFetch = useCallback((pg: number, searchTerm: string) => {
     setLoading(true)
-    api.getAdminTickets(token).then(setTickets).catch(() => {}).finally(() => setLoading(false))
-  }
+    api.getAdminTickets(token, { page: pg, page_size: PAGE_SIZE, search: searchTerm })
+      .then(res => {
+        setTickets(res.tickets)
+        setTotal(res.total)
+        setPage(pg)
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [token])
+
+  // Initial load & reload
+  const reload = () => doFetch(1, search)
 
   useEffect(() => {
-    api.getAdminTickets(token).then(setTickets).catch(() => {}).finally(() => setLoading(false))
+    doFetch(1, search)
     api.getAdminEvents(token).then(setEvents).catch(() => {})
-  }, [token])
+  }, [token, doFetch])
+
+  function handleSearchSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setSearch(searchInput.trim())
+    setPage(1)
+    doFetch(1, searchInput.trim())
+  }
 
   async function handleVerify(e: React.FormEvent) {
     e.preventDefault()
@@ -140,26 +164,18 @@ export default function AdminTickets({ token }: { token: string }) {
     img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgStr)))
   }
 
-  const filtered = tickets.filter((t) => {
+  const displayed = tickets.filter((t) => {
     if (filter === 'VALID' && t.status !== 'VALID') return false
     if (filter === 'USED' && t.status !== 'USED') return false
     if (filter === 'unassigned' && (t.is_assigned || t.user_id)) return false
-    if (!search.trim()) return true
-    const q = search.trim().toLowerCase()
-    return (
-      (t.buyer_name || '').toLowerCase().includes(q) ||
-      (t.buyer_email || '').toLowerCase().includes(q) ||
-      (t.user_name || '').toLowerCase().includes(q) ||
-      (t.user_email || '').toLowerCase().includes(q) ||
-      (t.qr_token || '').toLowerCase().includes(q)
-    )
+    return true
   })
 
   const stats = {
-    total: tickets.length,
-    valid: tickets.filter((t) => t.status === 'VALID').length,
-    used: tickets.filter((t) => t.status === 'USED').length,
-    unassigned: tickets.filter((t) => !t.is_assigned && !t.user_id).length,
+    total,
+    valid: 0,  // calculated from current page only (no full scan)
+    used: 0,
+    unassigned: 0,
   }
 
   return (
@@ -202,21 +218,38 @@ export default function AdminTickets({ token }: { token: string }) {
 
       {/* Stats summary */}
       <div className="mb-4 grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="rounded-xl bg-white border border-gray-100 px-4 py-3"><p className="text-xs text-gray-500">Toplam</p><p className="text-xl font-extrabold text-gray-900">{stats.total}</p></div>
-        <div className="rounded-xl bg-green-50 border border-green-100 px-4 py-3"><p className="text-xs text-gray-500">Aktif</p><p className="text-xl font-extrabold text-green-700">{stats.valid}</p></div>
-        <div className="rounded-xl bg-gray-50 border border-gray-100 px-4 py-3"><p className="text-xs text-gray-500">Kullanılan</p><p className="text-xl font-extrabold text-gray-700">{stats.used}</p></div>
-        <div className="rounded-xl bg-yellow-50 border border-yellow-100 px-4 py-3"><p className="text-xs text-gray-500">Atanmamış (Elden)</p><p className="text-xl font-extrabold text-yellow-700">{stats.unassigned}</p></div>
+        <div className="rounded-xl bg-white border border-gray-100 px-4 py-3"><p className="text-xs text-gray-500">Toplam</p><p className="text-xl font-extrabold text-gray-900">{total}</p></div>
+        <div className="rounded-xl bg-green-50 border border-green-100 px-4 py-3"><p className="text-xs text-gray-500">Sayfa {page}/{totalPages || 1}</p><p className="text-xl font-extrabold text-green-700">{displayed.length}</p></div>
+        <div className="rounded-xl bg-gray-50 border border-gray-100 px-4 py-3"><p className="text-xs text-gray-500">Aktif</p><p className="text-xl font-extrabold text-gray-700">{displayed.filter(t => t.status === 'VALID').length}</p></div>
+        <div className="rounded-xl bg-yellow-50 border border-yellow-100 px-4 py-3"><p className="text-xs text-gray-500">Atanmamış</p><p className="text-xl font-extrabold text-yellow-700">{displayed.filter(t => !t.is_assigned && !t.user_id).length}</p></div>
       </div>
 
       {/* Search + Filter */}
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="İsim, e-posta veya QR ile ara..."
-          className="flex-1 min-w-[200px] rounded-xl border border-gray-200 px-4 py-2 text-sm outline-none focus:border-orange-500"
-        />
+        <form onSubmit={handleSearchSubmit} className="flex-1 flex gap-2 min-w-[200px]">
+          <input
+            type="text"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="İsim, e-posta veya QR ile ara..."
+            className="flex-1 rounded-xl border border-gray-200 px-4 py-2 text-sm outline-none focus:border-orange-500"
+          />
+          <button
+            type="submit"
+            className="rounded-xl bg-orange-500 px-4 py-2 text-sm font-bold text-white hover:bg-orange-400 transition"
+          >
+            Ara
+          </button>
+          {search && (
+            <button
+              type="button"
+              onClick={() => { setSearch(''); setSearchInput(''); doFetch(1, '') }}
+              className="rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-500 hover:bg-gray-50"
+            >
+              ✕ Temizle
+            </button>
+          )}
+        </form>
         {(['all', 'VALID', 'USED', 'unassigned'] as const).map((f) => (
           <button
             key={f}
@@ -226,7 +259,26 @@ export default function AdminTickets({ token }: { token: string }) {
             {f === 'all' ? 'Tümü' : f === 'VALID' ? 'Aktif' : f === 'USED' ? 'Kullanılmış' : 'Atanmamış'}
           </button>
         ))}
-        <span className="ml-2 self-center text-xs text-gray-400">{filtered.length} bilet</span>
+        <span className="ml-2 self-center text-xs text-gray-400">{total} bilet</span>
+      </div>
+
+      {/* Pagination */}
+      <div className="mb-4 flex items-center justify-center gap-2">
+        <button
+          onClick={() => doFetch(page - 1, search)}
+          disabled={page <= 1}
+          className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          ← Önceki
+        </button>
+        <span className="px-3 text-sm text-gray-600">Sayfa {page} / {totalPages || 1}</span>
+        <button
+          onClick={() => doFetch(page + 1, search)}
+          disabled={page >= totalPages}
+          className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          Sonraki →
+        </button>
       </div>
 
       {loading ? (
@@ -247,12 +299,12 @@ export default function AdminTickets({ token }: { token: string }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {filtered.length === 0 ? (
+                {displayed.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-4 py-8 text-center text-gray-400">Bilet bulunamadı</td>
                   </tr>
                 ) : (
-                  filtered.map((t) => {
+                  displayed.map((t) => {
                     const owner = t.buyer_name || t.user_name
                     const ownerEmail = t.buyer_email || t.user_email
                     const isUnassigned = !owner && !ownerEmail
@@ -326,6 +378,27 @@ export default function AdminTickets({ token }: { token: string }) {
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {/* Bottom Pagination */}
+      {!loading && totalPages > 1 && (
+        <div className="mt-4 flex items-center justify-center gap-2">
+          <button
+            onClick={() => doFetch(page - 1, search)}
+            disabled={page <= 1}
+            className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            ← Önceki
+          </button>
+          <span className="px-3 text-sm text-gray-600">Sayfa {page} / {totalPages}</span>
+          <button
+            onClick={() => doFetch(page + 1, search)}
+            disabled={page >= totalPages}
+            className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Sonraki →
+          </button>
         </div>
       )}
 

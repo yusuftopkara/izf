@@ -1263,15 +1263,79 @@ async def mark_notification_read(notification_id: str, user: dict = Depends(get_
 # ==================== ADMIN ROUTES ====================
 
 @api_router.get("/admin/tickets")
-async def get_admin_tickets(user: dict = Depends(require_admin)):
-    """Get all tickets for admin panel with full buyer information."""
-    tickets = await db.tickets.find().sort("created_at", -1).to_list(10000)
+async def get_admin_tickets(
+    user: dict = Depends(require_admin),
+    skip: int = 0,
+    limit: int = 50,
+    search: str = "",
+):
+    """Get tickets for admin panel with pagination, batch fetching, and search."""
+    if limit > 200:
+        limit = 200
+    if limit < 1:
+        limit = 1
+    if skip < 0:
+        skip = 0
+
+    # Build base query with search filter
+    query = {}
+    if search.strip():
+        search_regex = {"$regex": search.strip(), "$options": "i"}
+        query["$or"] = [
+            {"buyer_name": search_regex},
+            {"buyer_email": search_regex},
+            {"qr_token": search_regex},
+        ]
+
+    # Total count
+    total = await db.tickets.count_documents(query)
+
+    # Paginated tickets sorted by created_at desc
+    cursor = db.tickets.find(query).sort("created_at", -1).skip(skip).limit(limit)
+    tickets = await cursor.to_list(length=limit)
+
+    if not tickets:
+        return {"tickets": [], "total": total, "page": skip // limit + 1, "page_size": limit}
+
+    # ---- Batch fetch events ----
+    event_ids = list({t.get("event_id") for t in tickets if t.get("event_id")})
+    events_map = {}
+    if event_ids:
+        async for ev in db.events.find({"id": {"$in": event_ids}}):
+            events_map[ev["id"]] = ev
+
+    # ---- Batch fetch users ----
+    user_ids = list({t.get("user_id") for t in tickets if t.get("user_id")})
+    users_map = {}
+    if user_ids:
+        async for u in db.users.find({"id": {"$in": user_ids}}):
+            users_map[u["id"]] = u
+
+    # ---- Batch fetch pending_payments for tickets missing buyer info ----
+    # Collect tickets that need pending_payment lookup (no user_id, no buyer_name/email on ticket)
+    tickets_needing_pp = [
+        t for t in tickets
+        if not t.get("user_id") and not (t.get("buyer_name") or t.get("buyer_email"))
+    ]
+    pp_map = {}
+    if tickets_needing_pp:
+        ticket_ids = [t.get("id") for t in tickets_needing_pp]
+        # Search by ticket_ids array field OR ticket_id single field
+        async for pp in db.pending_payments.find(
+            {"$or": [{"ticket_ids": {"$in": ticket_ids}}, {"ticket_id": {"$in": ticket_ids}}]}
+        ):
+            # pp["ticket_ids"] is a list; pp["ticket_id"] is a single id
+            for tid in ticket_ids:
+                if tid in (pp.get("ticket_ids") or []):
+                    pp_map[tid] = pp
+                if tid == pp.get("ticket_id"):
+                    pp_map[tid] = pp
+
+    # ---- Build result ----
     result = []
     for ticket in tickets:
-        event = await db.events.find_one({"id": ticket.get("event_id")})
-        buyer = None
-        if ticket.get("user_id"):
-            buyer = await db.users.find_one({"id": ticket.get("user_id")})
+        event = events_map.get(ticket.get("event_id"))
+        buyer = users_map.get(ticket.get("user_id"))
 
         raw_status = ticket.get("status", "VALID")
         status = "VALID" if raw_status == "active" else raw_status
@@ -1291,22 +1355,12 @@ async def get_admin_tickets(user: dict = Depends(require_admin)):
             buyer_phone = buyer.get("phone", "")
             source = "user"
         elif ticket.get("buyer_name") or ticket.get("buyer_email"):
-            # Offline tickets that were directly assigned
             buyer_name = ticket.get("buyer_name", "")
             buyer_email = ticket.get("buyer_email", "")
             buyer_phone = ticket.get("buyer_phone", "")
             source = "offline" if ticket.get("is_offline") else "guest"
         else:
-            # Try to find a successful pending_payment with this ticket id
-            pp = await db.pending_payments.find_one(
-                {"ticket_ids": ticket.get("id")},
-                sort=[("created_at", -1)]
-            )
-            if not pp:
-                pp = await db.pending_payments.find_one(
-                    {"ticket_id": ticket.get("id")},
-                    sort=[("created_at", -1)]
-                )
+            pp = pp_map.get(ticket.get("id"))
             if pp:
                 buyer_name = pp.get("buyer_name", "")
                 buyer_email = pp.get("buyer_email", "")
@@ -1326,7 +1380,7 @@ async def get_admin_tickets(user: dict = Depends(require_admin)):
             "buyer_name": buyer_name,
             "buyer_email": buyer_email,
             "buyer_phone": buyer_phone,
-            "source": source,  # 'user' | 'guest' | 'offline'
+            "source": source,
             "is_offline": bool(ticket.get("is_offline", False)),
             "is_assigned": bool(buyer_name or buyer_email),
             "note": ticket.get("note", ""),
@@ -1335,7 +1389,8 @@ async def get_admin_tickets(user: dict = Depends(require_admin)):
             "qr_token": ticket.get("qr_token", ""),
             "created_at": ticket.get("created_at", "").isoformat() if ticket.get("created_at") else "",
         })
-    return result
+
+    return {"tickets": result, "total": total, "page": skip // limit + 1, "page_size": limit}
 
 
 @api_router.post("/admin/tickets/bulk-create")
