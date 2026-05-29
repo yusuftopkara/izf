@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { useAuth } from '../../src/context/AuthContext';
 import { api } from '../../src/services/api';
 import { format } from 'date-fns';
@@ -50,6 +51,10 @@ export default function EventDetailScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { t, locale } = useLocale();
+
+  // Track pending payment: when user goes to login from PaymentModal, we need to re-open it on return
+  const pendingPaymentRef = useRef(false);
+  const prevUserIdRef = useRef<string | null>(user?.id ?? null);
   
   const [event, setEvent] = useState<Event | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -81,6 +86,21 @@ export default function EventDetailScreen() {
   useEffect(() => {
     fetchEvent();
   }, [fetchEvent]);
+
+  // When user returns from login, if they just logged in and pendingPaymentRef is set, open payment modal
+  useFocusEffect(
+    useCallback(() => {
+      const currentUserId = user?.id ?? null;
+      const prevUserId = prevUserIdRef.current;
+
+      if (prevUserId === null && currentUserId !== null && pendingPaymentRef.current) {
+        pendingPaymentRef.current = false;
+        setShowPaymentModal(true);
+      }
+
+      prevUserIdRef.current = currentUserId;
+    }, [user])
+  );
 
   const handleBuyTicket = async () => {
     // Hem üye hem misafir akışını modal içinde yönetiyoruz
@@ -325,6 +345,7 @@ export default function EventDetailScreen() {
           visible={showPaymentModal}
           onClose={() => setShowPaymentModal(false)}
           onSuccess={handlePaymentSuccess}
+          onAttemptLogin={() => { pendingPaymentRef.current = true; }}
           event={{
             id: event.id,
             title: event.title,

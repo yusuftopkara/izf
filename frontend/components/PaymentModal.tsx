@@ -35,6 +35,7 @@ interface PaymentModalProps {
   visible: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  onAttemptLogin?: () => void;
   event: {
     id: string;
     title: string;
@@ -60,6 +61,7 @@ export default function PaymentModal({
   visible,
   onClose,
   onSuccess,
+  onAttemptLogin,
   event,
   quantity,
   user,
@@ -283,7 +285,7 @@ export default function PaymentModal({
       {/* Login / member */}
       <TouchableOpacity
         style={styles.methodCard}
-        onPress={() => { handleClose(); router.push('/(auth)/login'); }}
+        onPress={() => { onAttemptLogin?.(); handleClose(); router.push('/(auth)/login'); }}
       >
         <LinearGradient
           colors={['#E91E8C', '#FF6B35']}
