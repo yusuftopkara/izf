@@ -242,6 +242,11 @@ async getAdminPosts() {
     return response.data;
   }
 
+  async deleteMyAccount(password: string) {
+    const response = await this.axiosInstance.delete('/me/account', { data: { password } });
+    return response.data;
+  }
+
   async verifyPayment(paymentId: string) {
     const response = await this.axiosInstance.get(`/payment/verify?paymentId=${encodeURIComponent(paymentId)}`);
     return response.data;

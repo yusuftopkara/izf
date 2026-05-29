@@ -593,6 +593,27 @@ async def update_profile(request: ProfileUpdateRequest, user: dict = Depends(get
         }
     }
 
+class DeleteAccountRequest(BaseModel):
+    password: str
+
+@api_router.delete("/me/account")
+async def delete_my_account(request: DeleteAccountRequest, user: dict = Depends(get_user_from_header)):
+    """Delete current user's account. Requires password confirmation."""
+    # Verify password
+    stored_hash = user.get("password_hash") or user.get("hashed_password", "")
+    if not verify_password(request.password, stored_hash):
+        raise HTTPException(status_code=401, detail="Invalid password")
+    
+    user_id = user["id"]
+    
+    # Remove user_id from tickets (keep tickets for historical records)
+    await db.tickets.update_many({"user_id": user_id}, {"$set": {"user_id": None}})
+    
+    # Delete the user
+    await db.users.delete_one({"id": user_id})
+    
+    return {"success": True, "message": "Account deleted"}
+
 @api_router.get("/me/profile")
 async def get_profile(user: dict = Depends(get_user_from_header)):
     """Get current user's full profile"""
