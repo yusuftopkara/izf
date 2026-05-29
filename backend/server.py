@@ -1432,6 +1432,70 @@ async def get_duplicate_qr_tokens(user: dict = Depends(require_admin)):
     duplicates = await db.tickets.aggregate(pipeline).to_list(1000)
     return {"duplicates": duplicates, "count": len(duplicates)}
 
+
+@api_router.post("/admin/tickets/cleanup-duplicates")
+async def cleanup_duplicate_tickets(admin: dict = Depends(require_admin)):
+    """Find and delete duplicate tickets.
+    
+    For each duplicate qr_token group:
+    - Keep the OLDEST ticket (by created_at)
+    - Delete others only if: is_offline=True OR status != 'USED'
+    - If any ticket in the group is USED, skip that group entirely
+    """
+    # Find duplicate qr_token groups
+    pipeline = [
+        {"$group": {
+            "_id": "$qr_token",
+            "count": {"$sum": 1},
+            "tickets": {"$push": {
+                "id": "$id",
+                "is_offline": "$is_offline",
+                "status": "$status",
+                "created_at": "$created_at"
+            }}
+        }},
+        {"$match": {"count": {"$gt": 1}}}
+    ]
+    duplicate_groups = await db.tickets.aggregate(pipeline).to_list(1000)
+    
+    deleted_count = 0
+    deleted_ids = []
+    kept_ids = []
+    
+    for group in duplicate_groups:
+        tickets = group["tickets"]
+        
+        # Check if any ticket in group is USED - if so, skip entire group
+        has_used = any(t["status"] == "USED" for t in tickets)
+        if has_used:
+            # Keep all, delete none in this group
+            for t in tickets:
+                kept_ids.append(t["id"])
+            continue
+        
+        # Sort by created_at ascending (oldest first)
+        tickets_sorted = sorted(tickets, key=lambda t: t["created_at"])
+        
+        # Keep the first (oldest), delete the rest that meet criteria
+        kept_ticket = tickets_sorted[0]
+        kept_ids.append(kept_ticket["id"])
+        
+        for t in tickets_sorted[1:]:
+            # Delete if is_offline=True OR status != 'USED'
+            if t.get("is_offline") or t["status"] != "USED":
+                await db.tickets.delete_one({"id": t["id"]})
+                deleted_ids.append(t["id"])
+                deleted_count += 1
+            else:
+                kept_ids.append(t["id"])
+    
+    return {
+        "deleted_count": deleted_count,
+        "deleted_ids": deleted_ids,
+        "kept_ids": kept_ids
+    }
+
+
 @api_router.get("/admin/stats")
 async def get_admin_stats(user: dict = Depends(require_admin)):
     total_users = await db.users.count_documents({})
