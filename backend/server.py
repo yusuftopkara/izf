@@ -69,11 +69,6 @@ class UserLogin(BaseModel):
 class PasswordResetRequest(BaseModel):
     new_password: str
 
-class AdminCreateUserRequest(BaseModel):
-    email: EmailStr
-    password: str
-    name: str
-
 class UserResponse(BaseModel):
     id: str
     email: str
@@ -516,7 +511,8 @@ async def register(user_data: UserCreate):
 @api_router.post("/login", response_model=TokenResponse)
 async def login(user_data: UserLogin):
     user = await db.users.find_one({"email": user_data.email})
-    if not user or not verify_password(user_data.password, user["password_hash"]):
+    stored_hash = user.get("password_hash") or user.get("hashed_password", "") if user else ""
+    if not user or not verify_password(user_data.password, stored_hash):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     
     token = create_access_token({"sub": user["id"], "role": user.get("role", "user"), "name": user.get("name", ""), "email": user.get("email", "")})
@@ -624,12 +620,12 @@ async def admin_create_user(request: AdminCreateUserRequest, admin: dict = Depen
     
     # Create user
     user_id = str(uuid.uuid4())
-    hashed_password = pwd_context.hash(request.password)
+    password_hash = pwd_context.hash(request.password)
     
     new_user = {
         "id": user_id,
         "email": request.email,
-        "password": hashed_password,
+        "password_hash": password_hash,
         "name": request.name,
         "role": request.role,
         "streak": 0,
@@ -1639,43 +1635,6 @@ async def set_user_role(email: str, role: str, user: dict = Depends(require_admi
     
     return {"success": True, "message": f"User role updated to {role}"}
 
-# Admin create user (admin only)
-@api_router.post("/admin/users", response_model=UserResponse)
-async def admin_create_user(user_data: AdminCreateUserRequest, admin: dict = Depends(require_admin)):
-    # Check if email exists
-    existing = await db.users.find_one({"email": user_data.email.lower()})
-    if existing:
-        raise HTTPException(status_code=400, detail="Email already registered")
-    
-    # Create new user
-    user_id = str(uuid.uuid4())
-    name_parts = user_data.name.split()
-    first_name = name_parts[0] if name_parts else ""
-    last_name = " ".join(name_parts[1:]) if len(name_parts) > 1 else ""
-    
-    new_user = {
-        "id": user_id,
-        "email": user_data.email.lower(),
-        "name": user_data.name,
-        "first_name": first_name,
-        "last_name": last_name,
-        "hashed_password": pwd_context.hash(user_data.password),
-        "role": "user",
-        "created_at": datetime.utcnow(),
-        "streak": 0
-    }
-    
-    await db.users.insert_one(new_user)
-    
-    return UserResponse(
-        id=user_id,
-        email=user_data.email.lower(),
-        name=user_data.name,
-        role="user",
-        streak=0,
-        created_at=datetime.utcnow()
-    )
-
 # Admin reset user password (admin only)
 @api_router.post("/admin/users/{user_id}/reset-password")
 async def admin_reset_password(user_id: str, request: PasswordResetRequest, admin: dict = Depends(require_admin)):
@@ -1683,10 +1642,11 @@ async def admin_reset_password(user_id: str, request: PasswordResetRequest, admi
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    # Update password
+    # Update password - set both fields for backward compatibility
+    new_hash = pwd_context.hash(request.new_password)
     await db.users.update_one(
         {"id": user_id},
-        {"$set": {"hashed_password": pwd_context.hash(request.new_password)}}
+        {"$set": {"password_hash": new_hash, "hashed_password": new_hash}}
     )
     
     return {"success": True, "message": "Password reset successfully"}
@@ -2420,137 +2380,36 @@ class PaymentCompleteResponse(BaseModel):
     quantity: int = 0
     status: str
 
-@api_router.post("/payment/complete/{pending_id}", response_model=PaymentCompleteResponse)
+@api_router.post("/payment/complete/{pending_id}", response_model=PaymentStatusResponse)
 async def payment_complete(pending_id: str):
-    """Complete payment and create ticket(s) after user returns from payment page.
-    Idempotent: if already completed, returns existing ticket info.
+    """Return payment status and ticket info after user returns from payment page.
+    READ-ONLY: Does NOT create tickets. Ticket creation only happens via webhook callback.
+    Idempotent: returns existing ticket info if already completed.
+    
+    Response:
+    - status 'completed' with ticket_id: payment successful, tickets already created
+    - status 'pending': payment awaiting webhook confirmation
+    - status 'failed': payment failed
     """
-    try:
-        pending = await db.pending_payments.find_one({"id": pending_id})
-        if not pending:
-            raise HTTPException(status_code=404, detail="Pending payment not found")
+    pending = await db.pending_payments.find_one({"id": pending_id})
+    if not pending:
+        raise HTTPException(status_code=404, detail="Pending payment not found")
 
-        # If already completed, return existing info
-        if pending.get("status") == "completed" and pending.get("ticket_id"):
-            event = await db.events.find_one({"id": pending["event_id"]})
-            return PaymentCompleteResponse(
-                success=True,
-                ticket_id=pending["ticket_id"],
-                event_title=event.get("title") if event else None,
-                quantity=pending.get("quantity", 1),
-                status="completed"
-            )
+    event = await db.events.find_one({"id": pending.get("event_id")})
+    quantity = pending.get("quantity", 1)
 
-        # If failed, return error
-        if pending.get("status") == "failed":
-            return PaymentCompleteResponse(success=False, status="failed")
+    ticket = None
+    if pending.get("ticket_id"):
+        ticket = await db.tickets.find_one({"id": pending["ticket_id"]})
 
-        event = await db.events.find_one({"id": pending["event_id"]})
-        if not event:
-            raise HTTPException(status_code=404, detail="Event not found")
-
-        # Check capacity
-        tickets_sold = await db.tickets.count_documents({"event_id": pending["event_id"]})
-        quantity = max(1, pending.get("quantity", 1))
-        if tickets_sold + quantity > event["capacity"]:
-            raise HTTPException(status_code=400, detail="Not enough tickets available")
-
-        # Find or create user by email
-        buyer_email = pending["buyer_email"]
-        buyer_name = pending.get("buyer_name", "")
-        buyer_phone = pending.get("buyer_phone", "")
-
-        user = await db.users.find_one({"email": buyer_email})
-        if not user:
-            user_id = str(uuid.uuid4())
-            name_parts = buyer_name.split() if buyer_name else ["Misafir"]
-            first_name = name_parts[0] if name_parts else "Misafir"
-            last_name = " ".join(name_parts[1:]) if len(name_parts) > 1 else "Kullanici"
-            user = {
-                "id": user_id,
-                "email": buyer_email,
-                "name": buyer_name or f"{first_name} {last_name}",
-                "first_name": first_name,
-                "last_name": last_name,
-                "phone": buyer_phone or "",
-                "role": "user",
-                "created_at": datetime.utcnow(),
-                "is_guest": True
-            }
-            await db.users.insert_one(user)
-            logger.info(f"New user created: {user_id} - {buyer_email}")
-
-        # Create tickets
-        tickets = []
-        for _ in range(quantity):
-            ticket_id = str(uuid.uuid4())
-            qr_token = secrets.token_urlsafe(32)
-            ticket = {
-                "id": ticket_id,
-                "user_id": user["id"],
-                "event_id": event["id"],
-                "event_title": event.get("title", "Zumba Festival"),
-                "payment_id": pending_id,
-                "qr_token": qr_token,
-                "status": "VALID",
-                "created_at": datetime.utcnow(),
-                "paid_price": pending.get("paid_price", pending.get("price", 0)),
-                "currency": pending.get("currency", "EUR")
-            }
-            await db.tickets.insert_one(ticket)
-            tickets.append(ticket)
-            logger.info(f"Ticket created: {ticket_id} for user: {user['email']}")
-
-        # Record payment in payments collection (revenue tracking)
-        payment_record = {
-            "id": str(uuid.uuid4()),
-            "payment_id": pending_id,
-            "user_id": user["id"],
-            "event_id": event["id"],
-            "amount": pending.get("paid_price", pending.get("price", 0)),
-            "currency": pending.get("currency", "EUR"),
-            "status": "SUCCESS",
-            "discount_id": pending.get("discount_id"),
-            "discount_amount": pending.get("discount_amount", 0.0),
-            "buyer_email": buyer_email,
-            "created_at": datetime.utcnow()
-        }
-        await db.payments.insert_one(payment_record)
-
-        # Increment discount used_count
-        discount_id = pending.get("discount_id")
-        if discount_id:
-            await db.discounts.update_one({"id": discount_id}, {"$inc": {"used_count": 1}})
-
-        # Update pending payment status
-        await db.pending_payments.update_one(
-            {"id": pending_id},
-            {"$set": {
-                "status": "completed",
-                "ticket_id": tickets[0]["id"] if tickets else None,
-                "completed_at": datetime.utcnow()
-            }}
-        )
-
-        # Send confirmation email
-        try:
-            await send_ticket_email(buyer_email, user.get("name", ""), event, tickets)
-        except Exception as e:
-            logger.warning(f"Ticket email failed in complete: {e}")
-
-        return PaymentCompleteResponse(
-            success=True,
-            ticket_id=tickets[0]["id"] if tickets else None,
-            event_title=event.get("title", "Zumba Festival"),
-            quantity=quantity,
-            status="completed"
-        )
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.exception("payment_complete failed")
-        raise HTTPException(status_code=500, detail=str(e))
+    return PaymentStatusResponse(
+        success=True,
+        status=pending.get("status", "pending"),
+        ticket_id=pending.get("ticket_id"),
+        event_title=event.get("title") if event else None,
+        quantity=quantity,
+        qr_token=ticket["qr_token"] if ticket else None
+    )
 
 
 # ==================== PAYMENT STATUS ====================

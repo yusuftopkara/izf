@@ -1,0 +1,78 @@
+{
+  "expo": {
+    "name": "IZF",
+    "slug": "izf-zumba",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/adaptive-icon.png",
+    "scheme": "izf-zumba",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.topqara.izf",
+      "infoPlist": {
+        "NSCameraUsageDescription": "QR kod taramak için kamera eriþimi gerekli",
+        "NSPhotoLibraryUsageDescription": "Profil fotoðrafý ve paylaþýmlar için galeri eriþimi",
+        "UIBackgroundModes": [
+          "remote-notification"
+        ],
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.topqara.izf",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1a0a2e"
+      },
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/adaptive-icon.png",
+      "splash": {
+        "image": "./assets/adaptive-icon.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#1a0a2e"
+      }
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-screen.png",
+          "resizeMode": "cover",
+          "backgroundColor": "#1a0a2e"
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "QR kod taramak için kamera eriþimi gerekli"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "29edd0cb-3fcc-48a7-8fad-c996e341ca54"
+      },
+      "router": {}
+    },
+    "owner": "topqara"
+  }
+}

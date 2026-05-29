@@ -9,14 +9,17 @@ interface CompleteResult {
   success: boolean
   ticket_id?: string
   event_title?: string
-  quantity?: number
+  quantity?: string | number
   status?: string
+  qr_token?: string
 }
 
 const STATUS_MESSAGES: Record<string, string> = {
   loading: 'Ödemeniz doğrulanıyor...',
   completed: 'Ödemeniz alındı! Biletiniz oluşturuldu.',
   failed: 'Ödeme işleminiz tamamlanamadı.',
+  pending: 'Ödemeniz doğrulanıyor, lütfen bekleyin...',
+  processing: 'Ödemeniz işleniyor, biletiniz kısa sürede profilinizde görünecektir.',
 }
 
 function ConfettiPiece({ delay, left, color }: { delay: number; left: string; color: string }) {
@@ -106,13 +109,58 @@ function PaymentSuccessContent() {
         const data = await api.completePayment(pendingId!)
         setResult(data)
         if (data.success) {
-          setDisplayStatus('completed')
-          setMessage(STATUS_MESSAGES.completed)
-          setShowConfetti(true)
-          setTimeout(() => setShowConfetti(false), 5000)
-          // Clean up localStorage after successful payment
-          if (typeof window !== 'undefined') {
-            localStorage.removeItem('pending_payment_id')
+          if (data.status === 'completed') {
+            // Ticket already created - show success immediately
+            setDisplayStatus('completed')
+            setMessage(STATUS_MESSAGES.completed)
+            setShowConfetti(true)
+            setTimeout(() => setShowConfetti(false), 5000)
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem('pending_payment_id')
+            }
+          } else if (data.status === 'pending') {
+            // Need to poll for status - webhook hasn't completed yet
+            setMessage(STATUS_MESSAGES.pending)
+            let attempts = 0
+            const maxAttempts = 20
+
+            const poll = async () => {
+              try {
+                const statusData = await api.checkPaymentStatus(pendingId!)
+                attempts++
+
+                if (statusData.status === 'completed') {
+                  setDisplayStatus('completed')
+                  setMessage(STATUS_MESSAGES.completed)
+                  setResult(prev => prev ? { ...prev, ...statusData } : null)
+                  setShowConfetti(true)
+                  setTimeout(() => setShowConfetti(false), 5000)
+                  if (typeof window !== 'undefined') {
+                    localStorage.removeItem('pending_payment_id')
+                  }
+                } else if (attempts >= maxAttempts) {
+                  // Timeout - show processing message (not an error)
+                  setDisplayStatus('completed')
+                  setMessage(STATUS_MESSAGES.processing)
+                } else {
+                  // Keep polling
+                  setTimeout(poll, 3000)
+                }
+              } catch {
+                if (attempts >= maxAttempts) {
+                  setDisplayStatus('completed')
+                  setMessage(STATUS_MESSAGES.processing)
+                } else {
+                  setTimeout(poll, 3000)
+                }
+              }
+            }
+
+            setTimeout(poll, 3000)
+          } else {
+            // Any other status (e.g., 'processing')
+            setDisplayStatus('completed')
+            setMessage(STATUS_MESSAGES.processing)
           }
         } else {
           setDisplayStatus('failed')
