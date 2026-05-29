@@ -15,7 +15,7 @@ export default function AdminTickets({ token }: { token: string }) {
   const [qrInput, setQrInput] = useState('')
   const [verifyResult, setVerifyResult] = useState<{ success: boolean; message: string } | null>(null)
   const [verifying, setVerifying] = useState(false)
-  const [filter, setFilter] = useState<'all' | 'VALID' | 'USED' | 'unassigned'>('all')
+  const [filter, setFilter] = useState<'all' | 'VALID' | 'USED' | 'unassigned' | 'assigned'>('all')
   const [search, setSearch] = useState('')
   const [searchInput, setSearchInput] = useState('')
 
@@ -168,6 +168,7 @@ export default function AdminTickets({ token }: { token: string }) {
     if (filter === 'VALID' && t.status !== 'VALID') return false
     if (filter === 'USED' && t.status !== 'USED') return false
     if (filter === 'unassigned' && (t.is_assigned || t.user_id)) return false
+    if (filter === 'assigned' && !t.buyer_name && !t.buyer_email) return false
     return true
   })
 
@@ -250,13 +251,13 @@ export default function AdminTickets({ token }: { token: string }) {
             </button>
           )}
         </form>
-        {(['all', 'VALID', 'USED', 'unassigned'] as const).map((f) => (
+        {(['all', 'VALID', 'USED', 'unassigned', 'assigned'] as const).map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
             className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${filter === f ? 'bg-orange-500 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}
           >
-            {f === 'all' ? 'Tümü' : f === 'VALID' ? 'Aktif' : f === 'USED' ? 'Kullanılmış' : 'Atanmamış'}
+            {f === 'all' ? 'Tümü' : f === 'VALID' ? 'Aktif' : f === 'USED' ? 'Kullanılmış' : f === 'unassigned' ? 'Atanmamış' : 'Atanmış'}
           </button>
         ))}
         <span className="ml-2 self-center text-xs text-gray-400">{total} bilet</span>
@@ -264,6 +265,13 @@ export default function AdminTickets({ token }: { token: string }) {
 
       {/* Pagination */}
       <div className="mb-4 flex items-center justify-center gap-2">
+        <button
+          onClick={() => doFetch(1, search)}
+          disabled={page <= 1}
+          className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          « Başa Git
+        </button>
         <button
           onClick={() => doFetch(page - 1, search)}
           disabled={page <= 1}
@@ -278,6 +286,13 @@ export default function AdminTickets({ token }: { token: string }) {
           className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           Sonraki →
+        </button>
+        <button
+          onClick={() => doFetch(totalPages, search)}
+          disabled={page >= totalPages}
+          className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          Sona Git »
         </button>
       </div>
 
@@ -385,6 +400,13 @@ export default function AdminTickets({ token }: { token: string }) {
       {!loading && totalPages > 1 && (
         <div className="mt-4 flex items-center justify-center gap-2">
           <button
+            onClick={() => doFetch(1, search)}
+            disabled={page <= 1}
+            className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            « Başa Git
+          </button>
+          <button
             onClick={() => doFetch(page - 1, search)}
             disabled={page <= 1}
             className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
@@ -398,6 +420,13 @@ export default function AdminTickets({ token }: { token: string }) {
             className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Sonraki →
+          </button>
+          <button
+            onClick={() => doFetch(totalPages, search)}
+            disabled={page >= totalPages}
+            className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Sona Git »
           </button>
         </div>
       )}
