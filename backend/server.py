@@ -1490,9 +1490,6 @@ async def admin_delete_ticket(ticket_id: str, admin: dict = Depends(require_admi
     ticket = await db.tickets.find_one({"id": ticket_id})
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
-    # Only allow deletion of offline (admin-created) tickets, never paid ones
-    if not ticket.get("is_offline"):
-        raise HTTPException(status_code=400, detail="Only offline tickets can be deleted")
     if ticket.get("status") == "USED":
         raise HTTPException(status_code=400, detail="Cannot delete a used ticket")
     await db.tickets.delete_one({"id": ticket_id})

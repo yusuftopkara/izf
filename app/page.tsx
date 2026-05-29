@@ -335,7 +335,7 @@ function LoadingState() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 // SİTE KAPALI - BU DEĞİŞKENİ TRUE YAPARAK SİTEYİ KAPATABİLİRSİNİZ
-const SITE_KAPALI = true
+const SITE_KAPALI = false
 
 function SiteKapali() {
   const { t } = useLocale()
