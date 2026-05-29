@@ -2380,6 +2380,14 @@ class PaymentCompleteResponse(BaseModel):
     quantity: int = 0
     status: str
 
+class PaymentStatusResponse(BaseModel):
+    success: bool
+    status: str
+    ticket_id: Optional[str] = None
+    event_title: Optional[str] = None
+    quantity: int = 0
+    qr_token: Optional[str] = None
+
 @api_router.post("/payment/complete/{pending_id}", response_model=PaymentStatusResponse)
 async def payment_complete(pending_id: str):
     """Return payment status and ticket info after user returns from payment page.
@@ -2413,14 +2421,6 @@ async def payment_complete(pending_id: str):
 
 
 # ==================== PAYMENT STATUS ====================
-
-class PaymentStatusResponse(BaseModel):
-    success: bool
-    status: str
-    ticket_id: Optional[str] = None
-    event_title: Optional[str] = None
-    quantity: int = 0
-    qr_token: Optional[str] = None
 
 @api_router.get("/payment/status/{pending_id}", response_model=PaymentStatusResponse)
 async def payment_status(pending_id: str):
