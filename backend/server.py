@@ -320,6 +320,15 @@ def get_password_hash(password: str):
 def generate_qr_token():
     return secrets.token_urlsafe(32)
 
+async def generate_unique_qr_token():
+    """Generate a unique qr_token with retry logic (max 5 attempts)."""
+    for attempt in range(5):
+        token = secrets.token_urlsafe(32)
+        existing = await db.tickets.find_one({"qr_token": token})
+        if not existing:
+            return token
+    raise Exception("Failed to generate unique qr_token after 5 attempts")
+
 async def get_current_user(token: str = None):
     if not token:
         return None
@@ -769,7 +778,7 @@ async def buy_ticket(request: BuyTicketRequest, user: dict = Depends(get_user_fr
     tickets = []
     for _ in range(request.quantity):
         ticket_id = str(uuid.uuid4())
-        qr_token = generate_qr_token()
+        qr_token = await generate_unique_qr_token()
         ticket = {
             "id": ticket_id,
             "user_id": user["id"],
@@ -1351,7 +1360,7 @@ async def admin_bulk_create_tickets(request: AdminBulkCreateTicketRequest, admin
     now = datetime.utcnow()
     for _ in range(request.quantity):
         ticket_id = str(uuid.uuid4())
-        qr_token = generate_qr_token()
+        qr_token = await generate_unique_qr_token()
         ticket = {
             "id": ticket_id,
             "user_id": None,
@@ -1412,6 +1421,16 @@ async def admin_delete_ticket(ticket_id: str, admin: dict = Depends(require_admi
     await db.tickets.delete_one({"id": ticket_id})
     return {"success": True}
 
+
+@api_router.get("/admin/tickets/duplicates")
+async def get_duplicate_qr_tokens(user: dict = Depends(require_admin)):
+    """Find and list duplicate qr_token entries using aggregation pipeline."""
+    pipeline = [
+        {"$group": {"_id": "$qr_token", "count": {"$sum": 1}, "ticket_ids": {"$push": "$id"}}},
+        {"$match": {"count": {"$gt": 1}}}
+    ]
+    duplicates = await db.tickets.aggregate(pipeline).to_list(1000)
+    return {"duplicates": duplicates, "count": len(duplicates)}
 
 @api_router.get("/admin/stats")
 async def get_admin_stats(user: dict = Depends(require_admin)):
@@ -1579,7 +1598,7 @@ async def admin_create_ticket(request: AdminCreateTicketRequest, admin: dict = D
     tickets = []
     for _ in range(request.quantity):
         ticket_id = str(uuid.uuid4())
-        qr_token = generate_qr_token()
+        qr_token = await generate_unique_qr_token()
         ticket = {
             "id": ticket_id,
             "user_id": target_user["id"],
@@ -2472,6 +2491,11 @@ async def verify_payment(paymentId: str):
     except Exception as e:
         return {"success": False, "message": str(e)}
 
+
+@app.on_event("startup")
+async def startup_db_client():
+    # Create unique sparse index on qr_token to prevent duplicates
+    await db.tickets.create_index("qr_token", unique=True, sparse=True)
 
 # Include the router in the main app
 app.include_router(api_router)
