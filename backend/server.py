@@ -73,6 +73,7 @@ class UserResponse(BaseModel):
     id: str
     email: str
     name: str
+    phone: str = ""
     role: str
     streak: int
     created_at: datetime
@@ -1797,6 +1798,7 @@ async def get_all_users(user: dict = Depends(require_admin)):
         id=u["id"],
         email=u["email"],
         name=u["name"],
+        phone=u.get("phone", ""),
         role=u["role"],
         streak=u.get("streak", 0),
         created_at=u["created_at"]

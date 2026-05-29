@@ -151,6 +151,7 @@ export interface AdminUser {
   id: string
   email: string
   name: string
+  phone?: string
   role: 'user' | 'staff' | 'admin'
   created_at?: string
   tickets_count?: number

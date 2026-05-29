@@ -179,6 +179,7 @@ export default function AdminUsers({ token }: { token: string }) {
               <thead className="bg-gray-50 text-xs font-semibold uppercase text-gray-500">
                 <tr>
                   <th className="px-4 py-3 text-left">Kullanıcı</th>
+                  <th className="px-4 py-3 text-left">Telefon</th>
                   <th className="px-4 py-3 text-left">Bilet Sayısı</th>
                   <th className="px-4 py-3 text-left">Rol</th>
                   <th className="px-4 py-3 text-left">Kayıt Tarihi</th>
@@ -197,7 +198,7 @@ export default function AdminUsers({ token }: { token: string }) {
                         <p className="font-medium text-gray-900">{u.name}</p>
                         <p className="text-xs text-gray-400">{u.email}</p>
                       </td>
-                      <td className="px-4 py-3 text-gray-600">{u.tickets_count ?? '—'}</td>
+                      <td className="px-4 py-3 text-gray-600">{u.phone || '—'}</td>
                       <td className="px-4 py-3">
                         <select
                           value={u.role}
