@@ -2376,7 +2376,7 @@ async def payment_callback(request: Request):
             tickets = []
             for _ in range(quantity):
                 ticket_id = str(uuid.uuid4())
-                qr_token = secrets.token_urlsafe(32)
+                qr_token = await generate_unique_qr_token()
                 ticket = {
                     "id": ticket_id,
                     "user_id": user["id"],
