@@ -120,6 +120,7 @@ export default function BiletSorgulaPage() {
               </p>
 
               <div className="flex flex-col items-center mt-4">
+                <img src="/images/festival-logo.png" alt="Festival Logo" className="h-10 w-auto mb-2" />
                 <p className="text-xs text-white/50 mb-2">{t('ticketLookup.qrLabel')}</p>
                 <div className="bg-white p-2 rounded-lg">
                   <QRCodeSVG value={ticket.qr_token} size={180} level="M" />

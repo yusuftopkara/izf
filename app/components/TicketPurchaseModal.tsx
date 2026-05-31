@@ -384,7 +384,11 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
             ) : step === 3 ? (
               // ─── Step 3: Redirecting to payment ───────────────────────────────
               <div className="flex flex-col gap-4 items-center">
-                <img src="/images/festival-logo.png" alt="Festival Logo" className="h-16 w-auto mb-2" />
+                <div className="mb-4">
+                  <div className="h-16 w-16 rounded-full bg-gradient-to-br from-purple-500/30 to-pink-500/30 flex items-center justify-center">
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-purple-400/30 border-t-purple-400" />
+                  </div>
+                </div>
 
                 <h3 className="text-xl font-bold text-white text-center">{t('ticket.form.paymentPageTitle')}</h3>
 

@@ -219,6 +219,7 @@ function TicketCard({ ticket }: { ticket: Ticket }) {
 
       {showQR && !isUsed && (
         <div className="flex flex-col items-center gap-3">
+          <img src="/images/festival-logo.png" alt="Festival Logo" className="h-10 w-auto" />
           <div className="rounded-2xl bg-white p-4 shadow-lg">
             <QRCodeSVG id={`profile-qr-${ticket.id}`} value={ticket.qr_token} size={180} level="M" />
           </div>
