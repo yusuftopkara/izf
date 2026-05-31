@@ -2417,16 +2417,6 @@ async def claim_ticket(request: ClaimTicketRequest):
     )
 
 
-# ==================== IYZICO PWI INITIALIZE (DISABLED - Static link used) ====================
-# This endpoint is DEPRECATED. We now use a static PWI link (https://iyzi.link/AKkMUg).
-# Payment verification and ticket claiming is handled via /payment/verify-token and /payment/claim-ticket.
-
-@api_router.post("/payment/iyzico-init", response_model=IyzicoPWIResponse)
-async def iyzico_pwi_initialize(data: IyzicoPWIRequest):
-    """DEPRECATED: This endpoint is no longer used. Use static PWI link instead."""
-    raise HTTPException(status_code=410, detail="This endpoint is deprecated. Please use the static payment link.")
-
-
 # ==================== PAYMENT COMPLETE ====================
 
 class PaymentCompleteResponse(BaseModel):
