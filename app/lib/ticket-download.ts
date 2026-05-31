@@ -141,10 +141,22 @@ function drawTicket(
   ctx.fillStyle = 'rgba(255,255,255,0.5)'
   ctx.fillText('ATTENDEE', w / 2, infoY + 40)
 
-  // Name
-  ctx.font = 'bold 30px "Segoe UI", sans-serif'
-  ctx.fillStyle = '#ffffff'
-  ctx.fillText(attendeeName.toUpperCase(), w / 2, infoY + 80)
+  // Name or dotted line for manual entry
+  if (attendeeName && attendeeName !== 'Atanmamış' && attendeeName !== 'Attendee') {
+    ctx.font = 'bold 30px "Segoe UI", sans-serif'
+    ctx.fillStyle = '#ffffff'
+    ctx.fillText(attendeeName.toUpperCase(), w / 2, infoY + 80)
+  } else {
+    // Dotted line for handwriting
+    ctx.strokeStyle = 'rgba(255,255,255,0.6)'
+    ctx.lineWidth = 2
+    ctx.setLineDash([4, 6])
+    ctx.beginPath()
+    ctx.moveTo(120, infoY + 75)
+    ctx.lineTo(w - 120, infoY + 75)
+    ctx.stroke()
+    ctx.setLineDash([])
+  }
 
   // ─── Bottom accent ───
   ctx.font = '14px "Segoe UI", sans-serif'

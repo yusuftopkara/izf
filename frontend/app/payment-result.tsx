@@ -202,7 +202,7 @@ export default function PaymentResultScreen() {
             <View style={styles.qrBox}>
               <QRCode value={resultData.qr_token} size={180} backgroundColor="#fff" color="#000" />
             </View>
-            <Text style={styles.qrTokenText}>{resultData.qr_token.slice(0, 24)}...</Text>
+            <Text style={styles.qrTokenText}>17-18 October 2026 • Green Park Hotel Pendik</Text>
           </View>
         )}
 
