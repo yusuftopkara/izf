@@ -116,7 +116,8 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
     setError('')
     setRedirecting(true)
     setStep(3)
-    // Don't auto-redirect - let user click the link in step 3 (opens in new tab with target=_blank)
+    // Auto-open iyzico payment page
+    window.open('https://iyzi.link/AKkMUg', '_blank')
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -392,7 +393,7 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
                 <h3 className="text-xl font-bold text-white text-center">Ödeme Sayfası</h3>
 
                 <p className="text-center text-white/70 text-sm">
-                  Aşağıdaki butona tıklayarak ödeme sayfasına gidin. Ödeme sonrasında biletiniz otomatik olarak oluşturulacaktır.
+                  Ödeme sayfası yeni sekmede açıldı. Açılmadıysa aşağıdaki butona tıklayın. Ödeme sonrasında biletiniz otomatik olarak oluşturulacaktır.
                 </p>
 
                 <a
