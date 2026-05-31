@@ -189,7 +189,7 @@ export default function AdminUsers({ token }: { token: string }) {
               <tbody className="divide-y divide-gray-50">
                 {users.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="px-4 py-8 text-center text-gray-400">Kullanıcı bulunamadı</td>
+                    <td colSpan={6} className="px-4 py-8 text-center text-gray-400">Kullanıcı bulunamadı</td>
                   </tr>
                 ) : (
                   users.map((u) => (
@@ -199,6 +199,7 @@ export default function AdminUsers({ token }: { token: string }) {
                         <p className="text-xs text-gray-400">{u.email}</p>
                       </td>
                       <td className="px-4 py-3 text-gray-600">{u.phone || '—'}</td>
+                      <td className="px-4 py-3 text-center text-gray-600">{u.tickets_count ?? '—'}</td>
                       <td className="px-4 py-3">
                         <select
                           value={u.role}
