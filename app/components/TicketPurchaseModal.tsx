@@ -116,8 +116,7 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
     setError('')
     setRedirecting(true)
     setStep(3)
-    // Redirect to iyzico PWI static link in new tab
-    window.open('https://iyzi.link/AKkMUg', '_blank')
+    // Don't auto-redirect - let user click the link in step 3 (opens in new tab with target=_blank)
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -390,20 +389,24 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
                   </div>
                 </div>
 
-                <h3 className="text-xl font-bold text-white text-center">Odeme Sayfasina Yonlendiriliyorsunuz</h3>
+                <h3 className="text-xl font-bold text-white text-center">Ödeme Sayfası</h3>
 
                 <p className="text-center text-white/70 text-sm">
-                  Lutfen acilan sayfada odemenizi tamamlayin. Odeme sonrasinda biletiniz olusturulacak.
+                  Aşağıdaki butona tıklayarak ödeme sayfasına gidin. Ödeme sonrasında biletiniz otomatik olarak oluşturulacaktır.
                 </p>
 
                 <a
                   href="https://iyzi.link/AKkMUg"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm text-orange-400 hover:text-orange-300 underline mt-2"
+                  className="block w-full text-center py-3 px-6 bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white font-bold rounded-xl text-lg transition-all"
                 >
-                  Odeme sayfasini manuel olarak ac
+                  Ödemeye Git →
                 </a>
+
+                <p className="text-center text-white/50 text-xs mt-2">
+                  Yeni sekmede açılacaktır
+                </p>
               </div>
             ) : null
             }
