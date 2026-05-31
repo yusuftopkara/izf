@@ -242,7 +242,7 @@ export const api = {
   },
 
   async getMyTickets(token: string): Promise<Ticket[]> {
-    return apiFetch<Ticket[]>('/api/tickets/my', {}, token)
+    return apiFetch<Ticket[]>('/api/my-tickets', {}, token)
   },
 
   // Admin endpoints
