@@ -116,8 +116,8 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
     setError('')
     setRedirecting(true)
     setStep(3)
-    // Redirect to iyzico PWI static link
-    window.location.href = 'https://iyzi.link/AKkMUg'
+    // Redirect to iyzico PWI static link in new tab
+    window.open('https://iyzi.link/AKkMUg', '_blank')
   }
 
   async function handleSubmit(e: React.FormEvent) {
