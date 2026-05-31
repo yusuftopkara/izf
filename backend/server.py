@@ -2209,33 +2209,20 @@ async def update_site_content(content_data: SiteContent, admin: dict = Depends(r
     return SiteContentResponse(**updated)
 
 
-# ==================== PAYMENT WEBHOOK ROUTES ====================
-
-class PaymentCallbackRequest(BaseModel):
-    paymentId: str
-    status: str
-    buyerEmail: str
-    buyerName: Optional[str] = None
-    buyerPhone: Optional[str] = None
-    paidPrice: float
-    currency: str = "EUR"
-    eventId: Optional[str] = None
+# ==================== PAYMENT WEBHOOK HANDLER (UPDATED - CONFIRMED PAYMENTS ONLY) ====================
 
 @api_router.post("/payment/callback")
 async def payment_callback(request: Request):
     """Handle iyzico payment callback/webhook.
 
-    Accepts both:
-    1. iyzico's native webhook format (token, iyziEventType, etc.)
-    2. Our custom JSON format (paymentId, status, buyerEmail, etc.)
-    
-    When payment is successful, automatically creates tickets.
+    On SUCCESS: saves to confirmed_payments collection (no ticket creation).
+    On FAILURE: logs only.
+    Ticket creation happens later via /api/payment/claim-ticket.
     """
     try:
         content_type = request.headers.get("content-type", "")
         raw_body = await request.body()
         logger.info(f"Payment callback raw body: {raw_body.decode('utf-8', errors='replace')}")
-        logger.info(f"Payment callback content-type: {content_type}")
 
         # Parse body
         if "json" in content_type:
@@ -2252,17 +2239,7 @@ async def payment_callback(request: Request):
 
         logger.info(f"Payment callback parsed data: {data}")
 
-        # Store raw webhook data for debugging
-        webhook_log = {
-            "id": str(uuid.uuid4()),
-            "received_at": datetime.utcnow(),
-            "content_type": content_type,
-            "data": data,
-            "raw_body": raw_body.decode('utf-8', errors='replace')
-        }
-        await db.webhook_logs.insert_one(webhook_log)
-
-        # Determine webhook format and extract identifiers
+        # Extract identifiers
         iyzico_token = ""
         payment_id = ""
         iyzico_status = ""
@@ -2278,245 +2255,176 @@ async def payment_callback(request: Request):
             logger.warning(f"Unknown webhook format, keys: {list(data.keys()) if isinstance(data, dict) else 'not dict'}")
             return {"success": True, "message": "Webhook received, unknown format logged"}
 
-        # Look up pending payment by payment_id OR iyzico_token
-        pending = None
-        if payment_id:
-            pending = await db.pending_payments.find_one({"payment_id": payment_id})
-        if not pending and payment_id:
-            pending = await db.pending_payments.find_one({"id": payment_id})
-        if not pending and iyzico_token:
-            pending = await db.pending_payments.find_one({"iyzico_token": iyzico_token})
-
-        # No fallback - only create tickets when we can positively match the payment
-        # A static iyzico link means we cannot reliably match webhooks to pending payments
-        # unless payment_id or iyzico_token matches exactly
-        logger.info(f"Webhook match result: pending={pending is not None}, iyzico_status='{iyzico_status}', payment_id='{payment_id}', token='{iyzico_token}'")
-
-        if not pending:
-            logger.warning(f"No pending_payment found for payment_id={payment_id}, token={iyzico_token}. Storing for manual review.")
-            return {"success": True, "message": "Webhook received, no matching pending payment for manual review"}
-
         # Normalize status
-        new_status = "completed" if iyzico_status in ("SUCCESS", "success", "1") else iyzico_status.lower()
-        
-        # If already completed, return idempotent response
-        if pending.get("status") == "completed":
-            logger.info(f"Webhook: pending_payment {pending.get('id')} already completed (idempotent)")
-            return {"success": True, "message": "Payment already completed, skipped"}
+        is_success = iyzico_status.upper() in ("SUCCESS", "1") if iyzico_status else False
 
-        # If not success, just update status and return
-        if new_status != "completed":
-            await db.pending_payments.update_one(
-                {"_id": pending["_id"]},
-                {"$set": {"status": new_status, "updated_at": datetime.utcnow()}}
-            )
-            logger.info(f"Webhook: pending_payment {pending.get('id')} updated to status: {new_status}")
-            return {"success": True, "message": f"Webhook processed, status updated to {new_status}"}
-
-        # SUCCESS: Create tickets automatically
-        logger.info(f"Webhook: Creating tickets for pending_payment {pending.get('id')}")
-        
-        try:
-            event = await db.events.find_one({"id": pending["event_id"]})
-            if not event:
-                logger.error(f"Event not found: {pending['event_id']}")
-                await db.pending_payments.update_one(
-                    {"_id": pending["_id"]},
-                    {"$set": {"status": "completed", "updated_at": datetime.utcnow()}}
-                )
-                return {"success": True, "message": "Event not found"}
-
-            # Check capacity
-            tickets_sold = await db.tickets.count_documents({"event_id": pending["event_id"]})
-            quantity = max(1, pending.get("quantity", 1))
-            if tickets_sold + quantity > event["capacity"]:
-                logger.error(f"Not enough tickets for pending_payment {pending.get('id')}")
-                await db.pending_payments.update_one(
-                    {"_id": pending["_id"]},
-                    {"$set": {"status": "completed", "updated_at": datetime.utcnow()}}
-                )
-                return {"success": True, "message": "Not enough tickets available"}
-
-            # Find or create user
-            buyer_email = pending["buyer_email"]
-            buyer_name = pending.get("buyer_name", "")
-            buyer_phone = pending.get("buyer_phone", "")
-
-            user = await db.users.find_one({"email": buyer_email})
-            if not user:
-                user_id = str(uuid.uuid4())
-                name_parts = buyer_name.split() if buyer_name else ["Misafir"]
-                first_name = name_parts[0] if name_parts else "Misafir"
-                last_name = " ".join(name_parts[1:]) if len(name_parts) > 1 else "Kullanici"
-                user = {
-                    "id": user_id,
-                    "email": buyer_email,
-                    "name": buyer_name or f"{first_name} {last_name}",
-                    "first_name": first_name,
-                    "last_name": last_name,
-                    "phone": buyer_phone or "",
-                    "role": "user",
-                    "created_at": datetime.utcnow(),
-                    "is_guest": True
-                }
-                await db.users.insert_one(user)
-                logger.info(f"Webhook: New user created {user_id} - {buyer_email}")
-
-            # Create tickets
-            tickets = []
-            for _ in range(quantity):
-                ticket_id = str(uuid.uuid4())
-                qr_token = await generate_unique_qr_token()
-                ticket = {
-                    "id": ticket_id,
-                    "user_id": user["id"],
-                    "event_id": event["id"],
-                    "event_title": event.get("title", "Zumba Festival"),
-                    "payment_id": pending["id"],
-                    "qr_token": qr_token,
-                    "status": "VALID",
-                    "created_at": datetime.utcnow(),
-                    "paid_price": pending.get("paid_price", pending.get("price", 0)),
-                    "currency": pending.get("currency", "EUR")
-                }
-                await db.tickets.insert_one(ticket)
-                tickets.append(ticket)
-                logger.info(f"Webhook: Ticket created {ticket_id} for user {user['email']}")
-
-            # Record payment in payments collection
-            payment_record = {
-                "id": str(uuid.uuid4()),
-                "payment_id": pending["id"],
-                "user_id": user["id"],
-                "event_id": event["id"],
-                "amount": pending.get("paid_price", pending.get("price", 0)),
-                "currency": pending.get("currency", "EUR"),
+        if is_success:
+            # Store confirmed payment (no ticket creation here)
+            confirmed_record = {
+                "token": iyzico_token or payment_id,
+                "payment_id": payment_id,
                 "status": "SUCCESS",
-                "discount_id": pending.get("discount_id"),
-                "discount_amount": pending.get("discount_amount", 0.0),
-                "buyer_email": buyer_email,
-                "created_at": datetime.utcnow()
+                "created_at": datetime.utcnow(),
+                "claimed": False
             }
-            await db.payments.insert_one(payment_record)
-
-            # Increment discount used_count
-            discount_id = pending.get("discount_id")
-            if discount_id:
-                await db.discounts.update_one({"id": discount_id}, {"$inc": {"used_count": 1}})
-                logger.info(f"Webhook: Discount {discount_id} used_count incremented")
-
-            # Update pending payment status
-            await db.pending_payments.update_one(
-                {"_id": pending["_id"]},
-                {"$set": {
-                    "status": "completed",
-                    "ticket_id": tickets[0]["id"] if tickets else None,
-                    "completed_at": datetime.utcnow()
-                }}
+            # Upsert: update if exists, insert if not
+            await db.confirmed_payments.update_one(
+                {"token": iyzico_token or payment_id},
+                {"$set": confirmed_record},
+                upsert=True
             )
+            logger.info(f"Webhook: confirmed_payment saved for token={iyzico_token or payment_id}, payment_id={payment_id}")
+        else:
+            # Failure: just log
+            logger.info(f"Webhook: payment failed/pending, status={iyzico_status}, payment_id={payment_id}, token={iyzico_token}")
 
-            # Send confirmation email
-            try:
-                await send_ticket_email(buyer_email, user.get("name", ""), event, tickets)
-                logger.info(f"Webhook: Confirmation email sent to {buyer_email}")
-            except Exception as e:
-                logger.warning(f"Webhook: Ticket email failed: {e}")
-
-            logger.info(f"Webhook: Successfully created {len(tickets)} tickets for pending_payment {pending.get('id')}")
-            return {"success": True, "message": f"Tickets created: {len(tickets)}"}
-
-        except Exception as e:
-            logger.exception(f"Webhook: Error creating tickets for pending_payment {pending.get('id')}")
-            # Still mark as completed even if ticket creation fails, to prevent re-processing
-            await db.pending_payments.update_one(
-                {"_id": pending["_id"]},
-                {"$set": {"status": "completed", "updated_at": datetime.utcnow()}}
-            )
-            return {"success": True, "message": f"Webhook processed but ticket creation failed: {str(e)}"}
+        return {"success": True, "message": "Webhook processed"}
 
     except Exception as e:
         logger.exception("Payment callback error")
         return {"success": False, "message": str(e)}
 
 
-# ==================== IYZICO PWI INITIALIZE ====================
+# ==================== VERIFY TOKEN ENDPOINT ====================
 
-class IyzicoPWIRequest(BaseModel):
+@api_router.get("/payment/verify-token")
+async def verify_token(token: str):
+    """Verify if a payment token is valid and not yet claimed.
+
+    Query params:
+      token: The payment token from iyzico redirect URL
+
+    Returns:
+      {valid: true} - token found and not claimed
+      {valid: false, reason: 'invalid'} - token not found
+      {valid: false, reason: 'already_used'} - token found but already claimed
+    """
+    if not token:
+        raise HTTPException(status_code=400, detail="Token is required")
+
+    confirmed = await db.confirmed_payments.find_one({"token": token})
+    if not confirmed:
+        return {"valid": False, "reason": "invalid"}
+
+    if confirmed.get("claimed", False):
+        return {"valid": False, "reason": "already_used"}
+
+    return {"valid": True}
+
+
+# ==================== CLAIM TICKET ENDPOINT ====================
+
+class ClaimTicketRequest(BaseModel):
+    token: str
+    name: str
+    email: str
+    phone: str
     event_id: str
-    buyer_email: str
-    buyer_name: str
-    buyer_phone: Optional[str] = None
-    discount_code: Optional[str] = None
     quantity: int = 1
 
-class IyzicoPWIResponse(BaseModel):
-    pending_id: str
-    payment_url: str
+
+class ClaimTicketResponse(BaseModel):
+    success: bool
+    ticket_id: Optional[str] = None
+    qr_token: Optional[str] = None
+    reason: Optional[str] = None
+
+
+@api_router.post("/payment/claim-ticket", response_model=ClaimTicketResponse)
+async def claim_ticket(request: ClaimTicketRequest):
+    """Claim a ticket for a confirmed payment.
+
+    Finds the confirmed_payment by token, creates a user if needed,
+    generates a ticket with unique qr_token, and marks the payment as claimed.
+    """
+    # Find confirmed payment
+    confirmed = await db.confirmed_payments.find_one({"token": request.token})
+    if not confirmed:
+        return ClaimTicketResponse(success=False, reason="invalid")
+
+    if confirmed.get("claimed", False):
+        return ClaimTicketResponse(success=False, reason="already_used")
+
+    # Get event
+    event = await db.events.find_one({"id": request.event_id})
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    # Capacity check
+    tickets_sold = await db.tickets.count_documents({"event_id": request.event_id})
+    if tickets_sold + request.quantity > event["capacity"]:
+        raise HTTPException(status_code=400, detail="Not enough tickets available")
+
+    # Find or create user by email
+    user = await db.users.find_one({"email": request.email.lower().strip()})
+    if not user:
+        user_id = str(uuid.uuid4())
+        name_parts = request.name.split() if request.name else ["Misafir"]
+        first_name = name_parts[0] if name_parts else "Misafir"
+        last_name = " ".join(name_parts[1:]) if len(name_parts) > 1 else "Kullanici"
+        user = {
+            "id": user_id,
+            "email": request.email.lower().strip(),
+            "name": request.name,
+            "first_name": first_name,
+            "last_name": last_name,
+            "phone": request.phone or "",
+            "role": "user",
+            "created_at": datetime.utcnow(),
+            "is_guest": True
+        }
+        await db.users.insert_one(user)
+        logger.info(f"claim_ticket: New user created {user_id} - {request.email}")
+
+    # Create tickets
+    ticket_id = None
+    qr_token = None
+    for _ in range(request.quantity):
+        ticket_id = str(uuid.uuid4())
+        qr_token = await generate_unique_qr_token()
+        ticket = {
+            "id": ticket_id,
+            "user_id": user["id"],
+            "event_id": request.event_id,
+            "event_title": event.get("title", "Zumba Festival"),
+            "qr_token": qr_token,
+            "status": "VALID",
+            "created_at": datetime.utcnow(),
+            "payment_token": request.token,
+            "source": "pwi_redirect"
+        }
+        await db.tickets.insert_one(ticket)
+        logger.info(f"claim_ticket: Ticket created {ticket_id} for user {user['email']}")
+
+    # Mark as claimed
+    await db.confirmed_payments.update_one(
+        {"token": request.token},
+        {"$set": {"claimed": True, "claimed_at": datetime.utcnow()}}
+    )
+
+    # Send confirmation email
+    try:
+        ticket_obj = await db.tickets.find_one({"id": ticket_id})
+        if ticket_obj:
+            await send_ticket_email(request.email, request.name, event, [ticket_obj])
+    except Exception as e:
+        logger.warning(f"claim_ticket: email send failed: {e}")
+
+    return ClaimTicketResponse(
+        success=True,
+        ticket_id=ticket_id,
+        qr_token=qr_token
+    )
+
+
+# ==================== IYZICO PWI INITIALIZE (DISABLED - Static link used) ====================
+# This endpoint is DEPRECATED. We now use a static PWI link (https://iyzi.link/AKkMUg).
+# Payment verification and ticket claiming is handled via /payment/verify-token and /payment/claim-ticket.
 
 @api_router.post("/payment/iyzico-init", response_model=IyzicoPWIResponse)
 async def iyzico_pwi_initialize(data: IyzicoPWIRequest):
-    """Initialize payment by creating a pending_payment record.
-    Returns a static PWI link; actual payment happens externally.
-    """
-    try:
-        # Get event details
-        event = await db.events.find_one({"id": data.event_id})
-        if not event:
-            raise HTTPException(status_code=404, detail="Event not found")
-
-        event_price = float(event.get("price", 0))
-        quantity = max(1, data.quantity)
-        original_price = round(event_price * quantity, 2)
-        final_price = original_price
-        discount_id = None
-        discount_amount = 0.0
-
-        # Validate discount code if provided
-        if data.discount_code:
-            discount_result = await validate_discount_code(
-                data.discount_code, data.event_id, quantity, event_price
-            )
-            if discount_result["valid"]:
-                final_price = discount_result["discounted_price"]
-                discount_id = discount_result["discount_id"]
-                discount_amount = discount_result["discount_amount"]
-            else:
-                raise HTTPException(status_code=400, detail=discount_result["message"])
-
-        pending_id = str(uuid.uuid4())
-        buyer_email = data.buyer_email.lower().strip()
-
-        # Store pending payment
-        await db.pending_payments.insert_one({
-            "id": pending_id,
-            "payment_id": pending_id,
-            "event_id": data.event_id,
-            "buyer_email": buyer_email,
-            "buyer_name": data.buyer_name,
-            "buyer_phone": data.buyer_phone or "",
-            "price": original_price,
-            "paid_price": final_price,
-            "currency": "EUR",
-            "discount_code": data.discount_code.upper().strip() if data.discount_code else None,
-            "discount_id": discount_id,
-            "discount_amount": discount_amount,
-            "quantity": quantity,
-            "status": "pending",
-            "ticket_id": None,
-            "created_at": datetime.utcnow(),
-            "completed_at": None
-        })
-
-        return IyzicoPWIResponse(
-            pending_id=pending_id,
-            payment_url="https://iyzi.link/AKkMUg"
-        )
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.exception("iyzico_pwi_initialize failed")
-        raise HTTPException(status_code=500, detail=str(e))
+    """DEPRECATED: This endpoint is no longer used. Use static PWI link instead."""
+    raise HTTPException(status_code=410, detail="This endpoint is deprecated. Please use the static payment link.")
 
 
 # ==================== PAYMENT COMPLETE ====================
@@ -2625,6 +2533,8 @@ async def verify_payment(paymentId: str):
 async def startup_db_client():
     # Create unique sparse index on qr_token to prevent duplicates
     await db.tickets.create_index("qr_token", unique=True, sparse=True)
+    # TTL index on confirmed_payments: auto-delete after 7 days (604800 seconds)
+    await db.confirmed_payments.create_index("created_at", expireAfterSeconds=604800)
 
 # Include the router in the main app
 app.include_router(api_router)

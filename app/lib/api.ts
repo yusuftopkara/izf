@@ -382,11 +382,22 @@ export const api = {
   },
 
   // Payment (iyzico new flow)
-  async initPayment(data: InitPaymentRequest): Promise<InitPaymentResponse> {
-    return apiFetch<InitPaymentResponse>('/api/payment/iyzico-init', {
+  // verifyToken: checks if a payment token is valid and unclaimed
+  async verifyToken(token: string): Promise<{ valid: boolean; reason?: string }> {
+    return apiFetch<{ valid: boolean; reason?: string }>(`/api/payment/verify-token?token=${encodeURIComponent(token)}`)
+  },
+
+  // claimTicket: claims a ticket for a confirmed payment
+  async claimTicket(data: { token: string; name: string; email: string; phone: string; event_id: string; quantity?: number }): Promise<{ success: boolean; ticket_id?: string; qr_token?: string; reason?: string }> {
+    return apiFetch<{ success: boolean; ticket_id?: string; qr_token?: string; reason?: string }>('/api/payment/claim-ticket', {
       method: 'POST',
       body: JSON.stringify(data),
     })
+  },
+
+  // DEPRECATED: initPayment - no longer used, static PWI link instead
+  async initPayment(_data: InitPaymentRequest): Promise<InitPaymentResponse> {
+    throw new Error('initPayment is deprecated. Use the static PWI link instead.')
   },
 
   async completePayment(pendingId: string): Promise<CompletePaymentResponse> {

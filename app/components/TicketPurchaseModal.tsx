@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { QRCodeSVG } from 'qrcode.react'
 import { useLocale } from '../context/LocaleContext'
 import { api, type Event } from '../lib/api'
 import AuthModal from './AuthModal'
@@ -42,8 +41,8 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
   const [event, setEvent] = useState<Event | null>(null)
   const [loadingEvent, setLoadingEvent] = useState(false)
 
-  // Step state (1 = selection, 2 = guest form, 3 = waiting for payment, 4 = result)
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1)
+  // Step state (1 = selection, 2 = guest form, 3 = redirecting)
+  const [step, setStep] = useState<1 | 2 | 3>(1)
   
   // Auth modal for registered user flow
   const [authModalOpen, setAuthModalOpen] = useState(false)
@@ -60,13 +59,8 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
-  // Payment state
-  const [pendingId, setPendingId] = useState<string | null>(null)
-  const [paymentUrl, setPaymentUrl] = useState<string | null>(null)
-  const [paymentResult, setPaymentResult] = useState<PaymentResult | null>(null)
-  const [completingPayment, setCompletingPayment] = useState(false)
-  const [pollingAttempts, setPollingAttempts] = useState(0)
-  const [pollingTimeout, setPollingTimeout] = useState(false)
+  // Payment state (simplified - no longer needed since we use static PWI link)
+  const [redirecting, setRedirecting] = useState(false)
 
   // ─── Auto-skip to step 2 if already logged in ────────────────────────────────
   useEffect(() => {
@@ -110,130 +104,26 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
       setError('')
       setSubmitting(false)
       setAuthModalOpen(false)
-      setPendingId(null)
-      setPaymentUrl(null)
-      setPaymentResult(null)
-      setCompletingPayment(false)
-      setPollingAttempts(0)
-      setPollingTimeout(false)
+      setRedirecting(false)
     }, 300)
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!event) {
-      setError(t('ticket.form.eventLoadError'))
-      return
-    }
+  function handleRedirectToPayment() {
     if (!kvkkAccepted) {
       setError(t('ticket.form.kvkkRequired'))
       return
     }
     setError('')
-    setSubmitting(true)
-    try {
-      const res = await api.initPayment({
-        event_id: event.id,
-        buyer_email: email.trim(),
-        buyer_name: name.trim(),
-        buyer_phone: phone.trim(),
-        discount_code: discountCode.trim() || undefined,
-        quantity,
-      })
-      
-      if (res.pending_id && res.payment_url) {
-        // Save pending_id to localStorage for fallback
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('pending_payment_id', res.pending_id)
-        }
-        
-        setPendingId(res.pending_id)
-        setPaymentUrl(res.payment_url)
-        setStep(3) // Go to waiting screen
-        
-        // Open payment URL in new tab
-        window.open(res.payment_url, '_blank')
-      } else {
-        setError(t('ticket.form.paymentNotFetched'))
-      }
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : t('ticket.form.genericError'))
-    } finally {
-      setSubmitting(false)
-    }
+    setRedirecting(true)
+    setStep(3)
+    // Redirect to iyzico PWI static link
+    window.location.href = 'https://iyzi.link/AKkMUg'
   }
 
-  async function handleCompletePayment() {
-    if (!pendingId) {
-      setError(t('ticket.form.paymentRefNotFound'))
-      return
-    }
-
-    setCompletingPayment(true)
-    setError('')
-    try {
-      const result = await api.completePayment(pendingId)
-      setPaymentResult({
-        success: result.success,
-        message: result.success
-          ? t('ticket.form.success')
-          : t('ticket.form.waitingRetry'),
-        ticket_id: result.ticket_id,
-        event_title: result.event_title,
-        quantity: result.quantity,
-        qr_token: result.qr_token,
-      })
-      setStep(4) // Go to result screen
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : t('ticket.form.completeFailed'))
-    } finally {
-      setCompletingPayment(false)
-    }
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    handleRedirectToPayment()
   }
-
-  // Auto-polling for payment status
-  useEffect(() => {
-    if (step !== 3 || !pendingId || pollingTimeout) return
-
-    const MAX_ATTEMPTS = 60 // 60 * 3 = 180 seconds = 3 minutes
-    const POLL_INTERVAL = 3000 // 3 seconds
-
-    const interval = setInterval(async () => {
-      try {
-        const attempts = pollingAttempts + 1
-        setPollingAttempts(attempts)
-
-        if (attempts > MAX_ATTEMPTS) {
-          clearInterval(interval)
-          setPollingTimeout(true)
-          setError(
-            t('ticket.form.paymentNotConfirmed')
-          )
-          return
-        }
-
-        const status = await api.checkPaymentStatus(pendingId)
-
-        if (status.success && status.status === 'completed') {
-          clearInterval(interval)
-          setPaymentResult({
-            success: true,
-            message: t('ticket.form.success'),
-            ticket_id: status.ticket_id,
-            event_title: status.event_title,
-            quantity: status.quantity,
-            qr_token: status.qr_token,
-          })
-          setStep(4)
-        }
-      } catch (err: unknown) {
-        // Log but don't break polling on individual errors
-        console.error('Polling error:', err)
-      }
-    }, POLL_INTERVAL)
-
-    return () => clearInterval(interval)
-  }, [step, pendingId, pollingAttempts, pollingTimeout])
 
   if (!isOpen) return null
 
@@ -492,7 +382,7 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
                 </p>
               </form>
             ) : step === 3 ? (
-              // ─── Step 3: Waiting for Payment ───────────────────────────────
+              // ─── Step 3: Redirecting to payment ───────────────────────────────
               <div className="flex flex-col gap-4 items-center">
                 <div className="mb-4">
                   <div className="h-16 w-16 rounded-full bg-gradient-to-br from-purple-500/30 to-pink-500/30 flex items-center justify-center">
@@ -500,130 +390,20 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
                   </div>
                 </div>
 
-                <h3 className="text-xl font-bold text-white text-center">{t('ticket.payment.waitingTitle')}</h3>
-                
+                <h3 className="text-xl font-bold text-white text-center">Odeme Sayfasina Yonlendiriliyorsunuz</h3>
+
                 <p className="text-center text-white/70 text-sm">
-                  {t('ticket.payment.waitingDesc')}
+                  Lutfen acilan sayfada odemenizi tamamlayin. Odeme sonrasinda biletiniz olusturulacak.
                 </p>
 
-                {error && (
-                  <div className="mt-4 w-full rounded-xl bg-red-500/20 px-4 py-3 text-sm text-red-300">
-                    {error}
-                    {pollingTimeout && (
-                      <div className="mt-2 flex gap-2">
-                        <a
-                          href="https://wa.me/905337743572?text=Bilet satın alırken sorun yaşadım"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-red-200 underline hover:text-red-100"
-                        >
-                          {t('ticket.payment.whatsappSupport')}
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {!pollingTimeout && (
-                  <button
-                    onClick={() => paymentUrl && window.open(paymentUrl, '_blank')}
-                    className="text-sm text-orange-400 hover:text-orange-300 underline mt-2"
-                  >
-                    {t('ticket.payment.reopenLink')}
-                  </button>
-                )}
-              </div>
-            ) : step === 4 ? (
-              // ─── Step 4: Payment Result ────────────────────────────────────
-              <div className="flex flex-col gap-4 items-center">
-                {paymentResult?.success ? (
-                  <>
-                    <div className="mb-4">
-                      <div className="h-16 w-16 rounded-full bg-green-500/20 flex items-center justify-center animate-bounce">
-                        <svg className="h-8 w-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                    </div>
-
-                    <h3 className="text-2xl font-bold text-white text-center">{t('ticket.payment.successTitle')}</h3>
-                    
-                    {paymentResult.event_title && (
-                      <div className="mt-4 w-full rounded-xl border border-white/10 bg-white/5 p-4 text-left">
-                        <p className="text-xs text-white/50 mb-1">{t('ticket.payment.eventLabel')}</p>
-                        <p className="text-sm font-semibold text-white mb-3">{paymentResult.event_title}</p>
-                        
-                        {paymentResult.quantity && (
-                          <p className="text-xs text-white/50 mb-1">{t('ticket.payment.ticketCount')}: <span className="text-white font-semibold">{paymentResult.quantity} {t('ticket.payment.unit')}</span></p>
-                        )}
-                        
-                        {paymentResult.ticket_id && (
-                          <p className="text-xs text-white/50">{t('ticket.form.ticketId')}: <span className="text-green-300 font-mono">{paymentResult.ticket_id}</span></p>
-                        )}
-                        
-                        {paymentResult.qr_token && (
-                          <div className="mt-3 flex flex-col items-center">
-                            <p className="text-xs text-white/50 mb-2">{t('ticket.form.qrLabel')}</p>
-                            <div className="bg-white p-2 rounded-lg">
-                              <QRCodeSVG value={paymentResult.qr_token} size={160} level="M" />
-                            </div>
-                            <p className="text-[10px] text-white/30 font-mono mt-1">{paymentResult.qr_token.slice(0, 24)}...</p>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    <p className="text-center text-white/70 text-sm mt-4">
-                      {t('ticket.payment.emailSent')}
-                    </p>
-
-                    <button
-                      onClick={handleClose}
-                      className="mt-4 w-full rounded-xl bg-gradient-to-r from-purple-500 to-purple-600 py-3.5 font-bold text-white transition hover:from-purple-400 hover:to-purple-500 active:scale-[0.98]"
-                    >
-                      {t('ticket.payment.close')}
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <div className="mb-4">
-                      <div className="h-16 w-16 rounded-full bg-red-500/20 flex items-center justify-center">
-                        <svg className="h-8 w-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </div>
-                    </div>
-
-                    <h3 className="text-xl font-bold text-white text-center">{t('ticket.payment.failedTitle')}</h3>
-                    
-                    <p className="text-center text-white/70 text-sm">
-                      {paymentResult?.message || t('ticket.form.waitingRetry')}
-                    </p>
-
-                    <div className="mt-4 w-full space-y-2">
-                      <button
-                        onClick={handleCompletePayment}
-                        className="w-full rounded-xl bg-orange-500 py-3 font-bold text-white transition hover:bg-orange-400 active:scale-[0.98]"
-                      >
-                        {t('ticket.payment.retryCheck')}
-                      </button>
-
-                      <button
-                        onClick={() => { setStep(3); setError(''); }}
-                        className="w-full rounded-xl bg-white/10 py-3 font-semibold text-white transition hover:bg-white/20 active:scale-[0.98]"
-                      >
-                        {t('ticket.payment.backToPayment')}
-                      </button>
-
-                      <button
-                        onClick={handleClose}
-                        className="w-full rounded-xl border border-white/20 py-3 font-semibold text-white/70 transition hover:text-white hover:bg-white/5 active:scale-[0.98]"
-                      >
-                        {t('ticket.payment.close')}
-                      </button>
-                    </div>
-                  </>
-                )}
+                <a
+                  href="https://iyzi.link/AKkMUg"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-orange-400 hover:text-orange-300 underline mt-2"
+                >
+                  Odeme sayfasini manuel olarak ac
+                </a>
               </div>
             ) : null
             }
