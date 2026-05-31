@@ -2287,20 +2287,10 @@ async def payment_callback(request: Request):
         if not pending and iyzico_token:
             pending = await db.pending_payments.find_one({"iyzico_token": iyzico_token})
 
-        # Fallback: if still not found and status is SUCCESS, use most recent pending payment
-        # (works because there is only one event)
-        logger.info(f"Webhook fallback check: pending={pending is not None}, iyzico_status='{iyzico_status}', payment_id='{payment_id}', token='{iyzico_token}'")
-        if not pending and iyzico_status in ("SUCCESS", "success", "1"):
-            pending = await db.pending_payments.find_one(
-                {"status": "pending"},
-                sort=[("created_at", -1)]
-            )
-            if pending:
-                logger.info(f"Webhook fallback: using most recent pending payment {pending.get('id')}")
-            else:
-                logger.warning(f"Webhook fallback: no pending payment found with status='pending'")
-        elif not pending:
-            logger.warning(f"Webhook fallback skipped: iyzico_status='{iyzico_status}' not SUCCESS")
+        # No fallback - only create tickets when we can positively match the payment
+        # A static iyzico link means we cannot reliably match webhooks to pending payments
+        # unless payment_id or iyzico_token matches exactly
+        logger.info(f"Webhook match result: pending={pending is not None}, iyzico_status='{iyzico_status}', payment_id='{payment_id}', token='{iyzico_token}'")
 
         if not pending:
             logger.warning(f"No pending_payment found for payment_id={payment_id}, token={iyzico_token}. Storing for manual review.")
