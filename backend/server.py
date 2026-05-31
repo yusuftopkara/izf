@@ -76,6 +76,7 @@ class UserResponse(BaseModel):
     phone: str = ""
     role: str
     streak: int
+    tickets_count: int = 0
     created_at: datetime
 
 class TokenResponse(BaseModel):
@@ -1812,6 +1813,13 @@ async def admin_reset_password(user_id: str, request: PasswordResetRequest, admi
 @api_router.get("/admin/users", response_model=List[UserResponse])
 async def get_all_users(user: dict = Depends(require_admin)):
     users = await db.users.find().sort("created_at", -1).to_list(500)
+    # Batch count tickets per user
+    user_ids = [u["id"] for u in users]
+    ticket_counts_raw = await db.tickets.aggregate([
+        {"$match": {"user_id": {"$in": user_ids}}},
+        {"$group": {"_id": "$user_id", "count": {"$sum": 1}}}
+    ]).to_list(None)
+    ticket_counts = dict((t["_id"], t["count"]) for t in ticket_counts_raw)
     return [UserResponse(
         id=u["id"],
         email=u["email"],
@@ -1819,6 +1827,7 @@ async def get_all_users(user: dict = Depends(require_admin)):
         phone=u.get("phone", ""),
         role=u["role"],
         streak=u.get("streak", 0),
+        tickets_count=ticket_counts.get(u["id"], 0),
         created_at=u["created_at"]
     ) for u in users]
 
