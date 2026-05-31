@@ -78,6 +78,9 @@ function StatusIcon({ status }: { status: 'loading' | 'valid' | 'invalid' | 'cla
 function TicketCard({ qr_token, ticket_id, event_title }: { qr_token: string; ticket_id: string; event_title: string }) {
   return (
     <div className="mb-6 rounded-2xl border border-white/10 bg-white/5 p-4 text-left animate-fadeIn">
+      <div className="flex justify-center mb-3">
+        <img src="/images/festival-logo.png" alt="Festival Logo" className="h-12 w-auto" />
+      </div>
       {event_title && (
         <div className="flex items-center gap-3 mb-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-pink-500/20">

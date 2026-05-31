@@ -384,16 +384,12 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
             ) : step === 3 ? (
               // ─── Step 3: Redirecting to payment ───────────────────────────────
               <div className="flex flex-col gap-4 items-center">
-                <div className="mb-4">
-                  <div className="h-16 w-16 rounded-full bg-gradient-to-br from-purple-500/30 to-pink-500/30 flex items-center justify-center">
-                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-purple-400/30 border-t-purple-400" />
-                  </div>
-                </div>
+                <img src="/images/festival-logo.png" alt="Festival Logo" className="h-16 w-auto mb-2" />
 
-                <h3 className="text-xl font-bold text-white text-center">Ödeme Sayfası</h3>
+                <h3 className="text-xl font-bold text-white text-center">{t('ticket.form.paymentPageTitle')}</h3>
 
                 <p className="text-center text-white/70 text-sm">
-                  Ödeme sayfası yeni sekmede açıldı. Açılmadıysa aşağıdaki butona tıklayın. Ödeme sonrasında biletiniz otomatik olarak oluşturulacaktır.
+                  {t('ticket.form.paymentPageOpened')}
                 </p>
 
                 <a
@@ -402,11 +398,11 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
                   rel="noopener noreferrer"
                   className="block w-full text-center py-3 px-6 bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white font-bold rounded-xl text-lg transition-all"
                 >
-                  Ödemeye Git →
+                  {t('ticket.form.goToPayment')}
                 </a>
 
                 <p className="text-center text-white/50 text-xs mt-2">
-                  Yeni sekmede açılacaktır
+                  {t('ticket.form.opensInNewTab')}
                 </p>
               </div>
             ) : null

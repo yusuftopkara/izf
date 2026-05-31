@@ -124,7 +124,7 @@ export default function BiletSorgulaPage() {
                 <div className="bg-white p-2 rounded-lg">
                   <QRCodeSVG value={ticket.qr_token} size={180} level="M" />
                 </div>
-                <p className="text-xs text-white/50 mt-2">17-18 Ekim 2026</p>
+                <p className="text-xs text-white/50 mt-2">{t('ticket.form.eventDate')}</p>
               </div>
             </div>
           ))}

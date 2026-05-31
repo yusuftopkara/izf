@@ -222,7 +222,7 @@ function TicketCard({ ticket }: { ticket: Ticket }) {
           <div className="rounded-2xl bg-white p-4 shadow-lg">
             <QRCodeSVG id={`profile-qr-${ticket.id}`} value={ticket.qr_token} size={180} level="M" />
           </div>
-          <p className="text-xs text-white/50">17-18 Ekim 2026</p>
+          <p className="text-xs text-white/50">{t('ticket.form.eventDate')}</p>
           <button
             onClick={() => downloadQR(ticket.qr_token, ticket.id)}
             className="flex items-center gap-2 rounded-xl bg-orange-500/20 px-4 py-2 text-sm font-semibold text-orange-400 transition hover:bg-orange-500/30"
