@@ -110,7 +110,7 @@ function TicketCard({ qr_token, ticket_id, event_title }: { qr_token: string; ti
           <div className="bg-white p-2 rounded-lg">
             <QRCodeSVG value={qr_token} size={160} level="M" />
           </div>
-          <p className="text-[10px] text-white/30 font-mono mt-1">{qr_token.slice(0, 24)}...</p>
+          <p className="text-xs text-white/50 mt-2">17-18 Ekim 2026 • Green Park Hotel Pendik</p>
         </div>
       )}
     </div>
