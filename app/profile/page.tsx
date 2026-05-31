@@ -160,31 +160,10 @@ function ProfileLogin({ onSuccess }: { onSuccess: () => void }) {
 }
 
 // ─── QR Download ──────────────────────────────────────────────────────────────
-function downloadQR(token: string, id: string) {
-  const svg = document.getElementById(`profile-qr-${id}`)
-  if (!svg) return
-  const serializer = new XMLSerializer()
-  const svgStr = serializer.serializeToString(svg)
-  const canvas = document.createElement('canvas')
-  canvas.width = 300
-  canvas.height = 300
-  const ctx = canvas.getContext('2d')
-  if (!ctx) return
-  const img = new Image()
-  img.onload = () => {
-    ctx.fillStyle = '#ffffff'
-    ctx.fillRect(0, 0, 300, 300)
-    ctx.drawImage(img, 0, 0, 300, 300)
-    const link = document.createElement('a')
-    link.download = `bilet-${token.slice(0, 8)}.png`
-    link.href = canvas.toDataURL('image/png')
-    link.click()
-  }
-  img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgStr)))
-}
+import { downloadTicketImage } from '../lib/ticket-download'
 
 // ─── Ticket Card ──────────────────────────────────────────────────────────────
-function TicketCard({ ticket }: { ticket: Ticket }) {
+function TicketCard({ ticket, userName }: { ticket: Ticket; userName: string }) {
   const { t, locale } = useLocale()
   const [showQR, setShowQR] = useState(false)
   const isUsed = ticket.status === 'used'
@@ -225,7 +204,11 @@ function TicketCard({ ticket }: { ticket: Ticket }) {
           </div>
           <p className="text-xs text-white/50">{t('ticket.form.eventDate')}</p>
           <button
-            onClick={() => downloadQR(ticket.qr_token, ticket.id)}
+            onClick={() => downloadTicketImage({
+              qrSvgElementId: `profile-qr-${ticket.id}`,
+              attendeeName: userName || 'Attendee',
+              eventTitle: ticket.event_title,
+            })}
             className="flex items-center gap-2 rounded-xl bg-orange-500/20 px-4 py-2 text-sm font-semibold text-orange-400 transition hover:bg-orange-500/30"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
@@ -463,7 +446,7 @@ function ProfileDashboard({ authToken, onLogout }: { authToken: string; onLogout
           ) : (
             <div className="flex flex-col gap-4">
               {filtered.map((ticket) => (
-                <TicketCard key={ticket.id} ticket={ticket} />
+                <TicketCard key={ticket.id} ticket={ticket} userName={user?.name || ''} />
               ))}
             </div>
           )}

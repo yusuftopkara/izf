@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import { api, type AdminTicket, type AdminEvent } from '../../lib/api'
+import { downloadTicketImage } from '../../lib/ticket-download'
 
 const PAGE_SIZE = 50
 
@@ -126,42 +127,11 @@ export default function AdminTickets({ token }: { token: string }) {
   }
 
   async function handleDownloadQR(ticket: AdminTicket) {
-    const svgEl = document.getElementById(`admin-qr-${ticket.id}`) as unknown as SVGSVGElement | null
-    if (!svgEl) { alert('QR kodu hazırlanıyor, lütfen 1 saniye sonra tekrar deneyin.'); return }
-    const serializer = new XMLSerializer()
-    const svgStr = serializer.serializeToString(svgEl)
-    const canvas = document.createElement('canvas')
-    const size = 720
-    canvas.width = size
-    canvas.height = size + 220
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-    ctx.fillStyle = '#ffffff'
-    ctx.fillRect(0, 0, canvas.width, canvas.height)
-    const img = new Image()
-    img.onload = () => {
-      ctx.drawImage(img, 60, 40, size - 120, size - 120)
-      ctx.fillStyle = '#0d0d1a'
-      ctx.font = 'bold 28px sans-serif'
-      ctx.textAlign = 'center'
-      ctx.fillText(ticket.event_title || '', canvas.width / 2, size - 40)
-      ctx.font = '20px sans-serif'
-      ctx.fillStyle = '#444'
-      const buyer = ticket.buyer_name || ticket.user_name || 'Atanmamış / Unassigned'
-      ctx.fillText(buyer, canvas.width / 2, size + 0)
-      ctx.font = '14px monospace'
-      ctx.fillStyle = '#888'
-      ctx.fillText(ticket.qr_token, canvas.width / 2, size + 40)
-      ctx.font = '12px sans-serif'
-      ctx.fillStyle = '#aaa'
-      ctx.fillText('Istanbul International Zumba Festival', canvas.width / 2, size + 80)
-      const filename = `bilet-${(ticket.buyer_name || ticket.user_name || ticket.qr_token.slice(0, 8)).replace(/[^a-zA-Z0-9-_]/g, '_')}.png`
-      const link = document.createElement('a')
-      link.download = filename
-      link.href = canvas.toDataURL('image/png')
-      link.click()
-    }
-    img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgStr)))
+    downloadTicketImage({
+      qrSvgElementId: `admin-qr-${ticket.id}`,
+      attendeeName: ticket.buyer_name || ticket.user_name || 'Atanmamış',
+      eventTitle: ticket.event_title,
+    })
   }
 
   const displayed = tickets.filter((t) => {
