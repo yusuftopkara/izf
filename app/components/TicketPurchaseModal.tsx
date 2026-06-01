@@ -54,6 +54,14 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
   const [discountCode, setDiscountCode] = useState('')
   const [quantity, setQuantity] = useState(1)
   const [kvkkAccepted, setKvkkAccepted] = useState(false)
+  const [country, setCountry] = useState<'TR' | 'OTHER'>(locale === 'tr' ? 'TR' : 'OTHER')
+
+  // Computed currency info
+  const isTR = country === 'TR'
+  const displayPrice = isTR ? (event?.tl_price ?? event?.price) : event?.price
+  const displayCurrency = isTR ? '₺' : '€'
+  const paymentLink = isTR ? (event?.tl_payment_link ?? event?.payment_link) : event?.payment_link
+  const formattedPrice = displayPrice?.toLocaleString(locale === 'tr' ? 'tr-TR' : 'en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
 
   // Submit state
   const [submitting, setSubmitting] = useState(false)
@@ -72,6 +80,8 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
         setEmail(me.email)
         setName(me.name)
         setPhone((me as { phone?: string }).phone ?? '')
+        const userCountry = (me as { country?: string }).country ?? (locale === 'tr' ? 'TR' : 'OTHER')
+        setCountry(userCountry === 'TR' ? 'TR' : 'OTHER')
         setStep(2)
       })
       .catch(() => {
@@ -113,11 +123,15 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
       setError(t('ticket.form.kvkkRequired'))
       return
     }
+    if (!paymentLink) {
+      setError('Ödeme linki henüz oluşturulmamış. Lütfen daha sonra tekrar deneyin.')
+      return
+    }
     setError('')
     setRedirecting(true)
     setStep(3)
-    // Auto-open iyzico payment page
-    window.open('https://iyzi.link/AKkMUg', '_blank')
+    // Auto-open iyzico payment page (EUR or TRY link based on country)
+    window.open(paymentLink, '_blank')
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -153,12 +167,37 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
               <p className="text-white/60 text-sm">
                 {event?.title ?? 'Istanbul Zumba Festival'}
               </p>
-              {event?.price !== undefined && (
-                <p className="mt-1 text-orange-400 font-bold text-lg">
-                  €{event.price.toLocaleString(locale === 'tr' ? 'tr-TR' : 'en-US')}
+
+              {/* Country selector toggle */}
+              {event?.tl_price !== undefined && event?.tl_payment_link && (
+                <div className="mt-3 flex items-center justify-center gap-2 rounded-xl bg-white/10 p-1 border border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => setCountry('TR')}
+                    className={`flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                      country === 'TR' ? 'bg-purple-500 text-white' : 'text-white/60 hover:text-white'
+                    }`}
+                  >
+                    🇹🇷 Türkiye
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCountry('OTHER')}
+                    className={`flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                      country === 'OTHER' ? 'bg-purple-500 text-white' : 'text-white/60 hover:text-white'
+                    }`}
+                  >
+                    🌍 İnternational
+                  </button>
+                </div>
+              )}
+
+              {displayPrice !== undefined && (
+                <p className="mt-2 text-orange-400 font-bold text-lg">
+                  {displayCurrency}{formattedPrice}
                   {quantity > 1 && (
                     <span className="text-white/60 text-sm font-normal ml-1">
-                      × {quantity} = €{(event.price * quantity).toLocaleString(locale === 'tr' ? 'tr-TR' : 'en-US')}
+                      × {quantity} = {displayCurrency}{(displayPrice * quantity).toLocaleString(locale === 'tr' ? 'tr-TR' : 'en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
                     </span>
                   )}
                 </p>
