@@ -2294,17 +2294,34 @@ async def payment_callback(request: Request):
 
         logger.info(f"Payment callback parsed data: {data}")
 
-        # Extract identifiers
+        # Extract identifiers with more flexible fallback
         iyzico_token = ""
         payment_id = ""
         iyzico_status = ""
 
-        if "token" in data or "iyziEventType" in data:
-            iyzico_token = str(data.get("token", ""))
-            iyzico_status = data.get("status", data.get("paymentStatus", ""))
-            payment_id = str(data.get("paymentId", data.get("paymentConversationId", iyzico_token)))
-        elif "paymentId" in data:
-            payment_id = str(data["paymentId"])
+        # Try multiple possible token field names from iyzico
+        for token_key in ["token", "paymentToken", "paymentConversationId", "conversationId", "paymentId"]:
+            if token_key in data and data[token_key]:
+                iyzico_token = str(data[token_key])
+                break
+
+        for status_key in ["status", "paymentStatus", "iyziEventType"]:
+            if status_key in data and data[status_key]:
+                iyzico_status = str(data[status_key])
+                break
+
+        for pid_key in ["paymentId", "paymentConversationId", "conversationId"]:
+            if pid_key in data and data[pid_key]:
+                payment_id = str(data[pid_key])
+                break
+
+        # If still no payment_id, fall back to token
+        if not payment_id and iyzico_token:
+            payment_id = iyzico_token
+
+        if "token" in data or "paymentToken" in data or "iyziEventType" in data or "paymentId" in data:
+            pass  # Recognized format
+        elif payment_id:
             iyzico_status = data.get("status", "SUCCESS")
         else:
             logger.warning(f"Unknown webhook format, keys: {list(data.keys()) if isinstance(data, dict) else 'not dict'}")

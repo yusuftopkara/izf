@@ -438,7 +438,7 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
                 </p>
 
                 <a
-                  href="https://iyzi.link/AKkMUg"
+                  href={paymentLink}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="block w-full text-center py-3 px-6 bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white font-bold rounded-xl text-lg transition-all"
