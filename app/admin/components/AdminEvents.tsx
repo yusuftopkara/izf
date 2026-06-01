@@ -8,6 +8,9 @@ const EMPTY_EVENT: CreateEventRequest = {
   date: '',
   location: '',
   price: undefined,
+  tl_price: undefined,
+  payment_link: '',
+  tl_payment_link: '',
   capacity: 0,
   description: '',
 }
@@ -45,6 +48,9 @@ export default function AdminEvents({ token }: { token: string }) {
       date: ev.date || '',
       location: ev.location || '',
       price: ev.price,
+      tl_price: ev.tl_price,
+      payment_link: (ev as any).payment_link || '',
+      tl_payment_link: (ev as any).tl_payment_link || '',
       capacity: ev.capacity,
       description: ev.description || '',
     })
@@ -149,6 +155,38 @@ export default function AdminEvents({ token }: { token: string }) {
               />
             </div>
             <div>
+              <label className="mb-1 block text-xs font-semibold text-gray-600">TL Fiyat</label>
+              <input
+                type="number"
+                value={form.tl_price ?? ''}
+                onChange={(e) => setForm({ ...form, tl_price: e.target.value ? Number(e.target.value) : undefined })}
+                min={0}
+                step={0.01}
+                placeholder="7200.00"
+                className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
+              />
+            </div>
+            <div className="col-span-2">
+              <label className="mb-1 block text-xs font-semibold text-gray-600">Ödeme Linki (EUR)</label>
+              <input
+                type="url"
+                value={form.payment_link || ''}
+                onChange={(e) => setForm({ ...form, payment_link: e.target.value })}
+                placeholder="https://iyzi.link/... (EUR)"
+                className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
+              />
+            </div>
+            <div className="col-span-2">
+              <label className="mb-1 block text-xs font-semibold text-gray-600">Ödeme Linki (TL)</label>
+              <input
+                type="url"
+                value={form.tl_payment_link || ''}
+                onChange={(e) => setForm({ ...form, tl_payment_link: e.target.value })}
+                placeholder="https://iyzi.link/... (TL)"
+                className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
+              />
+            </div>
+            <div>
               <label className="mb-1 block text-xs font-semibold text-gray-600">Kapasite <span className="text-red-500">*</span></label>
               <input
                 type="number"
@@ -205,7 +243,8 @@ export default function AdminEvents({ token }: { token: string }) {
                   <th className="px-4 py-3 text-left">Başlık</th>
                   <th className="px-4 py-3 text-left">Tarih</th>
                   <th className="px-4 py-3 text-left">Yer</th>
-                  <th className="px-4 py-3 text-left">Fiyat</th>
+                  <th className="px-4 py-3 text-left">Fiyat (EUR)</th>
+                  <th className="px-4 py-3 text-left">Fiyat (TL)</th>
                   <th className="px-4 py-3 text-left">Kapasite</th>
                   <th className="px-4 py-3 text-right">İşlem</th>
                 </tr>
@@ -213,7 +252,7 @@ export default function AdminEvents({ token }: { token: string }) {
               <tbody className="divide-y divide-gray-50">
                 {events.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-gray-400">Etkinlik bulunamadı</td>
+                    <td colSpan={7} className="px-4 py-8 text-center text-gray-400">Etkinlik bulunamadı</td>
                   </tr>
                 ) : (
                   events.map((ev) => (
@@ -225,6 +264,9 @@ export default function AdminEvents({ token }: { token: string }) {
                       <td className="px-4 py-3 text-gray-600">{ev.location || '—'}</td>
                       <td className="px-4 py-3 text-gray-700">
                         {ev.price !== undefined ? `${ev.price.toLocaleString('de-DE')} €` : '—'}
+                      </td>
+                      <td className="px-4 py-3 text-gray-700">
+                        {ev.tl_price !== undefined ? `${ev.tl_price.toLocaleString('de-DE')} ₺` : '—'}
                       </td>
                       <td className="px-4 py-3 text-gray-600">
                         {ev.tickets_sold ?? 0} / {ev.capacity}

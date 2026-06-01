@@ -11,6 +11,7 @@ interface ProfileData {
   phone: string
   city: string
   bio: string
+  country: 'TR' | 'OTHER'
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -50,6 +51,7 @@ export default function ProfileSettingsPage() {
     phone: '',
     city: '',
     bio: '',
+    country: 'TR',
   })
 
   // Password change form
@@ -79,10 +81,11 @@ export default function ProfileSettingsPage() {
           phone: profile.phone || '',
           city: profile.city || '',
           bio: profile.bio || '',
+          country: (profile.country === 'TR' || profile.country === 'OTHER') ? profile.country : 'TR',
         })
       } else {
         const u = getUser()
-        setForm((prev) => ({ ...prev, name: u?.name || '' }))
+        setForm((prev) => ({ ...prev, name: u?.name || '', country: prev.country }))
       }
     } catch (err) {
       console.error('Profile load error:', err)
@@ -325,6 +328,19 @@ export default function ProfileSettingsPage() {
                   rows={4}
                   className="w-full resize-none rounded-xl bg-white/10 px-4 py-3 text-white placeholder-white/30 outline-none focus:ring-2 focus:ring-orange-500"
                 />
+              </div>
+
+              {/* Country */}
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-white/60">Ülke / Country</label>
+                <select
+                  value={form.country}
+                  onChange={(e) => setForm({ ...form, country: e.target.value as 'TR' | 'OTHER' })}
+                  className="w-full rounded-xl bg-white/10 px-4 py-3 text-white outline-none focus:ring-2 focus:ring-orange-500"
+                >
+                  <option value="TR">🇹🇷 Türkiye</option>
+                  <option value="OTHER">🌍 International (Diğer)</option>
+                </select>
               </div>
 
               <button

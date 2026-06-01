@@ -33,6 +33,7 @@ export interface AdminEvent {
   date?: string
   location?: string
   price?: number
+  tl_price?: number
   capacity: number
   tickets_sold?: number
   description?: string
@@ -44,6 +45,10 @@ export interface CreateEventRequest {
   location?: string
   price?: number
   tl_price?: number
+  payment_link?: string
+  discounted_payment_link?: string
+  tl_payment_link?: string
+  tl_discount_payment_link?: string
   capacity: number
   description?: string
 }
@@ -377,11 +382,11 @@ export const api = {
   },
 
   // Profile endpoints
-  async getProfile(token: string): Promise<{ name: string; email: string; phone?: string; city?: string; bio?: string }> {
-    return apiFetch<{ name: string; email: string; phone?: string; city?: string; bio?: string }>('/api/profile', {}, token)
+  async getProfile(token: string): Promise<{ name: string; email: string; phone?: string; city?: string; bio?: string; country?: string }> {
+    return apiFetch<{ name: string; email: string; phone?: string; city?: string; bio?: string; country?: string }>('/api/profile', {}, token)
   },
 
-  async updateProfile(data: { name: string; phone?: string; city?: string; bio?: string }, token: string): Promise<void> {
+  async updateProfile(data: { name: string; phone?: string; city?: string; bio?: string; country?: string }, token: string): Promise<void> {
     return apiFetch<void>('/api/profile', { method: 'PUT', body: JSON.stringify(data) }, token)
   },
 
