@@ -2085,7 +2085,7 @@ async def seed_data(force: bool = False):
             "price": 200.0,
             "tl_price": 7200.0,
             "payment_link": "https://iyzi.link/AKkMUg",
-            "tl_payment_link": "https://iyzi.link/AKmwOw",
+            "tl_payment_link": "https://iyzi.link/AKmqOw",
             "image_url": "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800",
             "created_at": datetime.utcnow()
         },
@@ -2100,7 +2100,7 @@ async def seed_data(force: bool = False):
             "price": 200.0,
             "tl_price": 7200.0,
             "payment_link": "https://iyzi.link/AKkMUg",
-            "tl_payment_link": "https://iyzi.link/AKmwOw",
+            "tl_payment_link": "https://iyzi.link/AKmqOw",
             "image_url": "https://images.unsplash.com/photo-1524594152303-9fd13543fe6e?w=800",
             "created_at": datetime.utcnow()
         },
@@ -2115,7 +2115,7 @@ async def seed_data(force: bool = False):
             "price": 200.0,
             "tl_price": 7200.0,
             "payment_link": "https://iyzi.link/AKkMUg",
-            "tl_payment_link": "https://iyzi.link/AKmwOw",
+            "tl_payment_link": "https://iyzi.link/AKmqOw",
             "image_url": "https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=800",
             "created_at": datetime.utcnow()
         }

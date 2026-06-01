@@ -61,7 +61,7 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
   const displayPrice = isTR ? (event?.tl_price ?? event?.price) : event?.price
   const displayCurrency = isTR ? '₺' : '€'
   const paymentLink = isTR 
-    ? (event?.tl_payment_link ?? 'https://iyzi.link/AKkMUg') 
+    ? (event?.tl_payment_link ?? 'https://iyzi.link/AKmqOw') 
     : (event?.payment_link ?? 'https://iyzi.link/AKkMUg')
   const formattedPrice = displayPrice?.toLocaleString(locale === 'tr' ? 'tr-TR' : 'en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
 
@@ -170,8 +170,8 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
                 {event?.title ?? 'Istanbul Zumba Festival'}
               </p>
 
-              {/* Country selector toggle */}
-              {event?.tl_price !== undefined && event?.tl_payment_link && (
+              {/* Country selector toggle — hidden when redirecting */}
+              {step !== 3 && event?.tl_price !== undefined && event?.tl_payment_link && (
                 <div className="mt-3 flex items-center justify-center gap-2 rounded-xl bg-white/10 p-1 border border-white/10">
                   <button
                     type="button"

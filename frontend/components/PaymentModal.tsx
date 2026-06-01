@@ -100,8 +100,12 @@ export default function PaymentModal({
   const displayPrice = isTR ? (event.tl_price ?? event.price) : event.price;
   const displayCurrency = isTR ? '₺' : '€';
   const activePaymentLink = isTR 
-    ? (event.tl_payment_link ?? 'https://iyzi.link/AKkMUg') 
+    ? (event.tl_payment_link ?? 'https://iyzi.link/AKmqOw') 
     : (event.payment_link ?? 'https://iyzi.link/AKkMUg');
+
+  // ── Disable country change when processing ─────────────────────────────────────
+  const isProcessing = step === 'processing';
+  const canChangeCountry = !isProcessing && step !== 'guest_form';
 
   // ── Price calculation ──────────────────────────────────────────────────────
   const unitPrice = discount?.valid ? discount.discounted_price : displayPrice;
