@@ -37,8 +37,8 @@ class ApiService {
     return response.data;
   }
 
-  async register(email: string, password: string, name: string, phone: string) {
-    const response = await this.axiosInstance.post('/register', { email, password, name, phone });
+  async register(email: string, password: string, name: string, phone: string, country: string = 'TR') {
+    const response = await this.axiosInstance.post('/register', { email, password, name, phone, country });
     return response.data;
   }
 
@@ -237,7 +237,7 @@ async getAdminPosts() {
     return response.data;
   }
 
-  async updateProfile(data: { name?: string; phone?: string; city?: string; bio?: string }) {
+  async updateProfile(data: { name?: string; phone?: string; city?: string; bio?: string; country?: string }) {
     const response = await this.axiosInstance.put('/me/profile', data);
     return response.data;
   }

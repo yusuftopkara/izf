@@ -13,6 +13,7 @@ interface User {
   email: string;
   name: string;
   role: string;
+  country?: string;
   streak: number;
   created_at: string;
 }
@@ -22,7 +23,7 @@ interface AuthContextType {
   token: string | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name: string, phone?: string) => Promise<void>;
+  register: (email: string, password: string, name: string, phone?: string, country?: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }

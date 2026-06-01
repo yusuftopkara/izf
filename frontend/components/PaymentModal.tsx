@@ -40,8 +40,11 @@ interface PaymentModalProps {
     id: string;
     title: string;
     price: number;
+    tl_price?: number;
     payment_link?: string;
     discounted_payment_link?: string;
+    tl_payment_link?: string;
+    tl_discount_payment_link?: string;
   };
   quantity: number;
   user: {
@@ -49,6 +52,7 @@ interface PaymentModalProps {
     email: string;
     name: string;
     phone?: string;
+    country?: string;
   } | null;
 }
 
@@ -88,10 +92,19 @@ export default function PaymentModal({
   const [guestError, setGuestError] = useState('');
   const [kvkkAccepted, setKvkkAccepted] = useState(false);
 
+  // ── Country / Currency ──────────────────────────────────────────────────
+  const [country, setCountry] = useState<'TR' | 'OTHER'>(
+    user?.country === 'OTHER' ? 'OTHER' : 'TR'
+  );
+  const isTR = country === 'TR';
+  const displayPrice = isTR ? (event.tl_price ?? event.price) : event.price;
+  const displayCurrency = isTR ? '₺' : '€';
+  const activePaymentLink = isTR ? event.tl_payment_link : event.payment_link;
+
   // ── Price calculation ──────────────────────────────────────────────────────
-  const unitPrice = discount?.valid ? discount.discounted_price : event.price;
+  const unitPrice = discount?.valid ? discount.discounted_price : displayPrice;
   const totalPrice = unitPrice * quantity;
-  const originalTotal = event.price * quantity;
+  const originalTotal = displayPrice * quantity;
 
   // ── Coupon validate ────────────────────────────────────────────────────────
   const handleValidateCoupon = useCallback(async () => {
@@ -125,6 +138,21 @@ export default function PaymentModal({
 
   // ── Start iyzico payment ──────────────────────────────────────────────────
   const startIyzicoPayment = async (buyerEmail: string, buyerName: string, buyerPhone?: string) => {
+    // NEW: Use static iyzico PWI link if available (TL or EUR)
+    if (activePaymentLink) {
+      setStep('processing');
+      try {
+        await Linking.openURL(activePaymentLink);
+        resetAll();
+        onClose();
+      } catch {
+        setStep(isLoggedIn ? 'member_payment' : 'choose_method');
+        Alert.alert('Hata', 'Ödeme sayfası açılamadı.');
+      }
+      return;
+    }
+
+    // Legacy API-created payment flow
     setStep('processing');
     try {
       const result = await initPayment({
@@ -233,11 +261,11 @@ export default function PaymentModal({
         <Text style={styles.summaryLabel}>{t('ticket.unitPrice')}</Text>
         {discount?.valid ? (
           <View style={styles.priceGroup}>
-            <Text style={styles.originalPrice}>€{event.price.toFixed(2)}</Text>
-            <Text style={styles.discountedPrice}>€{discount.discounted_price.toFixed(2)}</Text>
+            <Text style={styles.originalPrice}>{displayCurrency}{event.price.toFixed(2)}</Text>
+            <Text style={styles.discountedPrice}>{displayCurrency}{discount.discounted_price.toFixed(2)}</Text>
           </View>
         ) : (
-          <Text style={styles.summaryValue}>€{event.price.toFixed(2)}</Text>
+          <Text style={styles.summaryValue}>{displayCurrency}{displayPrice.toFixed(2)}</Text>
         )}
       </View>
       {discount?.valid && (
@@ -246,7 +274,7 @@ export default function PaymentModal({
           <Text style={styles.discountBannerText}>
             {discount.discount_type === 'percentage'
               ? `%${discount.discount_value} ${t('ticket.discountApplied')}`
-              : `€${discount.discount_value.toFixed(2)} ${t('ticket.discountApplied')}`}
+              : `${displayCurrency}${discount.discount_value.toFixed(2)} ${t('ticket.discountApplied')}`}
           </Text>
         </View>
       )}
@@ -255,11 +283,11 @@ export default function PaymentModal({
         <Text style={styles.totalLabelText}>{t('ticket.total')}</Text>
         {discount?.valid ? (
           <View style={styles.priceGroup}>
-            <Text style={styles.originalPriceLarge}>€{originalTotal.toFixed(2)}</Text>
-            <Text style={styles.totalValueGreen}>€{totalPrice.toFixed(2)}</Text>
+            <Text style={styles.originalPriceLarge}>{displayCurrency}{originalTotal.toFixed(2)}</Text>
+            <Text style={styles.totalValueGreen}>{displayCurrency}{totalPrice.toFixed(2)}</Text>
           </View>
         ) : (
-          <Text style={styles.totalValue}>€{totalPrice.toFixed(2)}</Text>
+          <Text style={styles.totalValue}>{displayCurrency}{totalPrice.toFixed(2)}</Text>
         )}
       </View>
     </View>
@@ -410,7 +438,7 @@ export default function PaymentModal({
               <>
                 <Ionicons name="lock-closed" size={20} color="#fff" style={{ marginRight: 8 }} />
                 <Text style={styles.payButtonText}>
-                  €{totalPrice.toFixed(2)} — {t('ticket.payWithIyzico')}
+                  {displayCurrency}{totalPrice.toFixed(2)} — {t('ticket.payWithIyzico')}
                 </Text>
               </>
             )}
@@ -487,7 +515,7 @@ export default function PaymentModal({
               <>
                 <Ionicons name="lock-closed" size={20} color="#fff" style={{ marginRight: 8 }} />
                 <Text style={styles.payButtonText}>
-                  €{totalPrice.toFixed(2)} — {t('ticket.payWithIyzico')}
+                  {displayCurrency}{totalPrice.toFixed(2)} — {t('ticket.payWithIyzico')}
                 </Text>
               </>
             )}

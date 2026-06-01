@@ -36,6 +36,7 @@ export default function ProfileSettings() {
   const [phone, setPhone] = useState('');
   const [city, setCity] = useState('');
   const [bio, setBio] = useState('');
+  const [country, setCountry] = useState<'TR' | 'OTHER'>('TR');
 
   useEffect(() => {
     loadProfile();
@@ -48,6 +49,7 @@ export default function ProfileSettings() {
       setPhone(profile.phone || '');
       setCity(profile.city || '');
       setBio(profile.bio || '');
+      setCountry(profile.country === 'OTHER' ? 'OTHER' : 'TR');
     } catch (error) {
       console.error('Error loading profile:', error);
       // Use existing user data as fallback
@@ -72,6 +74,7 @@ export default function ProfileSettings() {
         phone: phone.trim(),
         city: city.trim(),
         bio: bio.trim(),
+        country,
       });
       
       await refreshUser();
@@ -214,6 +217,29 @@ export default function ProfileSettings() {
               numberOfLines={4}
               textAlignVertical="top"
             />
+          </View>
+        </View>
+
+        {/* Country */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Ülke / Country</Text>
+          <View style={styles.countryPicker}>
+            <TouchableOpacity
+              style={[styles.countryOption, country === 'TR' && styles.countryOptionActive]}
+              onPress={() => setCountry('TR')}
+            >
+              <Text style={[styles.countryOptionText, country === 'TR' && styles.countryOptionTextActive]}>
+                🇹🇷 Türkiye
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.countryOption, country === 'OTHER' && styles.countryOptionActive]}
+              onPress={() => setCountry('OTHER')}
+            >
+              <Text style={[styles.countryOptionText, country === 'OTHER' && styles.countryOptionTextActive]}>
+                🌍 International
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -399,6 +425,31 @@ const styles = StyleSheet.create({
     color: '#666',
     fontSize: 12,
     marginTop: 4,
+  },
+  countryPicker: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  countryOption: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#2a2a4e',
+    alignItems: 'center',
+    backgroundColor: '#1a0a2e',
+  },
+  countryOptionActive: {
+    borderColor: '#E91E8C',
+    backgroundColor: 'rgba(233, 30, 140, 0.15)',
+  },
+  countryOptionText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  countryOptionTextActive: {
+    color: '#E91E8C',
   },
   saveButton: {
     marginTop: 10,
