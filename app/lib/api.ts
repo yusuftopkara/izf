@@ -43,6 +43,7 @@ export interface CreateEventRequest {
   date?: string
   location?: string
   price?: number
+  tl_price?: number
   capacity: number
   description?: string
 }
@@ -54,8 +55,11 @@ export interface Event {
   capacity: number
   tickets_sold: number
   price?: number
+  tl_price?: number
   payment_link?: string
   discounted_payment_link?: string
+  tl_payment_link?: string
+  tl_discount_payment_link?: string
 }
 
 export interface InitPaymentRequest {
