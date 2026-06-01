@@ -61,6 +61,7 @@ class UserCreate(BaseModel):
     password: str
     name: str
     phone: str = ""
+    country: str = "TR"
 
 class UserLogin(BaseModel):
     email: EmailStr
@@ -74,6 +75,7 @@ class UserResponse(BaseModel):
     email: str
     name: str
     phone: str = ""
+    country: str = "TR"
     role: str
     streak: int
     tickets_count: int = 0
@@ -92,9 +94,12 @@ class EventCreate(BaseModel):
     date: datetime
     capacity: int
     price: float
+    tl_price: Optional[float] = None
     image_url: Optional[str] = None
     payment_link: Optional[str] = None
     discounted_payment_link: Optional[str] = None
+    tl_payment_link: Optional[str] = None
+    tl_discount_payment_link: Optional[str] = None
 
 class EventResponse(BaseModel):
     id: str
@@ -105,9 +110,12 @@ class EventResponse(BaseModel):
     date: datetime
     capacity: int
     price: float
+    tl_price: Optional[float] = None
     image_url: Optional[str] = None
     payment_link: Optional[str] = None
     discounted_payment_link: Optional[str] = None
+    tl_payment_link: Optional[str] = None
+    tl_discount_payment_link: Optional[str] = None
     tickets_sold: int = 0
     created_at: datetime
 
@@ -496,6 +504,7 @@ async def register(user_data: UserCreate):
         "password_hash": get_password_hash(user_data.password),
         "name": user_data.name,
         "phone": user_data.phone,
+        "country": user_data.country,
         "role": "user",
         "streak": 0,
         "last_challenge_date": None,
@@ -513,8 +522,11 @@ async def register(user_data: UserCreate):
             id=user["id"],
             email=user["email"],
             name=user["name"],
+            phone=user.get("phone", ""),
+            country=user.get("country", "TR"),
             role=user["role"],
-            streak=user["streak"],
+            streak=user.get("streak", 0),
+            tickets_count=0,
             created_at=user["created_at"]
         )
     )
@@ -535,8 +547,11 @@ async def login(user_data: UserLogin):
             id=user["id"],
             email=user["email"],
             name=user["name"],
+            phone=user.get("phone", ""),
+            country=user.get("country", "TR"),
             role=user["role"],
             streak=user.get("streak", 0),
+            tickets_count=0,
             created_at=user["created_at"]
         )
     )
@@ -547,8 +562,11 @@ async def get_me(user: dict = Depends(get_user_from_header)):
         id=user["id"],
         email=user["email"],
         name=user["name"],
+        phone=user.get("phone", ""),
+        country=user.get("country", "TR"),
         role=user["role"],
         streak=user.get("streak", 0),
+        tickets_count=0,
         created_at=user["created_at"]
     )
 
@@ -559,6 +577,7 @@ class ProfileUpdateRequest(BaseModel):
     phone: Optional[str] = None
     city: Optional[str] = None
     bio: Optional[str] = None
+    country: Optional[str] = None
 
 @api_router.put("/me/profile")
 async def update_profile(request: ProfileUpdateRequest, user: dict = Depends(get_user_from_header)):
@@ -572,6 +591,8 @@ async def update_profile(request: ProfileUpdateRequest, user: dict = Depends(get
         update_data["city"] = request.city
     if request.bio is not None:
         update_data["bio"] = request.bio
+    if request.country is not None:
+        update_data["country"] = request.country
     
     if update_data:
         update_data["updated_at"] = datetime.utcnow()
@@ -588,6 +609,7 @@ async def update_profile(request: ProfileUpdateRequest, user: dict = Depends(get
             "role": updated_user["role"],
             "phone": updated_user.get("phone", ""),
             "city": updated_user.get("city", ""),
+            "country": updated_user.get("country", "TR"),
             "bio": updated_user.get("bio", ""),
             "streak": updated_user.get("streak", 0),
             "created_at": updated_user["created_at"]
@@ -728,9 +750,12 @@ async def get_events(city: Optional[str] = None):
             date=event["date"],
             capacity=event["capacity"],
             price=event["price"],
+            tl_price=event.get("tl_price"),
             image_url=event.get("image_url"),
             payment_link=event.get("payment_link"),
             discounted_payment_link=event.get("discounted_payment_link"),
+            tl_payment_link=event.get("tl_payment_link"),
+            tl_discount_payment_link=event.get("tl_discount_payment_link"),
             tickets_sold=tickets_sold,
             created_at=event["created_at"]
         ))
@@ -752,9 +777,12 @@ async def get_event(event_id: str):
         date=event["date"],
         capacity=event["capacity"],
         price=event["price"],
+        tl_price=event.get("tl_price"),
         image_url=event.get("image_url"),
         payment_link=event.get("payment_link"),
         discounted_payment_link=event.get("discounted_payment_link"),
+        tl_payment_link=event.get("tl_payment_link"),
+        tl_discount_payment_link=event.get("tl_discount_payment_link"),
         tickets_sold=tickets_sold,
         created_at=event["created_at"]
     )
@@ -777,9 +805,12 @@ async def create_event(event_data: EventCreate, user: dict = Depends(require_adm
         date=event["date"],
         capacity=event["capacity"],
         price=event["price"],
+        tl_price=event.get("tl_price"),
         image_url=event.get("image_url"),
         payment_link=event.get("payment_link"),
         discounted_payment_link=event.get("discounted_payment_link"),
+        tl_payment_link=event.get("tl_payment_link"),
+        tl_discount_payment_link=event.get("tl_discount_payment_link"),
         tickets_sold=0,
         created_at=event["created_at"]
     )
@@ -1825,6 +1856,7 @@ async def get_all_users(user: dict = Depends(require_admin)):
         email=u["email"],
         name=u["name"],
         phone=u.get("phone", ""),
+        country=u.get("country", "TR"),
         role=u["role"],
         streak=u.get("streak", 0),
         tickets_count=ticket_counts.get(u["id"], 0),
@@ -1862,9 +1894,12 @@ async def update_event(event_id: str, event_data: EventCreate, user: dict = Depe
         date=event["date"],
         capacity=event["capacity"],
         price=event["price"],
+        tl_price=event.get("tl_price"),
         image_url=event.get("image_url"),
         payment_link=event.get("payment_link"),
         discounted_payment_link=event.get("discounted_payment_link"),
+        tl_payment_link=event.get("tl_payment_link"),
+        tl_discount_payment_link=event.get("tl_discount_payment_link"),
         tickets_sold=tickets_sold,
         created_at=event["created_at"]
     )
