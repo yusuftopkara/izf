@@ -60,7 +60,9 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
   const isTR = country === 'TR'
   const displayPrice = isTR ? (event?.tl_price ?? event?.price) : event?.price
   const displayCurrency = isTR ? '₺' : '€'
-  const paymentLink = isTR ? (event?.tl_payment_link ?? event?.payment_link) : event?.payment_link
+  const paymentLink = isTR 
+    ? (event?.tl_payment_link ?? 'https://iyzi.link/AKkMUg') 
+    : (event?.payment_link ?? 'https://iyzi.link/AKkMUg')
   const formattedPrice = displayPrice?.toLocaleString(locale === 'tr' ? 'tr-TR' : 'en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
 
   // Submit state

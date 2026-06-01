@@ -99,7 +99,9 @@ export default function PaymentModal({
   const isTR = country === 'TR';
   const displayPrice = isTR ? (event.tl_price ?? event.price) : event.price;
   const displayCurrency = isTR ? '₺' : '€';
-  const activePaymentLink = isTR ? event.tl_payment_link : event.payment_link;
+  const activePaymentLink = isTR 
+    ? (event.tl_payment_link ?? 'https://iyzi.link/AKkMUg') 
+    : (event.payment_link ?? 'https://iyzi.link/AKkMUg');
 
   // ── Price calculation ──────────────────────────────────────────────────────
   const unitPrice = discount?.valid ? discount.discounted_price : displayPrice;
