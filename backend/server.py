@@ -2053,6 +2053,7 @@ async def seed_data(force: bool = False):
         "email": "admin@zumba.com",
         "password_hash": get_password_hash("admin123"),
         "name": "Admin",
+        "country": "TR",
         "role": "admin",
         "streak": 0,
         "created_at": datetime.utcnow()
@@ -2065,6 +2066,7 @@ async def seed_data(force: bool = False):
         "email": "staff@zumba.com",
         "password_hash": get_password_hash("staff123"),
         "name": "Staff",
+        "country": "TR",
         "role": "staff",
         "streak": 0,
         "created_at": datetime.utcnow()
@@ -2079,8 +2081,11 @@ async def seed_data(force: bool = False):
             "city": "Istanbul",
             "location": "Zorlu PSM",
             "date": datetime(2025, 8, 15, 19, 0),
-            "capacity": 500,
-            "price": 150.0,
+            "capacity": 1000,
+            "price": 200.0,
+            "tl_price": 7200.0,
+            "payment_link": "https://iyzi.link/AKkMUg",
+            "tl_payment_link": "https://iyzi.link/AKmwOw",
             "image_url": "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800",
             "created_at": datetime.utcnow()
         },
@@ -2091,8 +2096,11 @@ async def seed_data(force: bool = False):
             "city": "Antalya",
             "location": "Konyaaltı Plajı",
             "date": datetime(2025, 8, 20, 18, 0),
-            "capacity": 200,
-            "price": 100.0,
+            "capacity": 1000,
+            "price": 200.0,
+            "tl_price": 7200.0,
+            "payment_link": "https://iyzi.link/AKkMUg",
+            "tl_payment_link": "https://iyzi.link/AKmwOw",
             "image_url": "https://images.unsplash.com/photo-1524594152303-9fd13543fe6e?w=800",
             "created_at": datetime.utcnow()
         },
@@ -2103,8 +2111,11 @@ async def seed_data(force: bool = False):
             "city": "Ankara",
             "location": "Congresium",
             "date": datetime(2025, 9, 1, 21, 0),
-            "capacity": 300,
-            "price": 120.0,
+            "capacity": 1000,
+            "price": 200.0,
+            "tl_price": 7200.0,
+            "payment_link": "https://iyzi.link/AKkMUg",
+            "tl_payment_link": "https://iyzi.link/AKmwOw",
             "image_url": "https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=800",
             "created_at": datetime.utcnow()
         }
