@@ -2510,7 +2510,12 @@ async def admin_confirmed_payments(
     """List unclaimed confirmed payments for admin manual ticket creation.
     
     Enriches with buyer info from pending_purchases if available."""
-    query = {"claimed": claimed}
+    # Only show records after 2026-06-02 00:00:00 UTC (new PWI flow only)
+    date_cutoff = datetime(2026, 6, 2, 0, 0, 0)
+    query = {
+        "claimed": claimed,
+        "created_at": {"$gte": date_cutoff}
+    }
     cursor = db.confirmed_payments.find(query).sort("created_at", -1).skip(skip).limit(limit)
     items = []
     async for doc in cursor:
