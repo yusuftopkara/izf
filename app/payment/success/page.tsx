@@ -281,7 +281,9 @@ function PaymentSuccessContent() {
                   <p className="text-xs text-white/50">Etkinlik</p>
                   <p className="text-sm font-semibold text-white">{event.title}</p>
                   <p className="text-xs text-white/50 mt-1">
-                    {currency === 'TRY' ? `₺${event.tl_price || event.price} x ${quantity} = ₺${(event.tl_price || event.price) * quantity}` : `€${event.price} x ${quantity} = €${event.price}`}
+                    {currency === 'TRY' && typeof event.tl_price === 'number'
+                      ? `₺${event.tl_price} x ${quantity} = ₺${event.tl_price * quantity}`
+                      : `€${event.price || 0} x ${quantity} = €${(event.price || 0) * quantity}`}
                   </p>
                 </div>
               )}
