@@ -2444,29 +2444,43 @@ async def check_payment(pending_id: str, email: str = ""):
     if pending_created and (now - pending_created) > timedelta(minutes=30):
         return {"success": False, "reason": "expired", "message": "Ödeme süresi doldu (30 dk). Lütfen tekrar deneyin."}
 
-    # Search window: ±5 minutes around pending creation
-    if pending_created:
-        start = pending_created - timedelta(minutes=5)
-        end = pending_created + timedelta(minutes=5)
-    else:
-        start = now - timedelta(minutes=5)
-        end = now
-
+    # STRICT MATCH: webhook already stored pending_id
     confirmed = await db.confirmed_payments.find_one({
-        "created_at": {"$gte": start, "$lte": end},
+        "pending_id": pending_id,
         "claimed": False,
         "status": "SUCCESS"
     })
 
-    if not confirmed:
-        # Fallback: search by email if user provided it
-        if email:
-            from_email = email.strip().lower()
-            confirmed = await db.confirmed_payments.find_one({
-                "buyer_email": from_email,
+    # BRIDGE MATCH: webhook hasn't linked yet; try to bridge via email.
+    # Only unlinked records (<10 min old), get LATEST to reduce collision risk.
+    if not confirmed and pending.get("email"):
+        bridge = await db.confirmed_payments.find_one(
+            {
+                "pending_id": {"$exists": False},
+                "buyer_email": {"$exists": False},
                 "claimed": False,
-                "status": "SUCCESS"
-            })
+                "status": "SUCCESS",
+                "created_at": {"$gte": now - timedelta(minutes=10)}
+            },
+            sort=[("created_at", -1)]
+        )
+        if bridge:
+            # Atomically link — if another request already linked it, modified_count==0
+            link_result = await db.confirmed_payments.update_one(
+                {
+                    "_id": bridge["_id"],
+                    "pending_id": {"$exists": False}
+                },
+                {"$set": {
+                    "pending_id": pending_id,
+                    "buyer_email": pending["email"].strip().lower(),
+                    "buyer_name": pending.get("name", ""),
+                    "buyer_phone": pending.get("phone", ""),
+                    "currency": pending.get("currency", "EUR")
+                }}
+            )
+            if link_result.modified_count == 1:
+                confirmed = bridge
 
     if not confirmed:
         return {"success": False, "reason": "not_ready", "message": "Ödemeniz henüz onaylanmadı. Lütfen 10-20 sn bekleyip tekrar deneyin."}
@@ -2475,7 +2489,7 @@ async def check_payment(pending_id: str, email: str = ""):
     if not token:
         return {"success": False, "reason": "error", "message": "Token değeri boş. Lütfen destek ile iletişime geçin."}
 
-    # Store buyer info + currency for admin
+    # Store buyer info + currency for admin (link if not already)
     set_fields = {
         "pending_id": pending_id,
         "buyer_email": pending.get("email"),
