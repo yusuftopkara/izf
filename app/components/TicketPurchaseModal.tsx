@@ -42,7 +42,7 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
   const [loadingEvent, setLoadingEvent] = useState(false)
 
   // Step state (1 = selection, 2 = guest form, 3 = redirecting, 4 = check payment)
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1)
+  const [step, setStep] = useState<1 | 2 | 3>(1)
   
   // Auth modal for registered user flow
   const [authModalOpen, setAuthModalOpen] = useState(false)
@@ -500,40 +500,7 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
                 <h3 className="text-xl font-bold text-white text-center">Ödeme Sayfası</h3>
 
                 <p className="text-center text-white/70 text-sm">
-                  Ödeme sayfanız yeni sekmede açıldı. Ödeme işlemini tamamladıktan sonra aşağıdaki butona tıklayarak biletinizi oluşturabilirsiniz.
-                </p>
-
-                <button
-                  onClick={() => setStep(4)}
-                  className="block w-full text-center py-3 px-6 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold rounded-xl text-lg transition-all"
-                >
-                  Ödememi Tamamladım →
-                </button>
-
-                <a
-                  href={paymentLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-center text-orange-400 text-sm hover:underline"
-                >
-                  Ödeme sayfasına tekrar git
-                </a>
-              </div>
-            ) : step === 4 ? (
-              // ─── Step 4: Check confirmed payment ───────────────────────────────
-              <div className="flex flex-col gap-4 items-center">
-                <div className="mb-4">
-                  <div className="h-16 w-16 rounded-full bg-gradient-to-br from-green-500/30 to-emerald-500/30 flex items-center justify-center">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-8 w-8 text-green-400">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                </div>
-
-                <h3 className="text-xl font-bold text-white text-center">Ödeme Tamamlandı mı?</h3>
-
-                <p className="text-center text-white/70 text-sm">
-                  Ödeme sayfasında işlemi tamamladıysanız, sistemdeki ödemenizi doğrulayalım.
+                  Ödeme sayfanız yeni sekmede açıldı. Ödemeyi tamamlayıp buradaki butona tıkladığınızda biletiniz otomatik oluşturulacaktır.
                 </p>
 
                 {checkError && (
@@ -547,26 +514,18 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
                   disabled={checkingPayment}
                   className="block w-full text-center py-3 px-6 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 disabled:from-gray-600 disabled:to-gray-600 text-white font-bold rounded-xl text-lg transition-all"
                 >
-                  {checkingPayment ? 'Kontrol Ediliyor...' : 'Ödememi Kontrol Et & Bilet Oluştur'}
+                  {checkingPayment ? 'Kontrol Ediliyor...' : 'Ödemeyi Tamamladım → Bilet Oluştur'}
                 </button>
 
-                <p className="text-center text-white/50 text-xs">
-                  Ödemeniz henüz onaylanmadıysa, 10-20 sn bekleyip tekrar deneyin.
-                </p>
-
-                <div className="w-full border-t border-white/10 pt-3 mt-1">
-                  <p className="text-center text-white/40 text-xs mb-2">
-                    Sorun yaşıyorsanız iletişime geçin:
-                  </p>
-                  <a
-                    href="mailto:info@istanbulzumbafestival.com"
-                    className="block text-center text-orange-400 text-sm hover:underline"
-                  >
-                    info@istanbulzumbafestival.com
-                  </a>
-                </div>
+                <a
+                  href={paymentLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-center text-orange-400 text-sm hover:underline"
+                >
+                  Ödeme sayfasına tekrar git
+                </a>
               </div>
-            ) : null
             }
           </div>
         </div>
