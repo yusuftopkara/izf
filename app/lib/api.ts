@@ -419,6 +419,31 @@ export const api = {
     return apiFetch<PaymentStatusResponse>(`/api/payment/status/${encodeURIComponent(pendingId)}`)
   },
 
+  // NEW: Register pending purchase for PWI link polling flow
+  async registerPendingPurchase(data: { name: string; email: string; phone: string; event_id: string; currency: string }): Promise<{ success: boolean; pending_id?: string; message?: string }> {
+    return apiFetch<{ success: boolean; pending_id?: string; message?: string }>('/api/payment/register', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    })
+  },
+
+  // NEW: Check if a confirmed payment exists for this pending purchase
+  async checkConfirmedPayment(pendingId: string, email?: string): Promise<{ success: boolean; token?: string; redirect_url?: string; reason?: string; message?: string }> {
+    const url = email
+      ? `/api/payment/check?pending_id=${encodeURIComponent(pendingId)}&email=${encodeURIComponent(email)}`
+      : `/api/payment/check?pending_id=${encodeURIComponent(pendingId)}`
+    return apiFetch<{ success: boolean; token?: string; redirect_url?: string; reason?: string; message?: string }>(url)
+  },
+
+  // NEW: Admin list confirmed payments
+  async getConfirmedPayments(token: string, claimed: boolean = false, skip: number = 0, limit: number = 50): Promise<{ success: boolean; total?: number; items?: Array<Record<string, unknown>> }> {
+    return apiFetch<{ success: boolean; total?: number; items?: Array<Record<string, unknown>> }>(
+      `/api/admin/confirmed-payments?claimed=${claimed}&skip=${skip}&limit=${limit}`,
+      { method: 'GET' },
+      token
+    )
+  },
+
   // Legacy payment verification (keep for compatibility)
   async verifyPayment(paymentId: string): Promise<{ success: boolean; ticket_id?: string; status?: string; event_title?: string; message?: string }> {
     return apiFetch<{ success: boolean; ticket_id?: string; status?: string; event_title?: string; message?: string }>(`/api/payment/verify?paymentId=${encodeURIComponent(paymentId)}`)

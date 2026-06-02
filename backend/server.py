@@ -2384,6 +2384,141 @@ async def verify_token(token: str):
     return {"valid": True}
 
 
+# ==================== PENDING PURCHASE REGISTER ====================
+
+class RegisterPaymentRequest(BaseModel):
+    name: str
+    email: str
+    phone: str = ""
+    event_id: str
+    currency: str = "EUR"
+
+
+@api_router.post("/payment/register")
+async def register_payment(request: RegisterPaymentRequest):
+    """Register purchase intent before payment.
+
+    Returns a pending_id that the frontend stores and uses
+    to poll for the confirmed payment after iyzico webhook arrives.
+    """
+    pending_id = secrets.token_urlsafe(32)
+    record = {
+        "pending_id": pending_id,
+        "name": request.name.strip(),
+        "email": request.email.strip().lower(),
+        "phone": request.phone.strip(),
+        "event_id": request.event_id,
+        "currency": request.currency.upper(),
+        "created_at": datetime.utcnow(),
+        "status": "pending"
+    }
+    await db.pending_purchases.insert_one(record)
+    logger.info(f"Pending purchase registered: {pending_id} for {request.email}")
+    return {"success": True, "pending_id": pending_id}
+
+
+# ==================== CHECK CONFIRMED PAYMENT ====================
+
+@api_router.get("/payment/check")
+async def check_payment(pending_id: str, email: str = ""):
+    """Check for a confirmed payment matching a pending purchase.
+
+    Steps:
+      1. Find pending_purchase by pending_id
+      2. Ensure it's not expired (30 min window)
+      3. Look for unclaimed confirmed_payment within ±5 min of pending creation
+      4. Return token + redirect_url if found
+    """
+    if not pending_id:
+        raise HTTPException(status_code=400, detail="pending_id gerekli")
+
+    pending = await db.pending_purchases.find_one({"pending_id": pending_id})
+    if not pending:
+        return {"success": False, "reason": "not_found", "message": "Kayıt bulunamadı. Lütfen baştan başlayın."}
+
+    now = datetime.utcnow()
+    pending_created = pending.get("created_at")
+    if pending_created and (now - pending_created) > timedelta(minutes=30):
+        return {"success": False, "reason": "expired", "message": "Ödeme süresi doldu (30 dk). Lütfen tekrar deneyin."}
+
+    # Search window: ±5 minutes around pending creation
+    if pending_created:
+        start = pending_created - timedelta(minutes=5)
+        end = pending_created + timedelta(minutes=5)
+    else:
+        start = now - timedelta(minutes=5)
+        end = now
+
+    confirmed = await db.confirmed_payments.find_one({
+        "created_at": {"$gte": start, "$lte": end},
+        "claimed": False,
+        "status": "SUCCESS"
+    })
+
+    if not confirmed:
+        # Fallback: search by email if user provided it
+        if email:
+            from_email = email.strip().lower()
+            # Search in confirmed_payments that might have been matched to an existing user
+            confirmed = await db.confirmed_payments.find_one({
+                "email": from_email,
+                "claimed": False,
+                "status": "SUCCESS"
+            })
+
+    if not confirmed:
+        return {"success": False, "reason": "not_ready", "message": "Ödemeniz henüz onaylanmadı. Lütfen 10-20 sn bekleyip tekrar deneyin."}
+
+    token = confirmed.get("token", "")
+    if not token:
+        return {"success": False, "reason": "error", "message": "Token değeri boş. Lütfen destek ile iletişime geçin."}
+
+    # Store email/name on confirmed record for admin reference
+    await db.confirmed_payments.update_one(
+        {"token": token},
+        {"$set": {
+            "pending_id": pending_id,
+            "buyer_email": pending.get("email"),
+            "buyer_name": pending.get("name"),
+            "buyer_phone": pending.get("phone")
+        }}
+    )
+
+    redirect_url = f"/payment/success?token={token}"
+    return {
+        "success": True,
+        "token": token,
+        "redirect_url": redirect_url,
+        "message": "Ödemeniz bulundu. Yönlendiriliyorsunuz..."
+    }
+
+
+# ==================== ADMIN: CONFIRMED PAYMENTS LIST ====================
+
+@api_router.get("/admin/confirmed-payments")
+async def admin_confirmed_payments(
+    claimed: bool = False,
+    skip: int = 0,
+    limit: int = 50,
+    admin_key: str = Header(...)
+):
+    """List unclaimed confirmed payments for admin manual ticket creation."""
+    if admin_key != ADMIN_SECRET_KEY:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+
+    query = {"claimed": claimed}
+    cursor = db.confirmed_payments.find(query).sort("created_at", -1).skip(skip).limit(limit)
+    items = []
+    async for doc in cursor:
+        doc["_id"] = str(doc["_id"])
+        if "created_at" in doc:
+            doc["created_at_iso"] = doc["created_at"].isoformat() if doc["created_at"] else None
+        items.append(doc)
+
+    total = await db.confirmed_payments.count_documents(query)
+    return {"success": True, "total": total, "items": items, "skip": skip, "limit": limit}
+
+
 # ==================== CLAIM TICKET ENDPOINT ====================
 
 class ClaimTicketRequest(BaseModel):
@@ -2597,6 +2732,8 @@ async def startup_db_client():
     await db.tickets.create_index("qr_token", unique=True, sparse=True)
     # TTL index on confirmed_payments: auto-delete after 7 days (604800 seconds)
     await db.confirmed_payments.create_index("created_at", expireAfterSeconds=604800)
+    # TTL index on pending_purchases: auto-delete after 1 day (86400 seconds)
+    await db.pending_purchases.create_index("created_at", expireAfterSeconds=86400)
 
 # Include the router in the main app
 app.include_router(api_router)

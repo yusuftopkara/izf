@@ -41,8 +41,8 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
   const [event, setEvent] = useState<Event | null>(null)
   const [loadingEvent, setLoadingEvent] = useState(false)
 
-  // Step state (1 = selection, 2 = guest form, 3 = redirecting)
-  const [step, setStep] = useState<1 | 2 | 3>(1)
+  // Step state (1 = selection, 2 = guest form, 3 = redirecting, 4 = check payment)
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1)
   
   // Auth modal for registered user flow
   const [authModalOpen, setAuthModalOpen] = useState(false)
@@ -55,6 +55,9 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
   const [quantity, setQuantity] = useState(1)
   const [kvkkAccepted, setKvkkAccepted] = useState(false)
   const [country, setCountry] = useState<'TR' | 'OTHER'>(locale === 'tr' ? 'TR' : 'OTHER')
+  const [pendingId, setPendingId] = useState('')
+  const [checkingPayment, setCheckingPayment] = useState(false)
+  const [checkError, setCheckError] = useState('')
 
   // Computed currency info
   const isTR = country === 'TR'
@@ -117,10 +120,13 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
       setSubmitting(false)
       setAuthModalOpen(false)
       setRedirecting(false)
+      setPendingId('')
+      setCheckingPayment(false)
+      setCheckError('')
     }, 300)
   }
 
-  function handleRedirectToPayment() {
+  async function handleRegisterAndRedirect() {
     if (!kvkkAccepted) {
       setError(t('ticket.form.kvkkRequired'))
       return
@@ -129,16 +135,75 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
       setError('Ödeme linki henüz oluşturulmamış. Lütfen daha sonra tekrar deneyin.')
       return
     }
+    if (!name.trim() || !email.trim()) {
+      setError('Lütfen ad soyad ve e-posta adresinizi girin.')
+      return
+    }
     setError('')
-    setRedirecting(true)
-    setStep(3)
-    // Auto-open iyzico payment page (EUR or TRY link based on country)
-    window.open(paymentLink, '_blank')
+    setSubmitting(true)
+
+    try {
+      // Register pending purchase so we can match it after webhook arrives
+      const result = await api.registerPendingPurchase({
+        name: name.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
+        event_id: event?.id || '',
+        currency: isTR ? 'TRY' : 'EUR',
+      })
+
+      if (!result.success || !result.pending_id) {
+        setError(result.message || 'Kayıt oluşturulamadı')
+        setSubmitting(false)
+        return
+      }
+
+      const pid = result.pending_id
+      setPendingId(pid)
+      try {
+        sessionStorage.setItem('izf_pending_id', pid)
+        localStorage.setItem('izf_pending_id', pid)
+      } catch {}
+
+      // Open iyzico payment page in new tab
+      setStep(3)
+      window.open(paymentLink, '_blank')
+
+      // Auto prompt to check payment after a short delay
+      setTimeout(() => {
+        setStep(4)
+        setSubmitting(false)
+      }, 3000)
+    } catch (err) {
+      setError('Bir sorun oluştu. Lütfen tekrar deneyin.')
+      setSubmitting(false)
+    }
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleCheckPayment() {
+    if (!pendingId) {
+      setCheckError('Önce ödeme adımına geçmelisiniz.')
+      return
+    }
+    setCheckingPayment(true)
+    setCheckError('')
+    try {
+      const result = await api.checkConfirmedPayment(pendingId, email)
+      if (result.success && result.redirect_url) {
+        window.location.href = result.redirect_url
+        return
+      }
+      setCheckError(result.message || 'Ödemeniz henüz onaylanmadı. 10-20 sn bekleyip tekrar deneyin.')
+    } catch {
+      setCheckError('Bağlantı hatası. Lütfen tekrar deneyin.')
+    } finally {
+      setCheckingPayment(false)
+    }
+  }
+
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    handleRedirectToPayment()
+    handleRegisterAndRedirect()
   }
 
   if (!isOpen) return null
@@ -449,6 +514,53 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
                 <p className="text-center text-white/50 text-xs mt-2">
                   {t('ticket.form.opensInNewTab')}
                 </p>
+              </div>
+            ) : step === 4 ? (
+              // ─── Step 4: Check confirmed payment ───────────────────────────────
+              <div className="flex flex-col gap-4 items-center">
+                <div className="mb-4">
+                  <div className="h-16 w-16 rounded-full bg-gradient-to-br from-green-500/30 to-emerald-500/30 flex items-center justify-center">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-8 w-8 text-green-400">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                </div>
+
+                <h3 className="text-xl font-bold text-white text-center">Ödeme Tamamlandı mı?</h3>
+
+                <p className="text-center text-white/70 text-sm">
+                  Ödeme sayfasında işlemi tamamladıysanız, sistemdeki ödemenizi doğrulayalım.
+                </p>
+
+                {checkError && (
+                  <div className="w-full rounded-xl bg-red-500/20 px-4 py-3 text-sm text-red-300 text-center">
+                    {checkError}
+                  </div>
+                )}
+
+                <button
+                  onClick={handleCheckPayment}
+                  disabled={checkingPayment}
+                  className="block w-full text-center py-3 px-6 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 disabled:from-gray-600 disabled:to-gray-600 text-white font-bold rounded-xl text-lg transition-all"
+                >
+                  {checkingPayment ? 'Kontrol Ediliyor...' : 'Ödememi Kontrol Et & Bilet Oluştur'}
+                </button>
+
+                <p className="text-center text-white/50 text-xs">
+                  Ödemeniz henüz onaylanmadıysa, 10-20 sn bekleyip tekrar deneyin.
+                </p>
+
+                <div className="w-full border-t border-white/10 pt-3 mt-1">
+                  <p className="text-center text-white/40 text-xs mb-2">
+                    Sorun yaşıyorsanız iletişime geçin:
+                  </p>
+                  <a
+                    href="mailto:info@istanbulzumbafestival.com"
+                    className="block text-center text-orange-400 text-sm hover:underline"
+                  >
+                    info@istanbulzumbafestival.com
+                  </a>
+                </div>
               </div>
             ) : null
             }
