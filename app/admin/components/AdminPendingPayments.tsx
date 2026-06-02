@@ -58,7 +58,7 @@ export default function AdminPendingPayments({ token }: { token: string }) {
                   <td className="px-4 py-3 text-xs text-gray-500">{item.created_at_iso ? new Date(String(item.created_at_iso)).toLocaleString('tr-TR') : '-'}</td>
                   <td className="px-4 py-3">
                     <Link
-                      href={`/payment/success?token=${encodeURIComponent(String(item.token))}`}
+                      href={`/payment/success?token=${encodeURIComponent(String(item.token))}&currency=${encodeURIComponent(String(item.currency || 'EUR'))}`}
                       target="_blank"
                       className="rounded-lg bg-green-500 px-3 py-1.5 text-xs font-bold text-white hover:bg-green-400 transition"
                     >

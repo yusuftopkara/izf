@@ -124,6 +124,7 @@ function TicketCard({ qr_token, ticket_id, event_title }: { qr_token: string; ti
 function PaymentSuccessContent() {
   const searchParams = useSearchParams()
   const token = searchParams.get('token')
+  const currencyParam = searchParams.get('currency')
 
   const [step, setStep] = useState<'loading' | 'invalid_token' | 'invalid_used' | 'form' | 'submitting' | 'success' | 'error'>('loading')
   const [event, setEvent] = useState<Event | null>(null)
@@ -136,7 +137,7 @@ function PaymentSuccessContent() {
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [quantity] = useState(1)
-  const [currency, setCurrency] = useState('EUR')
+  const [currency, setCurrency] = useState(currencyParam || 'EUR')
   const [verifyLoading, setVerifyLoading] = useState(true)
 
   // Load event info on mount
@@ -159,7 +160,7 @@ function PaymentSuccessContent() {
       try {
         const result = await api.verifyToken(token!)
         if (result.valid) {
-          setCurrency(result.currency || 'EUR')
+          setCurrency(result.currency || currencyParam || 'EUR')
           setStep('form')
         } else if (result.reason === 'already_used') {
           setStep('invalid_used')
