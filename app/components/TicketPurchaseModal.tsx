@@ -526,7 +526,7 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
                   Ödeme sayfasına tekrar git
                 </a>
               </div>
-            }
+            ) : null
           </div>
         </div>
       </div>
