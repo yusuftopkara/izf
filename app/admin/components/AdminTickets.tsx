@@ -34,6 +34,7 @@ export default function AdminTickets({ token }: { token: string }) {
   const [assignEmail, setAssignEmail] = useState('')
   const [assignPhone, setAssignPhone] = useState('')
   const [assignLoading, setAssignLoading] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const totalPages = Math.ceil(total / PAGE_SIZE)
 
@@ -124,6 +125,19 @@ export default function AdminTickets({ token }: { token: string }) {
     setAssignName(ticket.buyer_name || '')
     setAssignEmail(ticket.buyer_email || '')
     setAssignPhone(ticket.buyer_phone || '')
+  }
+
+  async function handleDelete(ticketId: string) {
+    if (!confirm('Bu bileti silmek istediğinize emin misiniz?')) return
+    setDeletingId(ticketId)
+    try {
+      await api.deleteTicket(ticketId, token)
+      reload()
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Silme başarısız')
+    } finally {
+      setDeletingId(null)
+    }
   }
 
   async function handleDownloadQR(ticket: AdminTicket) {
@@ -344,6 +358,14 @@ export default function AdminTickets({ token }: { token: string }) {
                                 ✎
                               </button>
                             )}
+                            <button
+                              onClick={() => handleDelete(t.id)}
+                              disabled={deletingId === t.id}
+                              className="inline-flex items-center gap-1 rounded-lg bg-red-50 px-2 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-100 transition disabled:opacity-50"
+                              title="Bileti sil"
+                            >
+                              {deletingId === t.id ? '⏳' : '🗑'}
+                            </button>
                             <button
                               onClick={() => handleDownloadQR(t)}
                               className="inline-flex items-center gap-1 rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-bold text-white hover:bg-orange-400 transition shadow-sm"
