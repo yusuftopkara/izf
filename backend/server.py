@@ -2586,6 +2586,12 @@ async def claim_ticket(request: ClaimTicketRequest):
     if confirmed.get("claimed", False):
         return ClaimTicketResponse(success=False, reason="already_used")
 
+    # Verify ownership if buyer_email is known
+    expected_email = confirmed.get("buyer_email") or confirmed.get("email")
+    if expected_email:
+        if request.email.lower().strip() != expected_email.lower().strip():
+            return ClaimTicketResponse(success=False, reason="wrong_email")
+
     # Get event
     event = await db.events.find_one({"id": request.event_id})
     if not event:
@@ -2595,6 +2601,16 @@ async def claim_ticket(request: ClaimTicketRequest):
     tickets_sold = await db.tickets.count_documents({"event_id": request.event_id})
     if tickets_sold + request.quantity > event["capacity"]:
         raise HTTPException(status_code=400, detail="Not enough tickets available")
+
+    # ── ATOMIC LOCK ──
+    # Prevent race: two parallel requests with same token both creating tickets.
+    lock = await db.confirmed_payments.update_one(
+        {"token": request.token, "claimed": False},
+        {"$set": {"claimed": True, "claimed_at": datetime.utcnow()}}
+    )
+    if lock.modified_count == 0:
+        # Another request won the race
+        return ClaimTicketResponse(success=False, reason="already_used")
 
     # Find or create user by email
     user = await db.users.find_one({"email": request.email.lower().strip()})
