@@ -11,6 +11,7 @@ import AdminTickets from './components/AdminTickets'
 import AdminUsers from './components/AdminUsers'
 import AdminGallery from './components/AdminGallery'
 import AdminVideos from './components/AdminVideos'
+import AdminPendingPayments from './components/AdminPendingPayments'
 import { getNavbarToken, decodeTokenRole, TABS, type AdminTab } from './lib'
 
 // ─── Header ───────────────────────────────────────────────────────────────────
@@ -83,6 +84,7 @@ function AdminShell({ token, onLogout }: { token: string; onLogout: () => void }
         {activeTab === 'users' && <AdminUsers token={token} />}
         {activeTab === 'gallery' && <AdminGallery />}
         {activeTab === 'videos' && <AdminVideos />}
+        {activeTab === 'payments' && <AdminPendingPayments token={token} />}
       </div>
     </div>
   )
