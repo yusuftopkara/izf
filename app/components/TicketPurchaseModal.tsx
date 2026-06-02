@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { api, type Event } from '../lib/api'
-import { useLocale } from '../lib/locale'
+import { useLocale } from '../context/LocaleContext'
 import AuthModal from './AuthModal'
 
 interface TicketPurchaseModalProps {
