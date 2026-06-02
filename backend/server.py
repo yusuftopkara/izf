@@ -2502,7 +2502,9 @@ async def admin_confirmed_payments(
     limit: int = 50,
     user: dict = Depends(require_admin),
 ):
-    """List unclaimed confirmed payments for admin manual ticket creation."""
+    """List unclaimed confirmed payments for admin manual ticket creation.
+    
+    Enriches with buyer info from pending_purchases if available."""
     query = {"claimed": claimed}
     cursor = db.confirmed_payments.find(query).sort("created_at", -1).skip(skip).limit(limit)
     items = []
@@ -2510,6 +2512,17 @@ async def admin_confirmed_payments(
         doc["_id"] = str(doc["_id"])
         if "created_at" in doc:
             doc["created_at_iso"] = doc["created_at"].isoformat() if doc["created_at"] else None
+        
+        # Fallback: enrich buyer info from pending_purchases if check_payment hasn't set it yet
+        if not doc.get("buyer_email"):
+            pending_id = doc.get("pending_id")
+            if pending_id:
+                pending = await db.pending_purchases.find_one({"pending_id": pending_id})
+                if pending:
+                    doc["buyer_email"] = pending.get("email", "")
+                    doc["buyer_name"] = pending.get("name", "")
+                    doc["buyer_phone"] = pending.get("phone", "")
+        
         items.append(doc)
 
     total = await db.confirmed_payments.count_documents(query)
