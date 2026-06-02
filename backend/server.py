@@ -2500,12 +2500,9 @@ async def admin_confirmed_payments(
     claimed: bool = False,
     skip: int = 0,
     limit: int = 50,
-    admin_key: str = Header(...)
+    user: dict = Depends(require_admin),
 ):
     """List unclaimed confirmed payments for admin manual ticket creation."""
-    if admin_key != ADMIN_SECRET_KEY:
-        raise HTTPException(status_code=403, detail="Unauthorized")
-
     query = {"claimed": claimed}
     cursor = db.confirmed_payments.find(query).sort("created_at", -1).skip(skip).limit(limit)
     items = []
