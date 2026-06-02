@@ -2523,13 +2523,10 @@ async def admin_confirmed_payments(
         if "created_at" in doc:
             doc["created_at_iso"] = doc["created_at"].isoformat() if doc["created_at"] else None
         
-        # Fallback: if no buyer info, try to find matching pending_purchase by time window
-        if not doc.get("buyer_email") and doc.get("created_at"):
-            start = doc["created_at"] - timedelta(minutes=30)
-            end = doc["created_at"] + timedelta(minutes=30)
-            pending = await db.pending_purchases.find_one({
-                "created_at": {"$gte": start, "$lte": end}
-            })
+        # Only use direct pending_id match — NEVER fall back to time window
+        # to prevent cross-user data leakage
+        if not doc.get("buyer_email") and doc.get("pending_id"):
+            pending = await db.pending_purchases.find_one({"pending_id": doc["pending_id"]})
             if pending:
                 doc["buyer_email"] = pending.get("email", "")
                 doc["buyer_name"] = pending.get("name", "")
