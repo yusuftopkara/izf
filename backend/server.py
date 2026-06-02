@@ -1602,52 +1602,6 @@ async def cleanup_duplicate_tickets(admin: dict = Depends(require_admin)):
     }
 
 
-@api_router.post("/admin/tickets/batch-delete-users")
-async def batch_delete_users_tickets(
-    request: Request,
-    admin: dict = Depends(require_admin)
-):
-    """Delete all active tickets for specific user emails.
-
-    Body: {"emails": ["user1@example.com", "user2@example.com"]}
-    """
-    try:
-        body = await request.json()
-    except Exception:
-        body = {}
-    emails = body.get("emails", [])
-    if not emails:
-        raise HTTPException(status_code=400, detail="emails list required")
-
-    # Find users
-    users_cursor = db.users.find({"email": {"$in": emails}})
-    users = await users_cursor.to_list(length=100)
-    if not users:
-        return {"success": True, "deleted": 0, "not_found": emails}
-
-    user_ids = [u["id"] for u in users]
-
-    # List before delete (for audit log)
-    tickets_cursor = db.tickets.find({"user_id": {"$in": user_ids}})
-    tickets = await tickets_cursor.to_list(length=500)
-
-    # Delete
-    result = await db.tickets.delete_many({"user_id": {"$in": user_ids}})
-
-    logger.warning(
-        f"BATCH DELETE by {admin.get('email')}: deleted {result.deleted_count} tickets for {len(users)} users. "
-        f"Emails: {emails}"
-    )
-
-    return {
-        "success": True,
-        "deleted": result.deleted_count,
-        "users_found": len(users),
-        "ticket_ids": [t["id"] for t in tickets],
-        "user_emails": [u["email"] for u in users]
-    }
-
-
 @api_router.get("/admin/stats")
 async def get_admin_stats(user: dict = Depends(require_admin)):
     total_users = await db.users.count_documents({})
