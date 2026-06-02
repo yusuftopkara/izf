@@ -167,13 +167,8 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
 
       // Open iyzico payment page in new tab
       setStep(3)
+      setSubmitting(false)
       window.open(paymentLink, '_blank')
-
-      // Auto prompt to check payment after a short delay
-      setTimeout(() => {
-        setStep(4)
-        setSubmitting(false)
-      }, 3000)
     } catch (err) {
       setError('Bir sorun oluştu. Lütfen tekrar deneyin.')
       setSubmitting(false)
@@ -181,14 +176,20 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
   }
 
   async function handleCheckPayment() {
-    if (!pendingId) {
+    let pid = pendingId
+    if (!pid) {
+      // Fallback to storage if state was lost after modal close/reopen
+      pid = sessionStorage.getItem('izf_pending_id') || localStorage.getItem('izf_pending_id') || ''
+      if (pid) setPendingId(pid)
+    }
+    if (!pid) {
       setCheckError('Önce ödeme adımına geçmelisiniz.')
       return
     }
     setCheckingPayment(true)
     setCheckError('')
     try {
-      const result = await api.checkConfirmedPayment(pendingId, email)
+      const result = await api.checkConfirmedPayment(pid, email)
       if (result.success && result.redirect_url) {
         window.location.href = result.redirect_url
         return
@@ -514,6 +515,18 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
                 <p className="text-center text-white/50 text-xs mt-2">
                   {t('ticket.form.opensInNewTab')}
                 </p>
+
+                <div className="w-full border-t border-white/10 pt-4 mt-2">
+                  <p className="text-center text-white/60 text-sm mb-3">
+                    Ödeme sayfasında işlemi tamamladınız mı?
+                  </p>
+                  <button
+                    onClick={() => setStep(4)}
+                    className="block w-full text-center py-3 px-6 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold rounded-xl text-lg transition-all"
+                  >
+                    Ödememi Tamamladım →
+                  </button>
+                </div>
               </div>
             ) : step === 4 ? (
               // ─── Step 4: Check confirmed payment ───────────────────────────────
