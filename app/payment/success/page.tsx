@@ -136,6 +136,8 @@ function PaymentSuccessContent() {
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [quantity] = useState(1)
+  const [currency, setCurrency] = useState('EUR')
+  const [verifyLoading, setVerifyLoading] = useState(true)
 
   // Load event info on mount
   useEffect(() => {
@@ -157,6 +159,7 @@ function PaymentSuccessContent() {
       try {
         const result = await api.verifyToken(token!)
         if (result.valid) {
+          setCurrency(result.currency || 'EUR')
           setStep('form')
         } else if (result.reason === 'already_used') {
           setStep('invalid_used')
@@ -277,7 +280,9 @@ function PaymentSuccessContent() {
                 <div className="mb-4 rounded-xl border border-white/10 bg-white/5 p-3 text-left">
                   <p className="text-xs text-white/50">Etkinlik</p>
                   <p className="text-sm font-semibold text-white">{event.title}</p>
-                  <p className="text-xs text-white/50 mt-1">€{event.price} x {quantity} = €{event.price}</p>
+                  <p className="text-xs text-white/50 mt-1">
+                    {currency === 'TRY' ? `₺${event.tl_price ?? event.price} x ${quantity} = ₺${(event.tl_price ?? event.price) * quantity}` : `€${event.price} x ${quantity} = €${event.price}`}
+                  </p>
                 </div>
               )}
 

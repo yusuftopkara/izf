@@ -392,8 +392,8 @@ export const api = {
 
   // Payment (iyzico new flow)
   // verifyToken: checks if a payment token is valid and unclaimed
-  async verifyToken(token: string): Promise<{ valid: boolean; reason?: string }> {
-    return apiFetch<{ valid: boolean; reason?: string }>(`/api/payment/verify-token?token=${encodeURIComponent(token)}`)
+  async verifyToken(token: string): Promise<{ valid: boolean; reason?: string; currency?: string }> {
+    return apiFetch<{ valid: boolean; reason?: string; currency?: string }>(`/api/payment/verify-token?token=${encodeURIComponent(token)}`)
   },
 
   // claimTicket: claims a ticket for a confirmed payment

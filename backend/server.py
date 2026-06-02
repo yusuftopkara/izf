@@ -2381,7 +2381,10 @@ async def verify_token(token: str):
     if confirmed.get("claimed", False):
         return {"valid": False, "reason": "already_used"}
 
-    return {"valid": True}
+    return {
+        "valid": True,
+        "currency": confirmed.get("currency", "EUR")
+    }
 
 
 # ==================== PENDING PURCHASE REGISTER ====================
@@ -2459,9 +2462,8 @@ async def check_payment(pending_id: str, email: str = ""):
         # Fallback: search by email if user provided it
         if email:
             from_email = email.strip().lower()
-            # Search in confirmed_payments that might have been matched to an existing user
             confirmed = await db.confirmed_payments.find_one({
-                "email": from_email,
+                "buyer_email": from_email,
                 "claimed": False,
                 "status": "SUCCESS"
             })
@@ -2473,15 +2475,18 @@ async def check_payment(pending_id: str, email: str = ""):
     if not token:
         return {"success": False, "reason": "error", "message": "Token değeri boş. Lütfen destek ile iletişime geçin."}
 
-    # Store email/name on confirmed record for admin reference
+    # Store buyer info + currency for admin
+    set_fields = {
+        "pending_id": pending_id,
+        "buyer_email": pending.get("email"),
+        "buyer_name": pending.get("name"),
+        "buyer_phone": pending.get("phone"),
+        "currency": pending.get("currency", "EUR")
+    }
+    
     await db.confirmed_payments.update_one(
         {"token": token},
-        {"$set": {
-            "pending_id": pending_id,
-            "buyer_email": pending.get("email"),
-            "buyer_name": pending.get("name"),
-            "buyer_phone": pending.get("phone")
-        }}
+        {"$set": set_fields}
     )
 
     redirect_url = f"/payment/success?token={token}"
@@ -2513,15 +2518,18 @@ async def admin_confirmed_payments(
         if "created_at" in doc:
             doc["created_at_iso"] = doc["created_at"].isoformat() if doc["created_at"] else None
         
-        # Fallback: enrich buyer info from pending_purchases if check_payment hasn't set it yet
-        if not doc.get("buyer_email"):
-            pending_id = doc.get("pending_id")
-            if pending_id:
-                pending = await db.pending_purchases.find_one({"pending_id": pending_id})
-                if pending:
-                    doc["buyer_email"] = pending.get("email", "")
-                    doc["buyer_name"] = pending.get("name", "")
-                    doc["buyer_phone"] = pending.get("phone", "")
+        # Fallback: if no buyer info, try to find matching pending_purchase by time window
+        if not doc.get("buyer_email") and doc.get("created_at"):
+            start = doc["created_at"] - timedelta(minutes=30)
+            end = doc["created_at"] + timedelta(minutes=30)
+            pending = await db.pending_purchases.find_one({
+                "created_at": {"$gte": start, "$lte": end}
+            })
+            if pending:
+                doc["buyer_email"] = pending.get("email", "")
+                doc["buyer_name"] = pending.get("name", "")
+                doc["buyer_phone"] = pending.get("phone", "")
+                doc["currency"] = pending.get("currency", "EUR")
         
         items.append(doc)
 
