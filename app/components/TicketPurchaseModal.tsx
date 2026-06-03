@@ -151,8 +151,6 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
     try {
       const result = await api.checkConfirmedPayment(pid, email)
       if (result.success && result.redirect_url) {
-        // Clean up stored pending info after successful check
-        localStorage.removeItem('izf_pending_purchase')
         window.location.href = result.redirect_url
         return
       }
