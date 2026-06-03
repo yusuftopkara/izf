@@ -150,11 +150,9 @@ function PaymentSuccessContent() {
   }, [])
 
   // ── Auto-fill form fields ──────────────────────────────────────────────────
-  // Priority: 1) Logged-in user (getMe), 2) Guest from localStorage (pending_purchase), 3) Leave empty
   useEffect(() => {
     const token = localStorage.getItem('izf_token')
     if (token) {
-      // Logged-in user: fetch profile
       api.getMe(token)
         .then((me) => {
           if (me) {
@@ -163,11 +161,22 @@ function PaymentSuccessContent() {
             setPhone((me as { phone?: string }).phone || '')
           }
         })
-        .catch(() => {})
+        .catch(() => {
+          localStorage.removeItem('izf_token')
+          // fall through to guest
+          try {
+            const pendingRaw = localStorage.getItem('izf_pending_purchase')
+            if (pendingRaw) {
+              const pending = JSON.parse(pendingRaw)
+              if (pending.name) setName(pending.name)
+              if (pending.email) setEmail(pending.email)
+              if (pending.phone) setPhone(pending.phone)
+            }
+          } catch {}
+        })
     } else {
-      // Guest: try to load from pending_purchase stored in localStorage
       try {
-        const pendingRaw = localStorage.getItem('pending_purchase')
+        const pendingRaw = localStorage.getItem('izf_pending_purchase')
         if (pendingRaw) {
           const pending = JSON.parse(pendingRaw)
           if (pending.name) setName(pending.name)
