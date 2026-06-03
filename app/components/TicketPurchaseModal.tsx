@@ -126,6 +126,7 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
         email: email.trim(),
         phone: phone.trim(),
       }))
+      console.log('Stored pending_purchase:', { name: name.trim(), email: email.trim() })
 
       setStep(3)
       setSubmitting(false)
