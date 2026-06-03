@@ -200,11 +200,11 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
                 <p className="text-xs text-white/60 mb-2">{t('ticket.form.selectRegion')}</p>
                 <div className="flex gap-2 justify-center">
                   <button onClick={() => setCountry('TR')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition ${country === 'TR' ? 'bg-orange-500 text-white' : 'bg-white/10 text-white/70 hover:bg-white/20'}`}>
-                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" fill="#E30A17"/><path d="M12 2L12 22M2 12L22 12" stroke="#fff" strokeWidth="1.5"/><circle cx="12" cy="12" r="4" fill="none" stroke="white" strokeWidth="1"/></svg>
+                    <span className="text-lg">🇹🇷</span>
                     {t('ticket.form.turkey')}
                   </button>
                   <button onClick={() => setCountry('OTHER')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition ${country === 'OTHER' ? 'bg-orange-500 text-white' : 'bg-white/10 text-white/70 hover:bg-white/20'}`}>
-                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none"><circle cx="12" cy="12" r="10" stroke="white" strokeWidth="1.5" fill="#2563eb"/><path d="M2 12h20M12 2c3 4 3 16 0 20M12 2c-3 4-3 16 0 20M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07" stroke="white" strokeWidth="1"/></svg>
+                    <span className="text-lg">🌍</span>
                     {t('ticket.form.international')}
                   </button>
                 </div>
