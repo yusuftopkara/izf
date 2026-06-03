@@ -2588,13 +2588,16 @@ async def claim_ticket(request: ClaimTicketRequest):
 
     # Verify ownership if buyer_email is known
     expected_email = confirmed.get("buyer_email") or confirmed.get("email")
+    logger.info(f"claim_ticket debug: token={request.token[:8]} request_email={request.email} expected_email={expected_email} confirmed_claimed={confirmed.get('claimed')}")
     if expected_email:
         if request.email.lower().strip() != expected_email.lower().strip():
+            logger.warning(f"claim_ticket wrong_email: expected={expected_email} got={request.email}")
             return ClaimTicketResponse(success=False, reason="wrong_email")
 
     # Get event
     event = await db.events.find_one({"id": request.event_id})
     if not event:
+        logger.error(f"claim_ticket event not found: {request.event_id}")
         raise HTTPException(status_code=404, detail="Event not found")
 
     # Capacity check
