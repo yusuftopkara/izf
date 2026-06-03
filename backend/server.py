@@ -2383,7 +2383,10 @@ async def verify_token(token: str):
 
     return {
         "valid": True,
-        "currency": confirmed.get("currency", "EUR")
+        "currency": confirmed.get("currency", "EUR"),
+        "buyer_email": confirmed.get("buyer_email", ""),
+        "buyer_name": confirmed.get("buyer_name", ""),
+        "buyer_phone": confirmed.get("buyer_phone", "")
     }
 
 

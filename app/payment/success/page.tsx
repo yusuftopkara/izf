@@ -151,28 +151,30 @@ function PaymentSuccessContent() {
       .catch(() => {})
   }, [])
 
-  // ── Auto-fill form fields ──────────────────────────────────────────────────
+  // ── Auto-fill form fields (fallback only if verify-token didn't provide info) ──
   useEffect(() => {
-    const token = localStorage.getItem('izf_token')
-    if (token) {
-      api.getMe(token)
+    // Skip if verify-token already filled the fields
+    if (name || email) return
+
+    const authToken = localStorage.getItem('izf_token')
+    if (authToken) {
+      api.getMe(authToken)
         .then((me) => {
           if (me) {
-            setName(me.name || '')
-            setEmail(me.email || '')
-            setPhone((me as { phone?: string }).phone || '')
+            if (!name) setName(me.name || '')
+            if (!email) setEmail(me.email || '')
+            if (!phone) setPhone((me as { phone?: string }).phone || '')
           }
         })
         .catch(() => {
           localStorage.removeItem('izf_token')
-          // fall through to guest
           try {
             const pendingRaw = localStorage.getItem('izf_pending_purchase')
             if (pendingRaw) {
               const pending = JSON.parse(pendingRaw)
-              if (pending.name) setName(pending.name)
-              if (pending.email) setEmail(pending.email)
-              if (pending.phone) setPhone(pending.phone)
+              if (pending.name && !name) setName(pending.name)
+              if (pending.email && !email) setEmail(pending.email)
+              if (pending.phone && !phone) setPhone(pending.phone)
             }
           } catch {}
         })
@@ -189,7 +191,7 @@ function PaymentSuccessContent() {
         // ignore parse errors
       }
     }
-  }, [])
+  }, [step])
 
   // Check token on mount
   useEffect(() => {
@@ -203,6 +205,10 @@ function PaymentSuccessContent() {
         const result = await api.verifyToken(token!)
         if (result.valid) {
           setCurrency(result.currency || currencyParam || 'EUR')
+          // Autofill from verify-token response (payment record has buyer info)
+          if (result.buyer_name) setName(result.buyer_name)
+          if (result.buyer_email) setEmail(result.buyer_email)
+          if (result.buyer_phone) setPhone(result.buyer_phone)
           setStep('form')
         } else if (result.reason === 'already_used') {
           setStep('invalid_used')
