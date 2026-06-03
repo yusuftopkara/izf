@@ -126,6 +126,7 @@ function PaymentSuccessContent() {
   const searchParams = useSearchParams()
   const token = searchParams.get('token')
   const currencyParam = searchParams.get('currency')
+  const { t } = useLocale()
 
   const [step, setStep] = useState<'loading' | 'invalid_token' | 'invalid_used' | 'form' | 'submitting' | 'success' | 'error'>('loading')
   const [event, setEvent] = useState<Event | null>(null)
@@ -244,11 +245,11 @@ function PaymentSuccessContent() {
         setShowConfetti(true)
         setTimeout(() => setShowConfetti(false), 6000)
       } else {
-        setErrorMsg(result.reason === 'already_used' ? 'Bu bilet zaten kullanilmis.' : (result.reason === 'wrong_email' ? 'E-posta adresi bilgilerinizle eslesmiyor.' : 'Bilet olusturulamadi.'))
+        setErrorMsg(result.reason === 'already_used' ? t('ticket.form.alreadyUsed') : (result.reason === 'wrong_email' ? t('ticket.form.wrongEmail') : t('ticket.form.completeFailed')))
         setStep('error')
       }
     } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : 'Bir sorun olustu')
+      setErrorMsg(err instanceof Error ? err.message : t('ticket.form.genericError'))
       setStep('error')
     }
   }
@@ -270,25 +271,25 @@ function PaymentSuccessContent() {
                 <StatusIcon status="invalid" />
               </div>
               <h1 className="mb-2 text-2xl sm:text-3xl font-bold text-white">
-                {step === 'invalid_used' ? 'Bilet Zaten Kullanildi' : 'Gecersiz Erisim'}
+                {step === 'invalid_used' ? t('ticket.form.ticketAlreadyUsed') : t('ticket.form.invalidAccess')}
               </h1>
               <p className="mb-6 text-white/70 text-sm sm:text-base">
                 {step === 'invalid_used'
-                  ? 'Bu odeme zaten kullanilmis veya gecersiz.'
-                  : 'Odeme bilgileri bulunamadi. Lutfen odeme sayfasindan tekrar deneyin.'}
+                  ? t('ticket.form.paymentAlreadyUsed')
+                  : t('ticket.form.paymentNotFound')}
               </p>
               <div className="flex flex-col gap-3">
                 <Link
                   href="/"
                   className="rounded-xl bg-pink-500 px-6 py-3 font-bold text-white transition hover:bg-pink-400 active:scale-[0.98]"
                 >
-                  Ana Sayfaya Don
+                  {t('ticket.form.backToHome')}
                 </Link>
                 <Link
                   href="/profile"
                   className="rounded-xl border border-white/20 px-6 py-3 font-semibold text-white transition hover:bg-white/5 active:scale-[0.98]"
                 >
-                  Profilime Git
+                  {t('ticket.form.goToProfile')}
                 </Link>
               </div>
             </>
@@ -300,8 +301,8 @@ function PaymentSuccessContent() {
               <div className="mb-6 flex justify-center">
                 <StatusIcon status="loading" />
               </div>
-              <h1 className="mb-2 text-2xl font-bold text-white">Odemeniz Dogrulaniyor</h1>
-              <p className="text-white/60 text-sm">Lutfen bekleyin...</p>
+              <h1 className="mb-2 text-2xl font-bold text-white">{t('ticket.form.verifyingPayment')}</h1>
+              <p className="text-white/60 text-sm">{t('ticket.form.pleaseWait')}</p>
             </>
           )}
 
@@ -315,12 +316,12 @@ function PaymentSuccessContent() {
                   </svg>
                 </div>
               </div>
-              <h1 className="mb-1 text-2xl sm:text-3xl font-bold text-white">Odeme Basarili!</h1>
-              <p className="mb-4 text-white/70 text-sm">Biletinizi olusturmak icin bilgilerinizi girin.</p>
+              <h1 className="mb-1 text-2xl sm:text-3xl font-bold text-white">{t('ticket.form.paymentSuccess')}</h1>
+              <p className="mb-4 text-white/70 text-sm">{t('ticket.form.claimInstructions')}</p>
 
               {event && (
                 <div className="mb-4 rounded-xl border border-white/10 bg-white/5 p-3 text-left">
-                  <p className="text-xs text-white/50">Etkinlik</p>
+                  <p className="text-xs text-white/50">{t('ticket.form.event')}</p>
                   <p className="text-sm font-semibold text-white">{event.title}</p>
                   <p className="text-xs text-white/50 mt-1">
                     {currency === 'TRY' && typeof event.tl_price === 'number'
@@ -332,29 +333,29 @@ function PaymentSuccessContent() {
 
               <form onSubmit={handleClaim} className="flex flex-col gap-3 text-left">
                 <div>
-                  <label className="mb-1 block text-xs font-semibold text-white/60">Ad Soyad *</label>
+                  <label className="mb-1 block text-xs font-semibold text-white/60">{t('ticket.form.nameLabel')} *</label>
                   <input
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required
-                    placeholder="Adiniz Soyadiniz"
+                    placeholder={t('ticket.form.namePlaceholder')}
                     className="w-full rounded-xl bg-white/10 px-4 py-3 text-white placeholder-white/30 outline-none focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-semibold text-white/60">E-posta *</label>
+                  <label className="mb-1 block text-xs font-semibold text-white/60">{t('ticket.form.emailLabel')} *</label>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    placeholder="ornek@email.com"
+                    placeholder={t('ticket.form.emailPlaceholder')}
                     className="w-full rounded-xl bg-white/10 px-4 py-3 text-white placeholder-white/30 outline-none focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-semibold text-white/60">Telefon <span className="text-white/30">(Opsiyonel)</span></label>
+                  <label className="mb-1 block text-xs font-semibold text-white/60">{t('ticket.form.phoneLabel')} <span className="text-white/30">({t('ticket.form.optional')})</span></label>
                   <input
                     type="tel"
                     value={phone}
@@ -372,7 +373,7 @@ function PaymentSuccessContent() {
                   type="submit"
                   className="mt-2 w-full rounded-xl bg-orange-500 py-3.5 font-bold text-white transition hover:bg-orange-400 active:scale-[0.98]"
                 >
-                  Biletimi Olustur
+                  {t('ticket.form.createTicketBtn')}
                 </button>
               </form>
             </>
@@ -384,8 +385,8 @@ function PaymentSuccessContent() {
               <div className="mb-6 flex justify-center">
                 <StatusIcon status="loading" />
               </div>
-              <h1 className="mb-2 text-2xl font-bold text-white">Biletiniz Olusturuluyor</h1>
-              <p className="text-white/60 text-sm">Lutfen bekleyin...</p>
+              <h1 className="mb-2 text-2xl font-bold text-white">{t('ticket.form.creatingTicket')}</h1>
+              <p className="text-white/60 text-sm">{t('ticket.form.pleaseWait')}</p>
             </>
           )}
 
@@ -395,8 +396,8 @@ function PaymentSuccessContent() {
               <div className="mb-6 flex justify-center">
                 <StatusIcon status="success" />
               </div>
-              <h1 className="mb-2 text-2xl sm:text-3xl font-bold text-white">Biletiniz Olusturuldu!</h1>
-              <p className="mb-2 text-white/70 text-sm">Odemeniz tamamlandi. Biletiniz asagida.</p>
+              <h1 className="mb-2 text-2xl sm:text-3xl font-bold text-white">{t('ticket.form.ticketCreated')}</h1>
+              <p className="mb-2 text-white/70 text-sm">{t('ticket.form.paymentCompleteDesc')}</p>
 
               <TicketCard
                 qr_token={claimResult.qr_token || ''}
@@ -405,7 +406,7 @@ function PaymentSuccessContent() {
               />
 
               <p className="mb-6 text-center text-white/70 text-sm">
-                Biletiniz e-posta adresinize de gonderildi.
+                {t('ticket.form.ticketSentEmail')}
               </p>
 
               <div className="flex flex-col gap-3">
@@ -413,13 +414,13 @@ function PaymentSuccessContent() {
                   href="/profile"
                   className="rounded-xl bg-pink-500 px-6 py-3 font-bold text-white transition hover:bg-pink-400 active:scale-[0.98]"
                 >
-                  Profilime Git
+                  {t('ticket.form.goToProfile')}
                 </Link>
                 <Link
                   href="/"
                   className="rounded-xl border border-white/20 px-6 py-3 font-semibold text-white transition hover:bg-white/5 active:scale-[0.98]"
                 >
-                  Ana Sayfaya Don
+                  {t('ticket.form.backToHome')}
                 </Link>
               </div>
             </>
@@ -431,20 +432,20 @@ function PaymentSuccessContent() {
               <div className="mb-6 flex justify-center">
                 <StatusIcon status="error" />
               </div>
-              <h1 className="mb-2 text-2xl font-bold text-white">Biletiniz Olusturulamadi</h1>
+              <h1 className="mb-2 text-2xl font-bold text-white">{t('ticket.form.ticketFailed')}</h1>
               <p className="mb-6 text-white/70 text-sm">{errorMsg}</p>
               <div className="flex flex-col gap-3">
                 <Link
                   href="/"
                   className="rounded-xl bg-pink-500 px-6 py-3 font-bold text-white transition hover:bg-pink-400 active:scale-[0.98]"
                 >
-                  Ana Sayfaya Don
+                  {t('ticket.form.backToHome')}
                 </Link>
                 <Link
                   href="/profile"
                   className="rounded-xl border border-white/20 px-6 py-3 font-semibold text-white transition hover:bg-white/5 active:scale-[0.98]"
                 >
-                  Profilime Git
+                  {t('ticket.form.goToProfile')}
                 </Link>
               </div>
             </>
