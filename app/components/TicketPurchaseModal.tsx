@@ -120,6 +120,12 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
       setPendingId(pid)
       sessionStorage.setItem('izf_pending_id', pid)
       localStorage.setItem('izf_pending_id', pid)
+      // Store user info for later claim form autofill
+      localStorage.setItem('izf_pending_purchase', JSON.stringify({
+        name: name.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
+      }))
 
       setStep(3)
       setSubmitting(false)
@@ -145,6 +151,8 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
     try {
       const result = await api.checkConfirmedPayment(pid, email)
       if (result.success && result.redirect_url) {
+        // Clean up stored pending info after successful check
+        localStorage.removeItem('izf_pending_purchase')
         window.location.href = result.redirect_url
         return
       }
