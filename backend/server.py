@@ -2456,15 +2456,14 @@ async def check_payment(pending_id: str, email: str = ""):
     if not confirmed and pending.get("email"):
         bridge = await db.confirmed_payments.find_one(
             {
-                "pending_id": {"$exists": False},
-                "buyer_email": {"$exists": False},
                 "claimed": False,
                 "status": "SUCCESS",
                 "created_at": {"$gte": now - timedelta(minutes=10)}
             },
             sort=[("created_at", -1)]
         )
-        if bridge:
+        # Only use if pending_id is NOT set (unlinked)
+        if bridge and not bridge.get("pending_id"):
             # Atomically link — if another request already linked it, modified_count==0
             link_result = await db.confirmed_payments.update_one(
                 {
