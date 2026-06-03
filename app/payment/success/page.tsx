@@ -203,7 +203,6 @@ function PaymentSuccessContent() {
         setShowConfetti(true)
         setTimeout(() => setShowConfetti(false), 6000)
       } else {
-        console.log('claim result failed:', result)
         setErrorMsg(result.reason === 'already_used' ? 'Bu bilet zaten kullanilmis.' : (result.reason === 'wrong_email' ? 'E-posta adresi bilgilerinizle eslesmiyor.' : 'Bilet olusturulamadi.'))
         setStep('error')
       }
