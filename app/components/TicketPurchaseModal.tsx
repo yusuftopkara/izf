@@ -187,7 +187,7 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
               </svg>
             </div>
           </div>
-          <h3 className="text-xl font-bold text-white">Biletini Al</h3>
+          <h3 className="text-xl font-bold text-white">{t('ticket.buy')}</h3>
           <p className="text-sm text-white/60">{event?.title}</p>
           <p className="text-lg font-bold text-orange-400 mt-1">{displayCurrency}{formattedPrice}</p>
           {event?.date && <p className="text-xs text-white/50 mt-1">{new Date(event.date).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}</p>}
@@ -197,10 +197,16 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
           {step === 1 ? (
             <div className="flex flex-col gap-3">
               <div className="rounded-xl bg-white/5 p-3 text-center mb-2">
-                <p className="text-xs text-white/60 mb-2">Bölgenizi seçin</p>
+                <p className="text-xs text-white/60 mb-2">{t('ticket.form.selectRegion')}</p>
                 <div className="flex gap-2 justify-center">
-                  <button onClick={() => setCountry('TR')} className={`px-4 py-2 rounded-lg text-sm font-bold transition ${country === 'TR' ? 'bg-orange-500 text-white' : 'bg-white/10 text-white/70 hover:bg-white/20'}`}>Türkiye</button>
-                  <button onClick={() => setCountry('OTHER')} className={`px-4 py-2 rounded-lg text-sm font-bold transition ${country === 'OTHER' ? 'bg-orange-500 text-white' : 'bg-white/10 text-white/70 hover:bg-white/20'}`}>Diğer</button>
+                  <button onClick={() => setCountry('TR')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition ${country === 'TR' ? 'bg-orange-500 text-white' : 'bg-white/10 text-white/70 hover:bg-white/20'}`}>
+                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" fill="#E30A17"/><path d="M12 2L12 22M2 12L22 12" stroke="#fff" strokeWidth="1.5"/><circle cx="12" cy="12" r="4" fill="none" stroke="white" strokeWidth="1"/></svg>
+                    {t('ticket.form.turkey')}
+                  </button>
+                  <button onClick={() => setCountry('OTHER')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition ${country === 'OTHER' ? 'bg-orange-500 text-white' : 'bg-white/10 text-white/70 hover:bg-white/20'}`}>
+                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none"><circle cx="12" cy="12" r="10" stroke="white" strokeWidth="1.5" fill="#2563eb"/><path d="M2 12h20M12 2c3 4 3 16 0 20M12 2c-3 4-3 16 0 20M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07" stroke="white" strokeWidth="1"/></svg>
+                    {t('ticket.form.international')}
+                  </button>
                 </div>
               </div>
 
@@ -323,17 +329,17 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
                   <div className="h-8 w-8 animate-spin rounded-full border-4 border-purple-400/30 border-t-purple-400" />
                 </div>
               </div>
-              <h3 className="text-xl font-bold text-white text-center">Ödeme Sayfası</h3>
-              <p className="text-center text-white/70 text-sm">Ödeme sayfanız yeni sekmede açıldı. Ödemeyi tamamlayıp buradaki butona tıkladığınızda biletiniz otomatik oluşturulacaktır.</p>
+              <h3 className="text-xl font-bold text-white text-center">{t('ticket.form.paymentPageTitle')}</h3>
+              <p className="text-center text-white/70 text-sm">{t('ticket.form.paymentPageOpened')}</p>
 
               {checkError && <div className="w-full rounded-xl bg-red-500/20 px-4 py-3 text-sm text-red-300 text-center">{checkError}</div>}
 
               <button onClick={handleCheckPayment} disabled={checkingPayment} className="block w-full text-center py-3 px-6 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 disabled:from-gray-600 disabled:to-gray-600 text-white font-bold rounded-xl text-lg transition-all">
-                {checkingPayment ? 'Kontrol Ediliyor...' : 'Ödemeyi Tamamladım → Bilet Oluştur'}
+                {checkingPayment ? t('ticket.form.checkingPayment') : t('ticket.form.checkPayment')}
               </button>
 
               <a href={paymentLink} target="_blank" rel="noopener noreferrer" className="text-center text-orange-400 text-sm hover:underline">
-                Ödeme sayfasına tekrar git
+                {t('ticket.form.reopenPayment')}
               </a>
             </div>
           ) : null}

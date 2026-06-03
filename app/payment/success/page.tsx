@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { QRCodeSVG } from 'qrcode.react'
 import { api, type Event } from '../../lib/api'
+import { useLocale } from '../../context/LocaleContext'
 
 interface ClaimResult {
   success: boolean
