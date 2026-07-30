@@ -210,7 +210,7 @@ export default function TicketPurchaseModal({ isOpen, onClose }: TicketPurchaseM
                 </div>
               </div>
 
-              <a href="https://wa.me/905309992309" target="_blank" rel="noopener noreferrer" className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-green-500 to-green-600 p-4 transition hover:shadow-lg hover:shadow-green-500/30 active:scale-[0.98] text-left block">
+              <a href="https://wa.me/905337743572" target="_blank" rel="noopener noreferrer" className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-green-500 to-green-600 p-4 transition hover:shadow-lg hover:shadow-green-500/30 active:scale-[0.98] text-left block">
                 <div className="flex items-center gap-4">
                   <div className="relative flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-white/10">
                     <svg viewBox="0 0 24 24" className="h-6 w-6 fill-white" aria-hidden="true">
